@@ -1,0 +1,186 @@
+#!/bin/bash
+
+## 2018.1.31 validate the accuracy of cutting long tail PPR
+  #  echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=100000, nsteps=20, tail=0, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0 R 100000 L 20 tail 0
+  # done
+
+  #  echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=100000, nsteps=20, tail=0.03, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0 R 100000 L 20 tail 0.03
+  # done
+
+  # echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=100000, nsteps=20, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0 R 100000 L 20 tail 0.05
+  # done
+
+  #  echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=100000, nsteps=20, tail=0.10, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0 R 100000 L 20 tail 0.10
+  # done
+
+## 2018.1.31 validate the accuracy of cutting long tail AvgDegree
+  echo "app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  echo "1000*1000 tail=0, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  for(( times = 0; times < 10; times++))
+  do
+      echo "times = " $times " from echo"
+      bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal_undirected/LiveJournal1.txt' N 3720986 R 1000 L 1000 tail 0
+  done
+
+  echo "app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  echo "1000*1000 tail=0.03, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  for(( times = 0; times < 10; times++))
+  do
+      echo "times = " $times " from echo"
+      bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal_undirected/LiveJournal1.txt' N 3720986 R 1000 L 1000 tail 0.03
+  done
+
+  echo "app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  echo "1000*1000 tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  for(( times = 0; times < 10; times++))
+  do
+      echo "times = " $times " from echo"
+      bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal_undirected/LiveJournal1.txt' N 3720986 R 1000 L 1000 tail 0.05
+  done
+
+  echo "app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  echo "1000*1000 tail=0.10, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  for(( times = 0; times < 10; times++))
+  do
+      echo "times = " $times " from echo"
+      bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal_undirected/LiveJournal1.txt' N 3720986 R 1000 L 1000 tail 0.10
+  done
+
+  ##2018.1.27  compare Storage Management
+  # echo "app = AvgDegree, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo " R = 100000, L = 20, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' N 4847571 R 100000 L 20 tail 0.05
+  # done
+
+  ## 2018.1.18 comparison with GraphChi
+  # echo "app = AvgDegree, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo " R = 1000, L = 1000, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' N 4847571 R 1000 L 1000 tail 0.05
+  # done
+
+  # echo "app = AvgDegree, dataset = twitter_rv.net from echo" >> graphchi_metrics.txt.statistics 
+  # echo " R = 1000, L = 1000, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/Twitter/twitter_rv.net' N 61578415 R 1000 L 1000 tail 0.05
+  # done
+
+  ## 2018.1.18 comparison
+  # echo "app = RWDomination, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo " R = 10, L = 10, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/rwdomination file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' N 4847571 R 10 L 10 tail 0.05
+  # done
+
+  # echo "app = RWDomination, dataset = twitter_rv.net from echo" >> graphchi_metrics.txt.statistics 
+  # echo " R = 10, L = 10, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/rwdomination file '/home/wang/Documents/graph processing system/dataset/Twitter/twitter_rv.net' N 61578415 R 10 L 10 tail 0.05
+  # done
+
+## 2018.1.15 validate the accuracy of cutting long tail AvgDegree
+  #  echo "app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo " nsteps=20, tail=0, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal_undirected/LiveJournal1.txt' N 3720986 R 1000 L 1000 tail 0
+  # done
+
+  # echo "app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo " nsteps=20, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/avgdegree file '/home/wang/Documents/graph processing system/dataset/LiveJournal_undirected/LiveJournal1.txt' N 3720986 R 1000 L 1000 tail 0.05
+  # done
+
+  ## 2018.1.15 validate the accuracy of cutting long tail PPR
+  #  echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=100000, nsteps=20, tail=0, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0 R 100000 L 20 tail 0
+  # done
+
+  #  echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=100000, nsteps=20, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0 R 100000 L 20 tail 0.05
+  # done
+
+
+  # echo "app = PPR, dataset = twitter_rv.net from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=12, nsource=1, walkspersource=100000, nsteps=20, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/Twitter/twitter_rv.net' nvertices 61578415 source 12 R 100000 L 20
+  # done
+
+  ## 2018.1.11 comparison SR & PPR
+  # echo "app = SimRank, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "R = 1600, L = 10,  a = 0, b = 1, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/simrank file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' R 1600 L 10 a 0 b 1
+  # done
+
+  # echo "app = SimRank, dataset = twitter_rv.net from echo" >> graphchi_metrics.txt.statistics 
+  # echo "R = 1600, L = 10,  a = 12, b = 13, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/simrank file '/home/wang/Documents/graph processing system/dataset/Twitter/twitter_rv.net' R 1600 L 10 a 12 b 13
+  # done
+
+  # echo "app = PPR, dataset = soc-LiveJournal1.txt from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=0, nsource=1, walkspersource=1, nsteps=10000, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt' source 0
+  # done
+
+  # echo "app = PPR, dataset = twitter_rv.net from echo" >> graphchi_metrics.txt.statistics 
+  # echo "source=12, nsource=1, walkspersource=1, nsteps=10000, tail=0.05, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+  # for(( times = 0; times < 10; times++))
+  # do
+  #     echo "times = " $times " from echo"
+  #     bin/apps/ppr file '/home/wang/Documents/graph processing system/dataset/Twitter/twitter_rv.net' source 12
+  # done
