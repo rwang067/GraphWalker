@@ -337,3 +337,6 @@ app = AvgDegree, dataset = undirected-LiveJournal1.txt from echo
 4  	  81.1098
 4  	  88.7651
 7  	  25.1262
+7  	  26.8633
+17  	  60.9802
+7  	  26.0749

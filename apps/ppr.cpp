@@ -138,7 +138,7 @@ int main(int argc, const char ** argv) {
     metrics m("randomwalk");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "/home/wang/Documents/dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     int nvertices = get_option_int("nvertices", 4847571); // Number of vertices
     int source = get_option_int("source", 0); // vertex id of start source
     int nsources = get_option_int("nsources", 1); // Number of sources
@@ -166,7 +166,7 @@ int main(int argc, const char ** argv) {
     }
     // read the accurate value
         float *ppv = (float*)malloc(nvertices*sizeof(float));
-        std::string PPV_file = "/home/wang/Documents/graph processing system/dataset/LiveJournal1/PPR0.vout";
+        std::string PPV_file = "/home/wang/Documents/dataset/LiveJournal/PPR0.vout";
         int f1 = open(PPV_file.c_str(), O_RDONLY, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (f1 < 0) {
             logstream(LOG_ERROR) << "Could not open " << PPV_file << " error: " << strerror(errno) << std::endl;
