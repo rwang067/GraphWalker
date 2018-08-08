@@ -51,7 +51,7 @@
                 int nshards_candidate = try_shard_num;
                 bool success = true;
                 // Validate all relevant files exists
-                std::cout << nshards_candidate << std::endl;
+                // logstream(LOG_INFO) << nshards_candidate << std::endl;
 
                 for(int p=0; p < nshards_candidate; p++) {
                     std::string sname = intervalname(base_filename, p);
@@ -96,22 +96,22 @@
             writefile(invlname, buf, bufptr);
             std::pair<vid_t, vid_t> invl(stv, env-1);
             invls.push_back(invl);
-            std::cout << invlid << " " << stv << " " << env-1 << std::endl;
+            logstream(LOG_INFO) << invlid << " " << stv << " " << env-1 << std::endl;
             stv = env;
             invlid++;
             cursize = 0;
         }
         //if( count == 216 )
-            //std::cout << "attention ! " << std::endl;
+            //logstream(LOG_INFO) << "attention ! " << std::endl;
         *((int*)bufptr) = count;
-        // if( env < 10 ) std::cout << *((int*)bufptr) << " : ";
+        // if( env < 10 ) logstream(LOG_INFO) << *((int*)bufptr) << " : ";
         bufptr += sizeof(int);
         for( int i = 0; i < count; i++ ){
             *((vid_t*)bufptr) = outv[i];
-             // if( env < 10 )  std::cout << *((int*)bufptr) << " ";
+             // if( env < 10 )  logstream(LOG_INFO) << *((int*)bufptr) << " ";
             bufptr += sizeof(vid_t);
         }
-        // if( env < 10 )  std::cout << std::endl;
+        // if( env < 10 )  logstream(LOG_INFO) << std::endl;
         cursize += count + 1;
         env++;
     }
@@ -176,13 +176,15 @@
             }
         }
         fclose(inf);
+        logstream(LOG_INFO) << "count = " << count << std::endl;
+        bwrite( buf, bufptr, count, outv, filename);
         std::string invlname = intervalname(filename, invlid);
         writefile(invlname, buf, bufptr);
-        std::pair<vid_t, vid_t> invl(stv, env);
+        std::pair<vid_t, vid_t> invl(stv, env-1);
         invls.push_back(invl);
-        std::cout << invlid << " " << stv << " " << env << std::endl;
+        logstream(LOG_INFO) << invlid << " " << stv << " " << env-1 << std::endl;
         invlnum = invlid+1;
-        std::cout << "Partitioned interval number : " << invlnum << std::endl;
+        logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << std::endl;
 
         /*write interval info*/
         std::string intervalsFilename = filename_intervals(filename, invlnum);

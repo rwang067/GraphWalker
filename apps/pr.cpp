@@ -34,20 +34,22 @@ public:
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
+        for( int p = 0; p < nshards; p++ )
+            walk_manager.pwalks[p].reserve(R/nshards+1);
         srand((unsigned)time(NULL));
         for( unsigned i = 0; i < R; i++ ){
             vid_t s = rand() % N;
             int p = getInterval(s);
             vid_t cur = s - intervals[p].first;
             WalkDataType walk = walk_manager.encode(i, cur, 0);
-            walk_manager.walks[p].push_back(walk);
+            walk_manager.pwalks[p].push_back(walk);
             walk_manager.minstep[p] = 0;
         }
         walk_manager.freshIntervalWalks();
     }
 
     void updateInfo(vid_t dstId){
-        // std::cout << "dstId, st : " << dstId << " " << cur_window_st << std::endl;
+        // logstream(LOG_INFO) << "dstId, st : " << dstId << " " << cur_window_st << std::endl;
         #pragma omp critical
         {
             vertex_value[dstId-cur_window_st]++;
@@ -59,7 +61,7 @@ public:
      */
     void before_exec_interval(vid_t window_st, vid_t window_en) {
         /*load vertex value*/
-        // std::cout << "before_exec_interval : " << window_st << " " << window_en << std::endl;
+        // logstream(LOG_INFO) << "before_exec_interval : " << window_st << " " << window_en << std::endl;
         cur_window_st = window_st;
         unsigned  window_len =  window_en -  window_st + 1;
         vertex_value = (unsigned*)malloc(sizeof(unsigned)*window_len);
@@ -92,7 +94,7 @@ public:
         unsigned sum = 0;
         for( unsigned i = 0; i < N; i++ )
             sum += vertex_value[i];
-        std::cout << "sum : " << sum << std::endl;
+        logstream(LOG_INFO) << "sum : " << sum << std::endl;
         free(vertex_value);
 
         // conpute the counting probability
@@ -100,7 +102,7 @@ public:
         vid_t st = 0, len = 0;
         while( st < N ){
             len = N-st < maxwindow ? N-st : maxwindow;
-            std::cout << " s , len : " << st << " " << len << std::endl;
+            logstream(LOG_INFO) << " s , len : " << st << " " << len << std::endl;
             // len = min( maxwindow, N - st );
             vertex_value = (unsigned*)malloc(sizeof(unsigned)*len);
             fv = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -133,7 +135,7 @@ int main(int argc, const char ** argv) {
     metrics m("randomwalk");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     int nvertices = get_option_int("nvertices", 4847571); // Number of vertices
     int R = get_option_int("R", 48475710); // Number of steps
     int L = get_option_int("L", 6); // Number of steps per walk
@@ -151,11 +153,11 @@ int main(int argc, const char ** argv) {
     
     program.writeFile();
     /* List top 20 */
-    int ntop = 50;
+    int ntop = 20;
     std::vector< vertex_value<VertexDataType> > top = get_top_vertices<VertexDataType>(filename, ntop);
-    std::cout << "Print top 20 vertices: " << std::endl;
+    logstream(LOG_INFO) << "Print top 20 vertices: " << std::endl;
     for(int i=0; i < (int) top.size(); i++) {
-        std::cout << (i+1) << ". " << top[i].vertex << "\t" << top[i].value << std::endl;
+        logstream(LOG_INFO) << (i+1) << ". " << top[i].vertex << "\t" << top[i].value << std::endl;
     }
     // read the accurate value
       /*  float *ppv = (float*)malloc(nvertices*sizeof(float));
@@ -173,7 +175,7 @@ int main(int argc, const char ** argv) {
             err += fabs(top[i].value - ppv[top[i].vertex])/ppv[top[i].vertex];//(ppv[i]-visit_prob[i])*(ppv[i]-visit_prob[i]);
         }
         err = err / ntop;
-        std::cout << "Error : " << err << std::endl;
+        logstream(LOG_INFO) << "Error : " << err << std::endl;
 
         std::ofstream errfile;
         errfile.open("/home/wang/Documents/graph processing system/dataset/LiveJournal1/ppv0.error", std::ofstream::app);
@@ -182,7 +184,7 @@ int main(int argc, const char ** argv) {
         free(ppv);*/
 
 
-    //std::cout << "average degree : " << program.count << " " << program.degree*1.0/program.count << std::endl;
+    //logstream(LOG_INFO) << "average degree : " << program.count << " " << program.degree*1.0/program.count << std::endl;
 
     /* Report execution metrics */
     metrics_report(m);

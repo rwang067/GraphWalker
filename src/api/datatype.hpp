@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include "logger/logger.hpp"
 
 typedef uint32_t vid_t;
 typedef float VertexDataType;
@@ -10,11 +11,23 @@ typedef float VertexDataType;
 struct Vertex{
     vid_t vid;
     int outd;
-    std::vector<vid_t> outv;	
+    vid_t *outv;	
+    // std::vector<vid_t> outv;	
+    // ~Vertex(){
+    //     free(outv);
+    // }
 };
 
  vid_t random_outneighbor( Vertex v) {
-    return v.outv[((int) std::abs(random()) % v.outd)];
+    if(false){
+        logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
+        for( int i = 0; i < v.outd; i++ )
+            logstream(LOG_INFO) << v.outv[i] << " , ";
+        logstream(LOG_INFO) << std::endl;
+    }
+    int ran = (int) std::abs(random()) % v.outd;
+    return v.outv[ran];
+    // return v.outv[((int) std::abs(random()) % v.outd)];
     //return v.outv[(int) (std::abs(random()) % v.outd)];
 }
 #endif

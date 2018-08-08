@@ -17,8 +17,15 @@ class SimpleRandomWalk : public RandomWalk{
     /**
      *  Walk update function.
      */
-    void updateByWalk(WalkDataType walk, int exec_interval, std::vector<Vertex > &vertices, WalkManager &walk_manager){
+    void updateByWalk(WalkDataType walk, int exec_interval, Vertex *&vertices, WalkManager &walk_manager){
             // std::cout << "updateByWalk ... " << std::endl;
+            for(int i = 0; i < 0; i++){
+                Vertex v = vertices[i];
+                logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
+                for( int i = 0; i < v.outd; i++ )
+                    logstream(LOG_INFO) << v.outv[i] << " , ";
+                logstream(LOG_INFO) << std::endl;
+            }
             WalkDataType nowwalk = walk;
             vid_t curId = walk_manager.getCurrentId(nowwalk) + intervals[exec_interval].first;
             vid_t dstId = curId;
@@ -39,6 +46,8 @@ class SimpleRandomWalk : public RandomWalk{
             // std::cout  << " to " << dstId << std::endl;
             if( hop%nsteps != nsteps-1 ){
                 int p = getInterval( dstId );
+                if(p==-1) logstream(LOG_FATAL) << "Invalid p = -1 with dstId = " << dstId << std::endl;
+                // logstream(LOG_INFO) << " p = " << p << " with dstId = " << dstId << std::endl;
                 walk_manager.moveWalk(nowwalk, p, dstId - intervals[p].first);
                 walk_manager.setMinStep( p, hop );
             }else if(dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second){

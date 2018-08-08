@@ -11,3 +11,8 @@
     make sure the right address
 
 3.Segmentation fault (core dumped)
+
+4.  INFO:     graphwalker.hpp(run:192): numIntervals: 3 : 1
+    terminate called after throwing an instance of 'std::bad_alloc'
+    what():  std::bad_alloc
+    Aborted (core dumped)

@@ -73,7 +73,7 @@ public:
      *  Walk update function.
      */
     //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, int sub_interval_st, int sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
-    void updateByWalk(WalkDataType walk, int exec_interval, std::vector<Vertex > &vertices, WalkManager &walk_manager, VertexDataType* vertex_value){
+    void updateByWalk(WalkDataType walk, int exec_interval, Vertex *&vertices, WalkManager &walk_manager, VertexDataType* vertex_value){
             WalkDataType nowWalk = walk;
             vid_t dstId = walk_manager.getCurrentId(nowWalk) + intervals[exec_interval].first;
             int hop = walk_manager.getHop(nowWalk);

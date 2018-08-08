@@ -65,8 +65,7 @@ public:
 
         load_vertex_intervals(base_filename, nshards, intervals);
         nvertices = num_vertices();
-        walk_manager = new WalkManager(m);
-        walk_manager->initialnizeWalks(nshards, base_filename);
+        walk_manager = new WalkManager(m,nshards,base_filename);
 
         _m.set("file", _base_filename);
         _m.set("engine", "default");
@@ -76,7 +75,8 @@ public:
     virtual ~graphwalker_engine() {
     }
 
-    void loadSubGraph(int p, std::vector<Vertex> &vertices ){
+    void loadSubGraph(int p, Vertex *&vertices ){
+        m.start_time("loadSubGraph");
         std::string invlname = intervalname( base_filename, p );
         int inf = open(invlname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (inf < 0) {
@@ -87,48 +87,64 @@ public:
         size_t sz = readfull(inf, &buf);
         char * bufptr = buf;
         int vcnt = sz / sizeof(int);
-        int curvertex = intervals[p].first;
-        vertices.clear();
+        int curvertex = 0;//intervals[p].first;
+        // vertices.clear();
+        int numv = (intervals[p].second-intervals[p].first+1);
+        // logstream(LOG_INFO) << "numv = " << numv << std::endl;
+        vertices = (Vertex*)malloc((numv+1)*sizeof(Vertex));
         while( vcnt > 0 ){
             Vertex v;
-            v.vid = curvertex;
+            v.vid = curvertex + intervals[p].first;
             int dcnt = *((int*)bufptr);
             bufptr += sizeof(int);
-            v.outd = dcnt;
-            for( int i = 0; i < v.outd; i++ ){
+            v.outd = 0;
+            v.outv = (vid_t*)malloc(dcnt*sizeof(vid_t));
+            for( int i = 0; i < dcnt; i++ ){
                 vid_t to = *((vid_t*)bufptr);
                 bufptr += sizeof(vid_t);
-                v.outv.push_back(to);
+                // logstream(LOG_WARNING) << "v.outd, dcnt :" << v.outd << " , " << dcnt << std::endl;
+                v.outv[v.outd++] = to;
+                // v.outv.push_back(to);
             }
-            vertices.push_back(v);
-            curvertex++;
+            // if(curvertex < 3 || curvertex >= numv-3 ){
+            //     logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
+            //     for( int i = 0; i < v.outd; i++ )
+            //         logstream(LOG_INFO) << v.outv[i] << " , ";
+            //     logstream(LOG_INFO) << std::endl;
+            // }
+            // vertices.push_back(v);
+            // logstream(LOG_WARNING) << "curvertex :" << curvertex << std::endl;
+            vertices[curvertex++] = v;
+            // curvertex++;
             vcnt -= (v.outd + 1);
+            // free(v.outv);
         }
         free(buf);
         close(inf);
+        m.stop_time("loadSubGraph");
     }
 
     void initialnizeVertexData(){
-        std::cout << "initialnizeVertexData " << std::endl;
+        logstream(LOG_INFO) << "initialnizeVertexData " << std::endl;
         char *vertex_value = (char *)malloc(sizeof(VertexDataType)*nvertices);
         char *vertex_valueptr = vertex_value;
         for( int i = 0; i < nvertices; i++ ){
             // vertex_value[i] = i;
             *((VertexDataType*)vertex_valueptr) = 0;
-            // std::cout << i << "  " << vertex_value[i] << std::endl;
-            // std::cout << i << "  " << *vertex_valueptr << std::endl;
+            // logstream(LOG_INFO) << i << "  " << vertex_value[i] << std::endl;
+            // logstream(LOG_INFO) << i << "  " << *vertex_valueptr << std::endl;
              vertex_valueptr += sizeof(VertexDataType);
         }
         std::string vertex_value_file = filename_vertex_data(base_filename);
-        std::cout << vertex_value_file << std::endl;
+        logstream(LOG_INFO) << vertex_value_file << std::endl;
         writefile(vertex_value_file, vertex_value, vertex_valueptr);
-        std::cout << "initialnizeVertexData  end" << std::endl;
+        logstream(LOG_INFO) << "initialnizeVertexData  end" << std::endl;
         free(vertex_value);
     }
 
     static VARIABLE_IS_NOT_USED void load_vertex_intervals(std::string base_filename, int nshards, std::vector<std::pair<vid_t, vid_t> > & intervals, bool allowfail=false) {
         std::string intervalsFilename = filename_intervals(base_filename, nshards);
-        std::cout << intervalsFilename << std::endl;
+        // logstream(LOG_INFO) << intervalsFilename << std::endl;
         std::ifstream intervalsF(intervalsFilename.c_str());
         
         if (!intervalsF.good()) {
@@ -155,15 +171,16 @@ public:
         return 1 + intervals[nshards - 1].second;
     }
 
-    void exec_updates(RandomWalk &userprogram, std::vector<Vertex> vertices ){ //, VertexDataType* vertex_value){
+    void exec_updates(RandomWalk &userprogram, Vertex *&vertices ){ //, VertexDataType* vertex_value){
         int count = walk_manager->readIntervalWalks(exec_interval);
         m.start_time("exec_updates");
         // exec_threads = 1;
         omp_set_num_threads(exec_threads);
-        #pragma omp parallel for schedule(dynamic)
+        // #pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(static)
             for( int i = 0; i < count; i++ ){
-                // std::cout << "walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
-                WalkDataType walk = walk_manager->curwalks[i];
+                // logstream(LOG_INFO) << "exec_interval : " << exec_interval << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
+                WalkDataType walk = walk_manager->pwalks[exec_interval][i];
                 userprogram.updateByWalk(walk, exec_interval, vertices, *walk_manager );//, vertex_value);
             }
         // #pragma omp barrier
@@ -172,37 +189,60 @@ public:
     }
 
     void run(RandomWalk &userprogram, float prob) {
-        srand((unsigned)time(NULL));
         m.start_time("runtime");
+        srand((unsigned)time(NULL));
         userprogram.startWalks(*walk_manager, nvertices, intervals);
         //initialnizeVertexData();
 
         /*loadOnDemand -- Interval loop */
         int numIntervals = 0;
-        std::vector<Vertex> vertices;
+        Vertex *vertices;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
+            m.start_time("in_run_interval");
             numIntervals++;
             float cc = ((float)rand())/RAND_MAX;
-            std::cout << cc << std::endl;
+            // logstream(LOG_DEBUG) << "proc < 0.2 --> minstep, choose probability = " << cc << std::endl;
             if( cc < prob ){
                 exec_interval = walk_manager->intervalWithMinStep();
             }else{
                 exec_interval =walk_manager->intervalWithMaxWalks();
             }
-            logstream(LOG_INFO) << "numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
+            logstream(LOG_DEBUG) << "numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
             //walk_manager->printWalksDistribution( exec_interval );
             /*runInterval*/
-            metrics_entry mr = m.start_time();
-            vertices.clear();
+            // vertices.clear();
             /*load graph info*/
             loadSubGraph(exec_interval, vertices);
+            // unsigned numv = (intervals[exec_interval].second-intervals[exec_interval].first+1);
+            // for(int i = 0; i < 3; i++){
+            //     Vertex v = vertices[i];
+            //     logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
+            //     for( int i = 0; i < v.outd; i++ )
+            //         logstream(LOG_INFO) << v.outv[i] << " , ";
+            //     logstream(LOG_INFO) << std::endl;
+            // }
+            // for(int i = numv-3; i < numv; i++){
+            //     Vertex v = vertices[i];
+            //     logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
+            //     for( int i = 0; i < v.outd; i++ )
+            //         logstream(LOG_INFO) << v.outv[i] << " , ";
+            //     logstream(LOG_INFO) << std::endl;
+            // }
+            logstream(LOG_INFO) << "loadSubGraph finish " << std::endl;
 
             // exec_updates( userprogram, vertices, vertex_value );
             userprogram.before_exec_interval(intervals[exec_interval].first, intervals[exec_interval].second);
             exec_updates(userprogram, vertices);
+            logstream(LOG_INFO) << "exec_updates finish " << std::endl;
             userprogram.after_exec_interval(intervals[exec_interval].first, intervals[exec_interval].second);
 
-            m.stop_time(mr, "_in_run_interval");
+            m.start_time("free vertices");
+            for(unsigned i = 0; i < (intervals[exec_interval].second-intervals[exec_interval].first+1); i++)
+                free(vertices[i].outv);
+            free(vertices);
+            m.stop_time("free vertices");
+
+            m.stop_time("in_run_interval");
         } // For Interval loop
         m.stop_time("runtime");
     }

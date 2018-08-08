@@ -43,7 +43,7 @@ public:
      *  Walk update function.
      */
     //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, int sub_interval_st, int sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
-    virtual void updateByWalk(WalkDataType walk, int exec_interval, std::vector<Vertex > &vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    virtual void updateByWalk(WalkDataType walk, int exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
     }
 
     virtual void initializeRW( int _nwalks, int _nsteps, float _tail) {
@@ -51,7 +51,7 @@ public:
         nsteps = _nsteps;
         tail = _tail;
         tailwalknum = (int)(nwalks*tail);
-        std::cout << nwalks << " " << nsteps << " " << tail << std::endl;
+        logstream(LOG_INFO) << nwalks << " " << nsteps << " " << tail << std::endl;
     }
 
     virtual void startWalks( WalkManager &walk_manager , int _nvertices, std::vector<std::pair<vid_t, vid_t> > _intervals ){

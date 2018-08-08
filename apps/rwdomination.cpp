@@ -136,10 +136,10 @@ int main(int argc, const char ** argv) {
     metrics m("randomwalk");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     int N = get_option_int("N", 4847571); // Number of vertices
-    int R = get_option_int("R", 10); // Number of steps
-    int L = get_option_int("L", 10); // Number of steps per walk
+    int R = get_option_int("R", 2); // Number of steps
+    int L = get_option_int("L", 6); // Number of steps per walk
     float tail = get_option_float("tail", 0.05); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     

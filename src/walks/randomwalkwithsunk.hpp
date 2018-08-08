@@ -9,7 +9,7 @@
 #include "api/datatype.hpp"
 
 class RandomWalkwithSunk : public RandomWalk {
-    void updateByWalk(WalkDataType walk, int exec_interval, std::vector<Vertex> &vertices, WalkManager &walk_manager){
+    void updateByWalk(WalkDataType walk, int exec_interval, Vertex *&vertices, WalkManager &walk_manager){
         WalkDataType nowwalk = walk;
         vid_t curId = walk_manager.getCurrentId(nowwalk) + intervals[exec_interval].first;
         vid_t dstId = curId;
