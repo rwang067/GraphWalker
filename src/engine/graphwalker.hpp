@@ -65,7 +65,7 @@ public:
 
         load_vertex_intervals(base_filename, nshards, intervals);
         nvertices = num_vertices();
-        walk_manager = new WalkManager(m,nshards,base_filename);
+        walk_manager = new WalkManager(m,nshards,exec_threads,base_filename);
 
         _m.set("file", _base_filename);
         _m.set("engine", "default");
@@ -173,6 +173,7 @@ public:
 
     void exec_updates(RandomWalk &userprogram, Vertex *&vertices ){ //, VertexDataType* vertex_value){
         int count = walk_manager->readIntervalWalks(exec_interval);
+        logstream(LOG_INFO) << "readIntervalWalks of exec_interval : " << exec_interval << " : " << count << std::endl;
         m.start_time("exec_updates");
         // exec_threads = 1;
         omp_set_num_threads(exec_threads);
@@ -180,7 +181,7 @@ public:
         #pragma omp parallel for schedule(static)
             for( int i = 0; i < count; i++ ){
                 // logstream(LOG_INFO) << "exec_interval : " << exec_interval << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
-                WalkDataType walk = walk_manager->pwalks[exec_interval][i];
+                WalkDataType walk = walk_manager->pwalks[0][exec_interval][i];
                 userprogram.updateByWalk(walk, exec_interval, vertices, *walk_manager );//, vertex_value);
             }
         // #pragma omp barrier
@@ -191,7 +192,9 @@ public:
     void run(RandomWalk &userprogram, float prob) {
         m.start_time("runtime");
         srand((unsigned)time(NULL));
+        m.start_time("startWalks");
         userprogram.startWalks(*walk_manager, nvertices, intervals);
+        m.stop_time("startWalks");
         //initialnizeVertexData();
 
         /*loadOnDemand -- Interval loop */

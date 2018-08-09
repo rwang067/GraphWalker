@@ -30,16 +30,19 @@ class SimpleRandomWalk : public RandomWalk{
             vid_t curId = walk_manager.getCurrentId(nowwalk) + intervals[exec_interval].first;
             vid_t dstId = curId;
             int hop = walk_manager.getHop(nowwalk);
+            static unsigned int seed = curId+hop;
             while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop%nsteps != nsteps-1 ){
                 // std::cout  << " -> " << dstId ;
                 Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
                 updateInfo(walk_manager, nowwalk, dstId);
                 updateInfo(dstId);
                 //nowVertex.set_data(nowVertex.get_data()+1);
-                if (nowVertex.outd > 0)
-                    dstId = random_outneighbor(nowVertex);
-                else
-                    dstId = rand() % nvertices;
+                if (nowVertex.outd > 0){
+                    dstId = random_outneighbor(nowVertex,seed);
+                }
+                else{
+                    dstId = rand_r(&seed) % nvertices;
+                }
                 hop++;
                 nowwalk++;
             }
@@ -48,7 +51,7 @@ class SimpleRandomWalk : public RandomWalk{
                 int p = getInterval( dstId );
                 if(p==-1) logstream(LOG_FATAL) << "Invalid p = -1 with dstId = " << dstId << std::endl;
                 // logstream(LOG_INFO) << " p = " << p << " with dstId = " << dstId << std::endl;
-                walk_manager.moveWalk(nowwalk, p, dstId - intervals[p].first);
+                walk_manager.moveWalk(nowwalk, p, omp_get_thread_num(), dstId - intervals[p].first);
                 walk_manager.setMinStep( p, hop );
             }else if(dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second){
                 updateInfo(dstId, vertices[dstId - intervals[exec_interval].first].outd);

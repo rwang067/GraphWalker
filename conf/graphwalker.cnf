@@ -1,7 +1,7 @@
 
 # GraphWalker configuration.
 # Commandline parameters override values in the configuration file.
-execthreads=4
+execthreads = 4
 loadthreads = 4
 niothreads = 2
 

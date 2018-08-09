@@ -34,17 +34,43 @@ public:
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
-        for( int p = 0; p < nshards; p++ )
-            walk_manager.pwalks[p].reserve(R/nshards+1);
-        srand((unsigned)time(NULL));
-        for( unsigned i = 0; i < R; i++ ){
-            vid_t s = rand() % N;
-            int p = getInterval(s);
-            vid_t cur = s - intervals[p].first;
-            WalkDataType walk = walk_manager.encode(i, cur, 0);
-            walk_manager.pwalks[p].push_back(walk);
+        //single thread to start walks
+        // int cap = R/nshards + 1;
+        // for( int p = 0; p < nshards; p++ )
+        //     walk_manager.pwalks[p][0].reserve(cap);
+        // srand((unsigned)time(NULL));
+
+        // for( unsigned i = 0; i < R; i++ ){
+        //     vid_t s = rand() % N;
+        //     int p = getInterval(s);
+        //     vid_t cur = s - intervals[p].first;
+        //     WalkDataType walk = walk_manager.encode(i, cur, 0);
+        //     walk_manager.pwalks[p][0].push_back(walk);
+        //     walk_manager.minstep[p] = 0;
+        // }
+
+        //muti threads to start walks
+        int nthreads = get_option_int("execthreads", omp_get_max_threads());
+        int cap = R/nshards/nthreads + 1;
+        for( int p = 0; p < nshards; p++ ){
+            for( int t = 0; t < nthreads; t++ )
+                walk_manager.pwalks[t][p].reserve(cap);
             walk_manager.minstep[p] = 0;
         }
+        srand((unsigned)time(NULL));
+        omp_set_num_threads(nthreads);
+        #pragma omp parallel for schedule(static)
+            for( unsigned i = 0; i < R; i++ ){
+                // static unsigned int seed = 123;
+                vid_t s = i%N;
+                // vid_t s = rand() % N;
+                // vid_t s = rand_r(&seed) % N;
+                int p = getInterval(s);
+                vid_t cur = s - intervals[p].first;
+                WalkDataType walk = walk_manager.encode(i, cur, 0);
+                walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+            }
+
         walk_manager.freshIntervalWalks();
     }
 
