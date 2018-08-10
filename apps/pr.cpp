@@ -148,6 +148,33 @@ public:
         }
     }
 
+    void computeError(int ntop){
+        //read the vertex value
+        float* visit_prob = (float*)malloc(sizeof(float)*N);
+        int fv = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        assert(fv >= 0);
+        preada(fv, vertex_value, sizeof(float)*N, 0);
+        close(fv);
+
+        // read the accurate value and compute the error
+        std::ifstream fin("/home/wang/Documents/dataset/LiveJournal/accurate_pr_top100.value");
+        int vid ;
+        float err=0, appv; //accurate pagerank value
+        for(int i = 0; i < ntop; i++ ){
+            fin >> vid >> appv;
+            logstream(LOG_INFO) << "vid appv vertex_value err: " << vid << " " << appv << " " << visit_prob[vid] << " " << (visit_prob[vid]-appv)/appv << std::endl;
+            err += fabs(visit_prob[vid]-appv)/appv;
+        }
+        free(visit_prob);
+        err = err / ntop;
+        logstream(LOG_DEBUG) << "Error : " << err << std::endl;
+
+        std::ofstream errfile;
+        errfile.open("/home/wang/Documents/dataset/LiveJournal/pr_top100.error", std::ofstream::app);
+        errfile << err << "\n" ;
+        errfile.close();
+    }
+
 };
 
 
@@ -178,39 +205,7 @@ int main(int argc, const char ** argv) {
     engine.run(program, prob);
     
     program.writeFile();
-    /* List top 20 */
-    int ntop = 20;
-    std::vector< vertex_value<VertexDataType> > top = get_top_vertices<VertexDataType>(filename, ntop);
-    logstream(LOG_INFO) << "Print top 20 vertices: " << std::endl;
-    for(int i=0; i < (int) top.size(); i++) {
-        logstream(LOG_INFO) << (i+1) << ". " << top[i].vertex << "\t" << top[i].value << std::endl;
-    }
-    // read the accurate value
-      /*  float *ppv = (float*)malloc(nvertices*sizeof(float));
-        std::string PPV_file = "/home/wang/Documents/graph processing system/dataset/LiveJournal1/PPR0.vout";
-        int f1 = open(PPV_file.c_str(), O_RDONLY, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        if (f1 < 0) {
-            logstream(LOG_ERROR) << "Could not open " << PPV_file << " error: " << strerror(errno) << std::endl;
-        }
-        assert(f1 >= 0);
-        preada(f1, ppv, nvertices*sizeof(float), 0);
-        close(f1);
-        //compute the error
-        float err = 0;
-        for( int i = 0; i < ntop; i++ ){
-            err += fabs(top[i].value - ppv[top[i].vertex])/ppv[top[i].vertex];//(ppv[i]-visit_prob[i])*(ppv[i]-visit_prob[i]);
-        }
-        err = err / ntop;
-        logstream(LOG_INFO) << "Error : " << err << std::endl;
-
-        std::ofstream errfile;
-        errfile.open("/home/wang/Documents/graph processing system/dataset/LiveJournal1/ppv0.error", std::ofstream::app);
-        errfile << err << "\n" ;
-        errfile.close();
-        free(ppv);*/
-
-
-    //logstream(LOG_INFO) << "average degree : " << program.count << " " << program.degree*1.0/program.count << std::endl;
+    program.computeError(100);
 
     /* Report execution metrics */
     metrics_report(m);

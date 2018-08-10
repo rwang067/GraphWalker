@@ -241,6 +241,7 @@ public:
 			int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 			for(int t=0;t<nthreads;t++){
 				if(!pwalks[t][p].isEmpty()){
+					// logstream(LOG_INFO) << "freshwalks t p pwalks[t][p].size() " << t << " " << p << " " << pwalks[t][p].size() << std::endl;
 					pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
 					walknum[p] += pwalks[t][p].size();
 					pwalks[t][p].resize(0);

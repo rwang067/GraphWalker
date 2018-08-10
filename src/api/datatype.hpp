@@ -26,6 +26,7 @@ struct Vertex{
         logstream(LOG_INFO) << std::endl;
     }
     int ran = rand_r(&seed) % v.outd;
+    // int ran = rand() % v.outd; //rand() cause data race in muti-threads 
     return v.outv[ran];
 }
 #endif
