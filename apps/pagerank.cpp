@@ -174,13 +174,14 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     int nvertices = get_option_int("nvertices", 4847571); // Number of vertices
+    int nedges = get_option_int("nedges", 68993773); // Number of vertices
     int R = get_option_int("R", 10); // Number of steps
     int L = get_option_int("L", 10); // Number of steps per walk
     float tail = get_option_float("tail", 0.05); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     
     /* Detect the number of shards or preprocess an input to create them */
-    int nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nvertices*R);
+    int nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, nvertices*R);
 
     /* Run */
     PageRank program;

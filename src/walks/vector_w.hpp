@@ -2,7 +2,7 @@
 #define DEF_VECTOR_W
 
 
-typedef unsigned long WalkDataType;
+#include "api/datatype.hpp"
 
 #define init_capacity 5
 

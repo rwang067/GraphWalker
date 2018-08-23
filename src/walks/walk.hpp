@@ -189,7 +189,9 @@ public:
 		int count = sz/sizeof(WalkDataType);
 		pwalks[0][p].resize(count);
 		pwalks[0][p].reserve(count);
-		int cap = count/(nshards-1)/nthreads + 1;
+		int cap;
+		if(nshards > 1) cap = count/(nshards-1)/nthreads + 1;
+		else cap = count/nthreads + 1;
 		for(int i=0;i<nshards;i++){
 			if(i!=p){
 				for(int t=0;t<nthreads;t++){
@@ -213,6 +215,7 @@ public:
 		walknum[p] = 0;
 		minstep[p] = 0xfffffff;
 		pwalks[0][p].resize(0);
+		pwalks[0][p].reserve(0);
 		for( p = 0; p < nshards; p++){
 			std::string walksfile = walksname( base_filename, p );
 			int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -224,6 +227,7 @@ public:
 					writea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType));
 					walknum[p] += pwalks[t][p].size();
 					pwalks[t][p].resize(0);
+					pwalks[t][p].reserve(0);
 				}
 			}
 			close(f);
