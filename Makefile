@@ -1,13 +1,14 @@
 INCFLAGS = -I/usr/local/include/ -I./src/
 
 CPP = g++
-CPPFLAGS = -g -O0 $(INCFLAGS)  -fopenmp -Wall -Wno-strict-aliasing 
+# CPPFLAGS = -g -O0 $(INCFLAGS)  -fopenmp -Wall -Wno-strict-aliasing 
+CPPFLAGS = -g -O3 $(INCFLAGS)  -fopenmp -Wall -Wno-strict-aliasing 
 LINKERFLAGS = -lz
 DEBUGFLAGS = -g -ggdb $(INCFLAGS)
 HEADERS=$(shell find . -name '*.hpp')
 
 
-apps: apps/avgdegree apps/ppr apps/pagerank apps/simrank
+apps : apps/pagerank apps/personalizedpagerank apps/simrank apps/avgdegree apps/rwdomination apps/reachability
 
 echo:
 	echo $(HEADERS)

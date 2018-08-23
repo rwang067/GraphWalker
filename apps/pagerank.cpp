@@ -7,10 +7,10 @@
 #include <fstream>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/simplerandomwalk.hpp"
+#include "walks/randomwalkwithjump.hpp"
 #include "util/toplist.hpp"
 
-class PageRank : public SimpleRandomWalk{
+class PageRank : public RandomWalkwithJump{
 private:
     unsigned N, R, L;
     unsigned *vertex_value;
@@ -34,21 +34,6 @@ public:
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
-        //single thread to start walks
-        // int cap = R/nshards + 1;
-        // for( int p = 0; p < nshards; p++ )
-        //     walk_manager.pwalks[p][0].reserve(cap);
-        // srand((unsigned)time(NULL));
-
-        // for( unsigned i = 0; i < R; i++ ){
-        //     vid_t s = rand() % N;
-        //     int p = getInterval(s);
-        //     vid_t cur = s - intervals[p].first;
-        //     WalkDataType walk = walk_manager.encode(i, cur, 0);
-        //     walk_manager.pwalks[p][0].push_back(walk);
-        //     walk_manager.minstep[p] = 0;
-        // }
-
         //muti threads to start walks
         int nthreads = get_option_int("execthreads", omp_get_max_threads());
         int cap = R/nshards/nthreads + 1;
@@ -60,26 +45,25 @@ public:
         srand((unsigned)time(NULL));
         omp_set_num_threads(nthreads);
         #pragma omp parallel for schedule(static)
-            for( unsigned i = 0; i < R; i++ ){
-                // static unsigned int seed = 123;
-                vid_t s = i%N;
-                // vid_t s = rand() % N;
-                // vid_t s = rand_r(&seed) % N;
+            for( unsigned i = 0; i < N; i++ ){
+                vid_t s = i;
                 int p = getInterval(s);
                 vid_t cur = s - intervals[p].first;
                 WalkDataType walk = walk_manager.encode(i, cur, 0);
-                walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+                for( unsigned i = 0; i < R; i++ ){
+                    walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+                }
             }
 
         walk_manager.freshIntervalWalks();
     }
 
     void updateInfo(vid_t dstId){
-        // logstream(LOG_INFO) << "dstId, st : " << dstId << " " << cur_window_st << std::endl;
-        #pragma omp critical
-        {
-            vertex_value[dstId-cur_window_st]++;
-        }
+        vertex_value[dstId-cur_window_st]++; // #pragma omp critical
+        // #pragma omp critical
+        // {
+        //     vertex_value[dstId-cur_window_st]++; // #pragma omp critical
+        // }
     }
 
     /**
@@ -153,7 +137,7 @@ public:
         float* visit_prob = (float*)malloc(sizeof(float)*N);
         int fv = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         assert(fv >= 0);
-        preada(fv, vertex_value, sizeof(float)*N, 0);
+        preada(fv, visit_prob, sizeof(float)*N, 0);
         close(fv);
 
         // read the accurate value and compute the error
@@ -162,7 +146,7 @@ public:
         float err=0, appv; //accurate pagerank value
         for(int i = 0; i < ntop; i++ ){
             fin >> vid >> appv;
-            logstream(LOG_INFO) << "vid appv vertex_value err: " << vid << " " << appv << " " << visit_prob[vid] << " " << (visit_prob[vid]-appv)/appv << std::endl;
+            // logstream(LOG_INFO) << "vid appv vertex_value err: " << vid << " " << appv << " " << visit_prob[vid] << " " << fabs(visit_prob[vid]-appv)/appv << std::endl;
             err += fabs(visit_prob[vid]-appv)/appv;
         }
         free(visit_prob);
@@ -190,13 +174,13 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     int nvertices = get_option_int("nvertices", 4847571); // Number of vertices
-    int R = get_option_int("R", 48475710); // Number of steps
-    int L = get_option_int("L", 6); // Number of steps per walk
+    int R = get_option_int("R", 10); // Number of steps
+    int L = get_option_int("L", 10); // Number of steps per walk
     float tail = get_option_float("tail", 0.05); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     
     /* Detect the number of shards or preprocess an input to create them */
-    int nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"));
+    int nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nvertices*R);
 
     /* Run */
     PageRank program;

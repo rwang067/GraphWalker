@@ -191,7 +191,7 @@ public:
 
     void run(RandomWalk &userprogram, float prob) {
         m.start_time("runtime");
-        srand((unsigned)time(NULL));
+        // srand((unsigned)time(NULL));
         m.start_time("startWalks");
         userprogram.startWalks(*walk_manager, nvertices, intervals);
         m.stop_time("startWalks");
@@ -212,28 +212,9 @@ public:
             }
             logstream(LOG_DEBUG) << "numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
             //walk_manager->printWalksDistribution( exec_interval );
-            /*runInterval*/
-            // vertices.clear();
             /*load graph info*/
             loadSubGraph(exec_interval, vertices);
-            // unsigned numv = (intervals[exec_interval].second-intervals[exec_interval].first+1);
-            // for(int i = 0; i < 3; i++){
-            //     Vertex v = vertices[i];
-            //     logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
-            //     for( int i = 0; i < v.outd; i++ )
-            //         logstream(LOG_INFO) << v.outv[i] << " , ";
-            //     logstream(LOG_INFO) << std::endl;
-            // }
-            // for(int i = numv-3; i < numv; i++){
-            //     Vertex v = vertices[i];
-            //     logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
-            //     for( int i = 0; i < v.outd; i++ )
-            //         logstream(LOG_INFO) << v.outv[i] << " , ";
-            //     logstream(LOG_INFO) << std::endl;
-            // }
             logstream(LOG_INFO) << "loadSubGraph finish " << std::endl;
-
-            // exec_updates( userprogram, vertices, vertex_value );
             userprogram.before_exec_interval(intervals[exec_interval].first, intervals[exec_interval].second);
             exec_updates(userprogram, vertices);
             logstream(LOG_INFO) << "exec_updates finish " << std::endl;

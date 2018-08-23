@@ -72,7 +72,7 @@ public:
         }
         return -1;
     }
-
+    
     /**
      * check if it has finished all walks
      */

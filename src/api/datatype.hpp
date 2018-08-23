@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "logger/logger.hpp"
 
+#define	RAND_MAX	2147483647
+
 typedef uint32_t vid_t;
 typedef float VertexDataType;
 

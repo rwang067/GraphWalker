@@ -115,6 +115,93 @@
         cursize += count + 1;
         env++;
     }
+
+    /**
+     * Converts graph from an edge list format. Input may contain
+     * value for the edges. Self-edges are ignored.
+     */
+    int convert_by_walks(std::string filename, int nshards, int R) {
+        
+        int invlsize = computeInvlSize();
+        FILE * inf = fopen(filename.c_str(), "r");
+        if (inf == NULL) {
+            logstream(LOG_FATAL) << "Could not load :" << filename << " error: " << strerror(errno) << std::endl;
+        }
+        assert(inf != NULL);
+
+        mkdir((filename+"_GraphWalker/").c_str(), 0777);
+        mkdir((filename+"_GraphWalker/graphinfo/").c_str(), 0777);
+        
+        logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
+
+        char * buf = (char*) malloc(2*invlsize*sizeof(int));
+        char * bufptr = buf;
+        
+        char s[1024];
+        invlid = 0;
+        vid_t curvertex = 0;
+        int count = 0;
+        cursize = 0;
+        std::vector<vid_t> outv;
+        stv = env = 0;
+        while(fgets(s, 1024, inf) != NULL) {
+            if (s[0] == '#') continue; // Comment
+            if (s[0] == '%') continue; // Comment
+            
+            char *t1, *t2;
+            t1 = strtok(s, "\t, ");
+            t2 = strtok(NULL, "\t, ");
+            if (t1 == NULL || t2 == NULL ) {
+                logstream(LOG_ERROR) << "Input file is not in right format. "
+                << "Expecting \"<from>\t<to>\". "
+                << "Current line: \"" << s << "\"\n";
+                assert(false);
+            }
+            vid_t from = atoi(t1);
+            vid_t to = atoi(t2);
+            if( from == to ) continue;
+            if( from == curvertex ){
+                outv.push_back(to);
+                count++;
+            }else{
+                bwrite( buf, bufptr, count, outv, filename);
+                if( from - curvertex > 1 ){ 
+                    bwritezero( buf, bufptr, from-curvertex-1 ); 
+                    env += from - curvertex -1 ;
+                }
+                curvertex = from;
+                count = 1;
+                outv.clear();
+                outv.push_back(to);     
+            }
+        }
+        fclose(inf);
+        logstream(LOG_INFO) << "count = " << count << std::endl;
+        bwrite( buf, bufptr, count, outv, filename);
+        std::string invlname = intervalname(filename, invlid);
+        writefile(invlname, buf, bufptr);
+        std::pair<vid_t, vid_t> invl(stv, env-1);
+        invls.push_back(invl);
+        logstream(LOG_INFO) << invlid << " " << stv << " " << env-1 << std::endl;
+        invlnum = invlid+1;
+        logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << std::endl;
+
+        /*write interval info*/
+        std::string intervalsFilename = filename_intervals(filename, invlnum);
+        std::ofstream intervalsF(intervalsFilename.c_str());      
+        for( int p = 0; p < invlnum; p++ ){
+            intervalsF << invls[p].second << std::endl;
+        }
+        intervalsF.close();
+
+        /*write nvertices*/
+        std::string nverticesFilename = filename_nvertices(filename);
+        std::ofstream nverticesF(nverticesFilename.c_str());      
+        nverticesF << invls[invlnum-1].second+1 << std::endl;
+        intervalsF.close();
+        
+        return invlnum;
+    }
     
     /**
      * Converts graph from an edge list format. Input may contain
@@ -214,8 +301,13 @@
         return nshards;
     }
     
-    int convert_if_notexists(std::string basefilename, std::string nshards_string) {
+    int convert_if_notexists(std::string basefilename, std::string nshards_string, int nvertices, int nwalks) {
         int nshards;
+        // unsigned membudget_b = (1024l * 1024l * size_t(get_option_int("membudget_mb", 1024));
+
+        // if( R > 10*N ) nshards = 8*R / membudget_b;
+
+        // assert(false);
         
         /* Check if input file is already sharded */
         if ((nshards = find_shards(basefilename, nshards_string))) {
