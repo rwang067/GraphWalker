@@ -26,18 +26,12 @@ public:
 	int* walknum;
 	int* minstep;
 	VECTOR_W **pwalks;
-	// WalkDataType* curwalks;
-	// std::vector<std::vector<WalkDataType> >  walks;
 public:
 	WalkManager(metrics &_m,int _nshards, int _nthreads, std::string _base_filename):base_filename(_base_filename), nshards(_nshards), nthreads(_nthreads), m(_m){
-		// pwalks = (VECTOR_W**)malloc(nshards*sizeof(VECTOR_W*));
-		// pwalks = new VECTOR_W*[nshards*nthreads];
 		pwalks = new VECTOR_W*[nthreads];
 		for(int i = 0; i < nthreads; i++)
 			pwalks[i] = new VECTOR_W[nshards];
-		// pwalks = new VECTOR_W*[nshards];
-		// for(int i = 0; i < nshards; i++)
-		// 	pwalks[i] = new VECTOR_W[nthreads];
+
 		walknum = (int*)malloc(nshards*sizeof(int));
 		minstep = (int*)malloc(nshards*sizeof(int));
 		mkdir((base_filename+"_GraphWalker/walks/").c_str(), 0777);	
@@ -77,18 +71,12 @@ public:
 
 	void moveWalk( WalkDataType walk, int p, int t, vid_t toVertex ){
 		walk = reencode( walk, toVertex );
-		// #pragma omp critical
-        // {
-			pwalks[t][p].push_back( walk );
-		// }
+		pwalks[t][p].push_back( walk );
 	}
 
 	void moveWalktoHop( WalkDataType walk, int p, int t, vid_t toVertex, int hop ){
 		walk = encode( getSourceId(walk), toVertex, hop );
-		// #pragma omp critical
-        // {
-			pwalks[t][p].push_back( walk );
-		// }
+		pwalks[t][p].push_back( walk );
 	}
 
      int walksum(){
@@ -115,7 +103,6 @@ public:
 		metrics_entry me = m.start_time();
 		int maxw = 0, maxp = 0;
 		for(int p = 0; p < nshards; p++) {
-			logstream(LOG_INFO) << p << " : *w: " << walknum[p] << "   s: " << minstep[p] << std::endl ;
 			if( maxw < walknum[p] ){
 				maxw = walknum[p];
 				maxp = p;
@@ -129,29 +116,27 @@ public:
 		metrics_entry me = m.start_time();
 		int mins = 0xfffffff, minp = 0;
 		for(int p = 0; p < nshards; p++) {
-			logstream(LOG_INFO) << p << " : w: " << walknum[p] << "   *s: " << minstep[p] << std::endl ;
 			if( mins > minstep[p] ){
 				mins = minstep[p];
 				minp = p;
 			}
 	   	}
-	   	logstream(LOG_INFO) << std::endl;
-          	m.stop_time(me, "find-interval");
-          	return minp;
+		m.stop_time(me, "find-interval");
+		return minp;
      }
 
      int intervalWithMaxWeight(){
-     		metrics_entry me = m.start_time();
-     		float maxwt = 0;
-     		int maxp = 0;
-          	for(int p = 0; p < nshards; p++) {
-	      		if(  maxwt < (float)walknum[p]/minstep[p] ){
-          			maxwt = (float)walknum[p]/minstep[p];
-          			maxp = p;
-          		}
+		metrics_entry me = m.start_time();
+		float maxwt = 0;
+		int maxp = 0;
+		for(int p = 0; p < nshards; p++) {
+			if(  maxwt < (float)walknum[p]/minstep[p] ){
+				maxwt = (float)walknum[p]/minstep[p];
+				maxp = p;
+			}
 	   	}
-          	m.stop_time(me, "_find-interval-with-max-weight");
-          	return maxp;
+		m.stop_time(me, "_find-interval-with-max-weight");
+		return maxp;
      }
 
      int intervalWithRandom(){
@@ -178,6 +163,7 @@ public:
 
      size_t readIntervalWalks( int p ){
 		m.start_time("readIntervalWalks");
+        logstream(LOG_INFO) << "readIntervalWalks.." << std::endl;
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
@@ -199,79 +185,76 @@ public:
 				}
 			}
 		}
+        logstream(LOG_INFO) << "readIntervalWalks of p : " << p << " : " << count << std::endl;
 		m.stop_time("readIntervalWalks");
 		return count;
      }
 
      void writeIntervalWalks( int p ){
 		m.start_time("writeIntervalWalks");
+		//Clear walks of interval p in file
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
 		    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 		 }
 		close(f);
-		// free(curwalks);
 		walknum[p] = 0;
 		minstep[p] = 0xfffffff;
 		pwalks[0][p].resize(0);
 		pwalks[0][p].reserve(0);
+		//Write walks of other intervals to file
 		for( p = 0; p < nshards; p++){
 			std::string walksfile = walksname( base_filename, p );
 			int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 			if (f < 0) {
-			    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
+				logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 			}
 			for(int t=0;t<nthreads;t++){
 				if(!pwalks[t][p].isEmpty()){
 					writea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType));
-					walknum[p] += pwalks[t][p].size();
-					pwalks[t][p].resize(0);
-					pwalks[t][p].reserve(0);
 				}
+				walknum[p] += pwalks[t][p].size();
+				pwalks[t][p].resize(0);
+				pwalks[t][p].reserve(0);
 			}
 			close(f);
-
-			// std::vector<WalkDataType> ().swap( walks[p] );
-			// walks[p].clear();
-			// walks[p].shrink_to_fit();
 		}
 		m.stop_time("writeIntervalWalks");
      }    
 
      void freshIntervalWalks( ){
-		for( int p = 0; p < nshards; p++){
-			std::string walksfile = walksname( base_filename, p );
-			int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-			for(int t=0;t<nthreads;t++){
-				if(!pwalks[t][p].isEmpty()){
-					// logstream(LOG_INFO) << "freshwalks t p pwalks[t][p].size() " << t << " " << p << " " << pwalks[t][p].size() << std::endl;
-					pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
-					walknum[p] += pwalks[t][p].size();
-					pwalks[t][p].resize(0);
+		logstream(LOG_INFO) << "Write all started walks to files!" << std::endl;
+		unsigned niothreads = get_option_int("niothreads");
+		omp_set_num_threads(niothreads);
+		#pragma omp parallel for schedule(dynamic, 1)
+			for( int p = 0; p < nshards; p++){
+				std::string walksfile = walksname( base_filename, p );
+				int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+				for(int t=0;t<nthreads;t++){
+					if(!pwalks[t][p].isEmpty()){
+						pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
+						walknum[p] += pwalks[t][p].size();
+						pwalks[t][p].resize(0);
+						pwalks[t][p].reserve(0);
+					}
 				}
+				close(f);
 			}
-			close(f);
-			// std::vector<WalkDataType> ().swap( walks[p] );
-			// walks[p].clear();
-			// walks[p].shrink_to_fit();
-		}
 	}    
 
       void freshIntervalWalks(int p){
 		std::string walksfile = walksname( base_filename, p );
-   		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+   		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC| O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		for(int t=0;t<nthreads;t++){
 			if(!pwalks[t][p].isEmpty()){
 				pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
 				walknum[p] += pwalks[t][p].size();
 				pwalks[t][p].resize(0);
+				pwalks[t][p].reserve(0);
 			}
 		}
 		close(f);
-		// std::vector<WalkDataType> ().swap( walks[p] );
-		// walks[p].clear();
-		// walks[p].shrink_to_fit();
      }    
 
 };

@@ -9,57 +9,56 @@
 #include "api/graphwalker_basic_includes.hpp"
 #include "walks/randomwalkwithjump.hpp"
 #include "util/toplist.hpp"
+#include "util/comperror.hpp"
+
+typedef unsigned VertexDataType;
 
 class PageRank : public RandomWalkwithJump{
 private:
     unsigned N, R, L;
-    unsigned *vertex_value;
-    std::string vertex_value_file;
+    VertexDataType **vertex_value;
+    std::string basefilename;
     vid_t cur_window_st;
 
 public:
+
     void initializeApp( unsigned _N, unsigned _R, unsigned _L, float tail, std::string _basefilename ){
         N = _N;
-        R = _R;
+        R = _R; //walks per source
         L = _L;
-        vertex_value_file = filename_vertex_data(_basefilename);
-        vertex_value = (unsigned *)malloc(N*sizeof(unsigned));
-        memset(vertex_value, 0, N*sizeof(unsigned));
-        int f = open(vertex_value_file.c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        assert(f >= 0);
-        pwritea(f, vertex_value, sizeof(unsigned)*N, 0);
-        close(f);
-        free(vertex_value);
-        initializeRW( R, L, tail );
+        basefilename = _basefilename;
+        initialVertexValue<unsigned>(N, basefilename);
+        initializeRW( R*N, L, tail );
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
         //muti threads to start walks
+        logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
         int nthreads = get_option_int("execthreads", omp_get_max_threads());
-        int cap = R/nshards/nthreads + 1;
         for( int p = 0; p < nshards; p++ ){
+            int cap = R*(intervals[p].second-intervals[p].first)/nthreads + 1;
             for( int t = 0; t < nthreads; t++ )
                 walk_manager.pwalks[t][p].reserve(cap);
             walk_manager.minstep[p] = 0;
-        }
-        srand((unsigned)time(NULL));
-        omp_set_num_threads(nthreads);
-        #pragma omp parallel for schedule(static)
-            for( unsigned i = 0; i < N; i++ ){
-                vid_t s = i;
-                int p = getInterval(s);
-                vid_t cur = s - intervals[p].first;
-                WalkDataType walk = walk_manager.encode(i, cur, 0);
-                for( unsigned i = 0; i < R; i++ ){
-                    walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+            
+            omp_set_num_threads(nthreads);
+            #pragma omp parallel for schedule(static)
+                for( unsigned i = intervals[p].first; i <= intervals[p].second; i++ ){
+                    vid_t s = i;
+                    vid_t cur = s - intervals[p].first;
+                    WalkDataType walk = walk_manager.encode(s, cur, 0);
+                    for( unsigned j = 0; j < R; j++ ){
+                        walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+                    }
                 }
-            }
 
-        walk_manager.freshIntervalWalks();
+            walk_manager.freshIntervalWalks(p);
+        }
     }
 
-    void updateInfo(vid_t dstId){
-        vertex_value[dstId-cur_window_st]++; // #pragma omp critical
+    void updateInfo(vid_t dstId, unsigned threadid){
+        // vertex_value[dstId-cur_window_st]++; // #pragma omp critical
+        vertex_value[threadid][dstId-cur_window_st]++; // #pragma omp critical
         // #pragma omp critical
         // {
         //     vertex_value[dstId-cur_window_st]++; // #pragma omp critical
@@ -74,11 +73,18 @@ public:
         // logstream(LOG_INFO) << "before_exec_interval : " << window_st << " " << window_en << std::endl;
         cur_window_st = window_st;
         unsigned  window_len =  window_en -  window_st + 1;
-        vertex_value = (unsigned*)malloc(sizeof(unsigned)*window_len);
-        int f = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        assert(f >= 0);
-        preada(f, vertex_value, sizeof(unsigned)*window_len, sizeof(unsigned)*window_st);
-        close(f);
+        unsigned nthreads = get_option_int("execthreads");
+        vertex_value = new VertexDataType*[nthreads];
+		for(unsigned i = 0; i < nthreads; i++){
+			vertex_value[i] = new VertexDataType[window_len];
+            memset(vertex_value[i], 0, window_len*sizeof(VertexDataType));
+        }
+
+        // vertex_value = (VertexDataType*)malloc(sizeof(VertexDataType)*window_len);
+        // int f = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        // assert(f >= 0);
+        // preada(f, vertex_value, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
+        // close(f);
     }
     
     /**
@@ -87,76 +93,26 @@ public:
     void after_exec_interval(vid_t window_st, vid_t window_en) {
          /*write back vertex back*/
         unsigned  window_len =  window_en -  window_st + 1;
-        int f = open(vertex_value_file.c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+
+        VertexDataType *vertex_value_sum = (VertexDataType*)malloc(sizeof(VertexDataType)*window_len);
+        int f = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         assert(f >= 0);
-        pwritea(f, vertex_value, sizeof(unsigned)*window_len, sizeof(unsigned)*window_st);
+        preada(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
         close(f);
-        free(vertex_value);
-    }
-
-    void writeFile(){
-        // compute the sum of counting
-        vertex_value = (unsigned*)malloc(sizeof(unsigned)*N);
-        int fv = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        assert(fv >= 0);
-        preada(fv, vertex_value, sizeof(unsigned)*N, sizeof(unsigned)*0);
-        close(fv);
-        unsigned sum = 0;
-        for( unsigned i = 0; i < N; i++ )
-            sum += vertex_value[i];
-        logstream(LOG_INFO) << "sum : " << sum << std::endl;
-        free(vertex_value);
-
-        // conpute the counting probability
-        unsigned maxwindow = 400000000;
-        vid_t st = 0, len = 0;
-        while( st < N ){
-            len = N-st < maxwindow ? N-st : maxwindow;
-            logstream(LOG_INFO) << " s , len : " << st << " " << len << std::endl;
-            // len = min( maxwindow, N - st );
-            vertex_value = (unsigned*)malloc(sizeof(unsigned)*len);
-            fv = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-            assert(fv >= 0);
-            preada(fv, vertex_value, sizeof(unsigned)*len, sizeof(unsigned)*st);
-            close(fv);
-            float *visit_prob = (float*)malloc(sizeof(float)*len);
-            for( unsigned i = 0; i < len; i++ )
-                visit_prob[i] = vertex_value[i] * 1.0 / sum;
-            int fp = open(vertex_value_file.c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-            assert(fp >= 0);
-            pwritea(fp, visit_prob, sizeof(unsigned)*len, sizeof(unsigned)*st);
-            close(fp);
-            free(vertex_value);
-            free(visit_prob);
-            st += len;
+        unsigned nthreads = get_option_int("execthreads");
+        for(unsigned i = 0; i < nthreads; i++){
+            for(unsigned j = 0; j < window_len; j++){
+                vertex_value_sum[j] += vertex_value[i][j];
+            }
         }
-    }
-
-    void computeError(int ntop){
-        //read the vertex value
-        float* visit_prob = (float*)malloc(sizeof(float)*N);
-        int fv = open(vertex_value_file.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        assert(fv >= 0);
-        preada(fv, visit_prob, sizeof(float)*N, 0);
-        close(fv);
-
-        // read the accurate value and compute the error
-        std::ifstream fin("/home/wang/Documents/dataset/LiveJournal/accurate_pr_top100.value");
-        int vid ;
-        float err=0, appv; //accurate pagerank value
-        for(int i = 0; i < ntop; i++ ){
-            fin >> vid >> appv;
-            // logstream(LOG_INFO) << "vid appv vertex_value err: " << vid << " " << appv << " " << visit_prob[vid] << " " << fabs(visit_prob[vid]-appv)/appv << std::endl;
-            err += fabs(visit_prob[vid]-appv)/appv;
-        }
-        free(visit_prob);
-        err = err / ntop;
-        logstream(LOG_DEBUG) << "Error : " << err << std::endl;
-
-        std::ofstream errfile;
-        errfile.open("/home/wang/Documents/dataset/LiveJournal/pr_top100.error", std::ofstream::app);
-        errfile << err << "\n" ;
-        errfile.close();
+        f = open(filename_vertex_data(basefilename).c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        assert(f >= 0);
+        pwritea(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
+        close(f);
+        free(vertex_value_sum);
+        free(vertex_value);
+        for(unsigned i = 0; i < nthreads; i++)
+            free(vertex_value[i]);
     }
 
 };
@@ -169,12 +125,12 @@ int main(int argc, const char ** argv) {
     
     /* Metrics object for keeping track of performance count_invectorers
      and other information. Currently required. */
-    metrics m("randomwalk");
+    metrics m("pagerank");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     int nvertices = get_option_int("nvertices", 4847571); // Number of vertices
-    int nedges = get_option_int("nedges", 68993773); // Number of vertices
+    long long nedges = get_option_long("nedges", 68993773); // Number of vertices
     int R = get_option_int("R", 10); // Number of steps
     int L = get_option_int("L", 10); // Number of steps per walk
     float tail = get_option_float("tail", 0.05); // Ratio of stop long tail
@@ -189,8 +145,7 @@ int main(int argc, const char ** argv) {
     graphwalker_engine engine(filename, nshards, m);
     engine.run(program, prob);
     
-    program.writeFile();
-    program.computeError(100);
+    computeError<unsigned>(nvertices, filename, 100, "pr");
 
     /* Report execution metrics */
     metrics_report(m);

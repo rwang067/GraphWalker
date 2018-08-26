@@ -16,6 +16,14 @@
 #include "api/filename.hpp"
 #include "api/io.hpp"
 
+    long long max_value(long long a, long long b){
+        return (a > b ? a : b);
+    }
+    
+    long long min_value(long long a, long long b){
+        return (a < b ? a : b);
+    }
+
     int invlid;
     int invlnum;
     vid_t stv, env;
@@ -23,7 +31,8 @@
 
     bool is_convert_by_walks;
     int num_verts, verts_per_invl;
-    int num_edges, edges_per_invl;
+    long long num_edges, edges_per_invl;
+    unsigned long long malloc_size;
 
     int rm_dir(std::string dir_full_path){    
         DIR* dirp = opendir(dir_full_path.c_str());    
@@ -156,6 +165,7 @@
             stv = env;
             invlid++;
             num_verts = num_edges = 0;
+            malloc_size = verts_per_invl+edges_per_invl;
         }
     }
 
@@ -163,11 +173,11 @@
      * Converts graph from an edge list format. Input may contain
      * value for the edges. Self-edges are ignored.
      */
-    void convert_edgelist(std::string filename, int nshards, int nvertices, int nedges) {
+    void convert_edgelist(std::string filename, int nshards, int nvertices, long long nedges) {
         num_verts = num_edges = 0;
         verts_per_invl = nvertices / nshards + 1;
         edges_per_invl = nedges / nshards + 1;
-        logstream(LOG_INFO) << "verts/edges_per_invl : " << verts_per_invl << " " << edges_per_invl << std::endl;
+        logstream(LOG_INFO) << "verts/edges_per_invl , nedges : " << verts_per_invl << " " << edges_per_invl << " , " << nedges << std::endl;
         
         FILE * inf = fopen(filename.c_str(), "r");
         if (inf == NULL) {
@@ -181,7 +191,10 @@
         
         logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
 
-        char * buf = (char*) malloc((nvertices+nedges)*sizeof(int));
+        // malloc_size = min_value((nvertices+nedges), max_value((verts_per_invl+edges_per_invl),0));//10*edges_per_invl));
+        malloc_size = verts_per_invl+edges_per_invl;
+        logstream(LOG_INFO) << "malloc_size = " << malloc_size << std::endl;
+        char * buf = (char*) malloc(malloc_size*sizeof(int));
         char * bufptr = buf;
         
         char s[1024];
@@ -190,6 +203,7 @@
         int count = 0;
         std::vector<vid_t> outv;
         stv = env = 0;
+        vid_t max_vert = 0;
         while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
@@ -206,10 +220,19 @@
             vid_t from = atoi(t1);
             vid_t to = atoi(t2);
             if( from == to ) continue;
+            max_vert = max_value(max_vert, from);
+            max_vert = max_value(max_vert, to);
             if( from == curvertex ){
                 outv.push_back(to);
                 count++;
             }else{
+                if( (bufptr-buf)/sizeof(int)+count+1 >= malloc_size ){
+                    int offset = bufptr-buf;
+                    logstream(LOG_DEBUG) << "Realloc : " << (bufptr-buf)/sizeof(int)+count+1 << " " << malloc_size << std::endl;
+                    malloc_size = malloc_size * 2;
+                    buf = (char*) realloc(buf, malloc_size*sizeof(int));
+                    bufptr = buf + offset;
+                }
                 bwrite( buf, bufptr, count, outv, filename); //write a vertex to buffer
                 if( from - curvertex > 1 ){ 
                     bwritezero( buf, bufptr, from-curvertex-1 ); 
@@ -223,9 +246,10 @@
         }
         fclose(inf);
         bwrite( buf, bufptr, count, outv, filename);
+        if(max_vert > env-1) bwritezero( buf, bufptr, max_vert - (env-1) ); 
         std::string invlname = intervalname(filename, invlid);
         writefile(invlname, buf, bufptr);
-        std::pair<vid_t, vid_t> invl(stv, env-1);
+        std::pair<vid_t, vid_t> invl(stv, max_vert);
         invls.push_back(invl);
         logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
         invlnum = invlid+1;
@@ -243,23 +267,24 @@
         /*write nvertices*/
         std::string nverticesFilename = filename_nvertices(filename);
         std::ofstream nverticesF(nverticesFilename.c_str());      
+        nverticesF << max_vert+1 << std::endl;
         nverticesF << invls[invlnum-1].second+1 << std::endl;
         intervalsF.close();
         assert(invlnum==nshards);
     }
     
-    int convert_if_notexists(std::string basefilename, std::string nshards_string, int nvertices, int nedges, int nwalks) {
+    int convert_if_notexists(std::string basefilename, std::string nshards_string, int nvertices, long long nedges, int nwalks) {
         int nshards;
-        unsigned membudget_b = 1024l * 1024l * size_t(get_option_int("membudget_mb", 1024));
+        double max_shardsize = 1024. * 1024. * size_t(get_option_int("membudget_mb", 1024)) / 4 ;
         if( nwalks > nedges ) {
-            nshards = nwalks*sizeof(WalkDataType)*2 / membudget_b + 1;
+            nshards = (int) ( (nwalks * sizeof(WalkDataType) / max_shardsize) + 0.5);
             is_convert_by_walks = true;
         }
         else{
-            nshards = nedges*sizeof(VertexDataType)*2 / membudget_b + 1;
+            nshards = (int) ( (nedges * sizeof(VertexDataType) / max_shardsize) + 0.5);
             is_convert_by_walks = false;
         }
-        logstream(LOG_DEBUG) << "membudget_b nvertices nwalks nshards : " << membudget_b << " " << nvertices << " " << nwalks << " " << nshards << std::endl;
+        logstream(LOG_DEBUG) << "membudget_b nvertices nedges nwalks nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nwalks << " " << nshards << std::endl;
 
         /* Check if input file is already sharded */
         if ((nshards == find_shards(basefilename, nshards_string))) {

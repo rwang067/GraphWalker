@@ -8,7 +8,7 @@
 #define	RAND_MAX	2147483647
 
 typedef uint32_t vid_t;
-typedef float VertexDataType;
+typedef unsigned VertexDataType;
 typedef unsigned long WalkDataType;
 
 int my_rand_r (unsigned int *seed){
@@ -51,7 +51,7 @@ struct Vertex{
             logstream(LOG_INFO) << v.outv[i] << " , ";
         logstream(LOG_INFO) << std::endl;
     }
-    int ran = my_rand_r(&seed) % v.outd;
+    int ran = rand_r(&seed) % v.outd;
     // int ran = rand() % v.outd; //rand() cause data race in muti-threads 
     return v.outv[ran];
 }

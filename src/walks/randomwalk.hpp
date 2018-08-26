@@ -16,7 +16,7 @@
 class RandomWalk {
 
 public:
-    int nwalks; 
+    int nwalks;  //total walks
     int nsteps;
     int nvertices;
     int nshards;
@@ -43,7 +43,7 @@ public:
      *  Walk update function.
      */
     //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, int sub_interval_st, int sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
-    virtual void updateByWalk(WalkDataType walk, int exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    virtual void updateByWalk(WalkDataType walk, unsigned walkid, int exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
     }
 
     virtual void initializeRW( int _nwalks, int _nsteps, float _tail) {
@@ -77,7 +77,9 @@ public:
      * check if it has finished all walks
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
-        return ( walk_manager.walksum() > tailwalknum ); 
+        int remaining_walknum = walk_manager.walksum();
+        logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << " , tailwalknum = " << tailwalknum << std::endl;
+        return ( remaining_walknum > tailwalknum ); 
     }
     
     /**

@@ -52,18 +52,18 @@
     }
 
     static VARIABLE_IS_NOT_USED size_t get_num_vertices(std::string basefilename) {
-    std::string numv_filename = filename_nvertices(basefilename);
-    std::ifstream vfileF(numv_filename.c_str());
-    if (!vfileF.good()) {
-        logstream(LOG_ERROR) << "Could not find file " << numv_filename << std::endl;
-        logstream(LOG_ERROR) << "Maybe you have old shards - please recreate." << std::endl;
-        assert(false);
+        std::string numv_filename = filename_nvertices(basefilename);
+        std::ifstream vfileF(numv_filename.c_str());
+        if (!vfileF.good()) {
+            logstream(LOG_ERROR) << "Could not find file " << numv_filename << std::endl;
+            logstream(LOG_ERROR) << "Maybe you have old shards - please recreate." << std::endl;
+            assert(false);
+        }
+        size_t n;
+        vfileF >> n;
+        vfileF.close();
+        return n;
     }
-    size_t n;
-    vfileF >> n;
-    vfileF.close();
-    return n;
-}
      
     /**
       * Reads the vertex data file and returns top N values.
