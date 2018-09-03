@@ -59,7 +59,7 @@ testp:
 	make apps/pagerank
 	# ./bin/apps/pagerank
 	# ./bin/apps/pagerank file "/home/wang/Documents/DataSet/Yahoo/yahoo-webmap.txt" nvertices 1413511390 nedges 6636600779 R 1 L 1
-	./bin/apps/pagerank file "/home/wang/Documents/DataSet/Wikipedia/wikipedia_sorted.data" nvertices 12150977 nedges 378102402 R 10 L 10 tail 0
+	./bin/apps/pagerank file "/home/wang/Documents/DataSet/Wikipedia/wikipedia_sorted.data" nvertices 12150977 nedges 378102402 nshards 5 R 10 L 10 tail 0
 
 # test personalizedpagerank
 testpp:

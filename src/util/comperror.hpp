@@ -75,7 +75,7 @@
 
         // read the accurate value and compute the error
         std::ifstream fin(basefilename + "_CompError/accurate_" + app + "_top100.value");
-        logstream(LOG_DEBUG) << "accurate " + app + " file : " << basefilename + "_accurate_pr_top100.value" << std::endl;
+        logstream(LOG_DEBUG) << "accurate " + app + " file : " << basefilename + "_accurate " + app + " top100.value" << std::endl;
         int vid ;
         float err=0, appv; //accurate pagerank value
         for(int i = 0; i < ntop; i++ ){

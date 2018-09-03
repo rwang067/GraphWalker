@@ -36,7 +36,7 @@ public:
     virtual void updateInfo(vid_t dstId){
     }    
 
-    virtual void updateInfo(vid_t dstId, unsigned d){
+    virtual void updateInfo(vid_t dstId, unsigned d, unsigned hop){
     }
 
     /**
@@ -85,13 +85,13 @@ public:
     /**
      * Called before an execution interval is started.
      */
-    virtual void before_exec_interval(vid_t window_st, vid_t window_en) {
+    virtual void before_exec_interval(int exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
     
     /**
      * Called after an execution interval has finished.
      */
-    virtual void after_exec_interval(vid_t window_st, vid_t window_en) {
+    virtual void after_exec_interval(int exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
     
 };

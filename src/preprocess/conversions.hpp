@@ -273,19 +273,19 @@
         assert(invlnum==nshards);
     }
     
-    int convert_if_notexists(std::string basefilename, std::string nshards_string, int nvertices, long long nedges, int nwalks) {
-        int nshards;
-        double max_shardsize = 1024. * 1024. * size_t(get_option_int("membudget_mb", 1024)) / 4 ;
-        if( nwalks > nedges ) {
-            nshards = (int) ( (nwalks * sizeof(WalkDataType) / max_shardsize) + 0.5);
-            is_convert_by_walks = true;
+    int convert_if_notexists(std::string basefilename, std::string nshards_string, int nvertices, long long nedges, int nwalks, int nshards) {
+        if(nshards == 0 ){
+            double max_shardsize = 1024. * 1024. * size_t(get_option_int("membudget_mb", 1024)) / 4 ;
+            if( nwalks > nedges ) {
+                nshards = (int) ( (nwalks * sizeof(WalkDataType) / max_shardsize) + 0.5);
+                is_convert_by_walks = true;
+            }
+            else{
+                nshards = (int) ( (nedges * sizeof(VertexDataType) / max_shardsize) + 0.5);
+                is_convert_by_walks = false;
+            }
+            logstream(LOG_DEBUG) << "membudget_b nvertices nedges nwalks nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nwalks << " " << nshards << std::endl;
         }
-        else{
-            nshards = (int) ( (nedges * sizeof(VertexDataType) / max_shardsize) + 0.5);
-            is_convert_by_walks = false;
-        }
-        logstream(LOG_DEBUG) << "membudget_b nvertices nedges nwalks nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nwalks << " " << nshards << std::endl;
-
         /* Check if input file is already sharded */
         if ((nshards == find_shards(basefilename, nshards_string))) {
             logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", num shards=" << nshards << std::endl;

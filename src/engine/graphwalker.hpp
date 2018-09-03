@@ -147,19 +147,22 @@ public:
         return 1 + intervals[nshards - 1].second;
     }
 
-    void exec_updates(RandomWalk &userprogram, Vertex *&vertices, unsigned count ){ //, VertexDataType* vertex_value){
+    void exec_updates(RandomWalk &userprogram, Vertex *&vertices ){ //, VertexDataType* vertex_value){
         // unsigned count = walk_manager->readIntervalWalks(exec_interval);
         m.start_time("exec_updates");
         logstream(LOG_INFO) << "exec_updates.." << std::endl;
         omp_set_num_threads(exec_threads);
-        #pragma omp parallel for schedule(static)
-            for(unsigned i = 0; i < count; i++ ){
-                // logstream(LOG_INFO) << "exec_interval : " << exec_interval << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
-                WalkDataType walk = walk_manager->pwalks[0][exec_interval][i];
-                userprogram.updateByWalk(walk, i, exec_interval, vertices, *walk_manager );//, vertex_value);
-            }
+        for(int t = 0; t < exec_threads; t++){
+            unsigned count = walk_manager->pwalks[t][exec_interval].size();
+            #pragma omp parallel for schedule(static)
+                for(unsigned i = 0; i < count; i++ ){
+                    // logstream(LOG_INFO) << "exec_interval : " << exec_interval << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
+                    WalkDataType walk = walk_manager->pwalks[t][exec_interval][i];
+                    userprogram.updateByWalk(walk, i, exec_interval, vertices, *walk_manager );//, vertex_value);
+                }
+        }
         m.stop_time("exec_updates");
-        walk_manager->writeIntervalWalks(exec_interval);
+        // walk_manager->writeIntervalWalks(exec_interval);
     }
 
     void run(RandomWalk &userprogram, float prob) {
@@ -173,8 +176,8 @@ public:
 
         /*loadOnDemand -- Interval loop */
         int numIntervals = 0;
-        Vertex *vertices;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
+            Vertex *vertices;
             m.start_time("in_run_interval");
             numIntervals++;
             float cc = ((float)rand())/RAND_MAX;
@@ -188,15 +191,18 @@ public:
             //walk_manager->printWalksDistribution( exec_interval );
             /*load graph and walks info*/
             loadSubGraph(exec_interval, vertices);
-            unsigned count = walk_manager->readIntervalWalks(exec_interval);
-            userprogram.before_exec_interval(intervals[exec_interval].first, intervals[exec_interval].second);
-            exec_updates(userprogram, vertices, count);
-            userprogram.after_exec_interval(intervals[exec_interval].first, intervals[exec_interval].second);
+            // unsigned count = walk_manager->readIntervalWalks(exec_interval);
+            userprogram.before_exec_interval(exec_interval, intervals[exec_interval].first, intervals[exec_interval].second, *walk_manager);
+            exec_updates(userprogram, vertices);
+            userprogram.after_exec_interval(exec_interval, intervals[exec_interval].first, intervals[exec_interval].second, *walk_manager);
 
             m.start_time("free vertices");
-            for(unsigned i = 0; i < (intervals[exec_interval].second-intervals[exec_interval].first+1); i++)
+            for(unsigned i = 0; i < (intervals[exec_interval].second-intervals[exec_interval].first+1); i++){
                 free(vertices[i].outv);
+                vertices[i].outv = NULL;
+            }
             free(vertices);
+            vertices = NULL;
             m.stop_time("free vertices");
 
             m.stop_time("in_run_interval");

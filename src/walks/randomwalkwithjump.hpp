@@ -29,7 +29,7 @@ class RandomWalkwithJump : public RandomWalk{
             unsigned seed = walk+curId+hop+(unsigned)time(NULL);
             while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < nsteps ){
                 // updateInfo(walk_manager, nowwalk, dstId);
-                updateInfo(dstId, threadid);
+                updateInfo(dstId, threadid, hop);
                 Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
                 if (nowVertex.outd > 0 && ((float)rand_r(&seed))/RAND_MAX > 0.15){
                     dstId = random_outneighbor(nowVertex, seed);

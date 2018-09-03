@@ -23,8 +23,8 @@ protected:
 	metrics &m;
 public:
 	int curp; //current interval
-	int* walknum;
-	int* minstep;
+	unsigned* walknum;
+	unsigned* minstep;
 	VECTOR_W **pwalks;
 public:
 	WalkManager(metrics &_m,int _nshards, int _nthreads, std::string _base_filename):base_filename(_base_filename), nshards(_nshards), nthreads(_nthreads), m(_m){
@@ -32,8 +32,10 @@ public:
 		for(int i = 0; i < nthreads; i++)
 			pwalks[i] = new VECTOR_W[nshards];
 
-		walknum = (int*)malloc(nshards*sizeof(int));
-		minstep = (int*)malloc(nshards*sizeof(int));
+		walknum = (unsigned*)malloc(nshards*sizeof(unsigned));
+		minstep = (unsigned*)malloc(nshards*sizeof(unsigned));
+		memset(walknum, 0, nshards*sizeof(unsigned));
+		memset(minstep, 0x1f, nshards*sizeof(unsigned));
 		mkdir((base_filename+"_GraphWalker/walks/").c_str(), 0777);	
 	}
 	~WalkManager(){
@@ -89,7 +91,7 @@ public:
           	return sum;
      }
 
-     void setMinStep(int p, int hop ){
+     void setMinStep(int p, unsigned hop ){
 		if(minstep[p] > hop)
 		{
 			#pragma omp critical
@@ -101,7 +103,7 @@ public:
 
      int intervalWithMaxWalks(){
 		metrics_entry me = m.start_time();
-		int maxw = 0, maxp = 0;
+		unsigned maxw = 0, maxp = 0;
 		for(int p = 0; p < nshards; p++) {
 			if( maxw < walknum[p] ){
 				maxw = walknum[p];
@@ -114,7 +116,7 @@ public:
 
      int intervalWithMinStep(){
 		metrics_entry me = m.start_time();
-		int mins = 0xfffffff, minp = 0;
+		unsigned mins = 0xfffffff, minp = 0;
 		for(int p = 0; p < nshards; p++) {
 			if( mins > minstep[p] ){
 				mins = minstep[p];
@@ -161,7 +163,7 @@ public:
 	 	m.stop_time(me, "_print-walks-distribution");
      }
 
-     size_t readIntervalWalks( int p ){
+     void readIntervalWalks( int p ){
 		m.start_time("readIntervalWalks");
         logstream(LOG_INFO) << "readIntervalWalks.." << std::endl;
 		std::string walksfile = walksname( base_filename, p );
@@ -187,10 +189,40 @@ public:
 		}
         logstream(LOG_INFO) << "readIntervalWalks of p : " << p << " : " << count << std::endl;
 		m.stop_time("readIntervalWalks");
-		return count;
      }
 
-     void writeIntervalWalks( int p ){
+     void writeIntervalWalks_joint( int p ){
+		m.start_time("writeIntervalWalks");
+		logstream(LOG_INFO) << "writeIntervalWalks.." << std::endl;
+		//Clear walks of interval p in file
+		std::string walksfile = walksname( base_filename, p );
+		int f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+		if (f < 0) {
+		    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
+		 }
+		close(f);
+		pwalks[0][p].clear();
+		//Write walks of other intervals to file
+		for( p = 0; p < nshards; p++){
+			for(int t = 1; t < nthreads; t++){
+				if(!pwalks[t][p].isEmpty()){
+					pwalks[0][p].joint(pwalks[t][p]);
+					pwalks[t][p].clear();
+				}
+			}
+			if(!pwalks[0][p].isEmpty()){
+				std::string walksfile = walksname( base_filename, p );
+				int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+				if (f < 0)	logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
+				writea( f, &pwalks[0][p][0], pwalks[0][p].size()*sizeof(WalkDataType));
+				close(f);
+				pwalks[0][p].clear();
+			}
+		}
+		m.stop_time("writeIntervalWalks");
+     }    
+
+	 void writeIntervalWalks( int p ){
 		m.start_time("writeIntervalWalks");
 		//Clear walks of interval p in file
 		std::string walksfile = walksname( base_filename, p );
@@ -199,10 +231,7 @@ public:
 		    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 		 }
 		close(f);
-		walknum[p] = 0;
-		minstep[p] = 0xfffffff;
-		pwalks[0][p].resize(0);
-		pwalks[0][p].reserve(0);
+		pwalks[0][p].clear();
 		//Write walks of other intervals to file
 		for( p = 0; p < nshards; p++){
 			std::string walksfile = walksname( base_filename, p );
@@ -214,9 +243,7 @@ public:
 				if(!pwalks[t][p].isEmpty()){
 					writea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType));
 				}
-				walknum[p] += pwalks[t][p].size();
-				pwalks[t][p].resize(0);
-				pwalks[t][p].reserve(0);
+				pwalks[t][p].clear();
 			}
 			close(f);
 		}
@@ -234,9 +261,7 @@ public:
 				for(int t=0;t<nthreads;t++){
 					if(!pwalks[t][p].isEmpty()){
 						pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
-						walknum[p] += pwalks[t][p].size();
-						pwalks[t][p].resize(0);
-						pwalks[t][p].reserve(0);
+						pwalks[t][p].clear();
 					}
 				}
 				close(f);
@@ -249,9 +274,7 @@ public:
 		for(int t=0;t<nthreads;t++){
 			if(!pwalks[t][p].isEmpty()){
 				pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
-				walknum[p] += pwalks[t][p].size();
-				pwalks[t][p].resize(0);
-				pwalks[t][p].reserve(0);
+				pwalks[t][p].clear();
 			}
 		}
 		close(f);

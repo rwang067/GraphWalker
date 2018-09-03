@@ -2,6 +2,7 @@
 #define DEF_VECTOR_W
 
 
+#include <cstring>
 #include "api/datatype.hpp"
 
 #define init_capacity 5
@@ -41,8 +42,15 @@ public:
 
     void resize(int newsize){
         size_w = newsize;
-        // if(size_w > capacity_w)
-        //     reserve(2*size_w+1);
+        if(size_w > capacity_w)
+            reserve(2*size_w+1);
+    }
+
+    void clear(){
+        size_w = 0;
+        capacity_w = 0;
+        free(walks);
+        walks = NULL;
     }
 
 	void push_back(WalkDataType w){
@@ -52,6 +60,14 @@ public:
             logstream(LOG_ERROR) << "size_w, capacity_w : " << size_w << " , " << capacity_w << std::endl;
         walks[size_w++] = w;
 	}
+
+    void joint(VECTOR_W &append){
+        this->capacity_w = this->size_w + append.size();
+        walks = (WalkDataType*)realloc(walks, capacity_w*sizeof(WalkDataType));
+        for(int i = 0; i < append.size(); i++)
+            this->walks[size_w++] = append.walks[i];
+        assert(this->size_w == this->capacity_w);
+    }
 
     bool isEmpty(){
         return (size_w == 0);

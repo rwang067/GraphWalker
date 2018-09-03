@@ -1,14 +1,27 @@
 #!/bin/bash
 
-## 2018.8.25 validate the efficiency and accuracy of cutting long tail PageRank
+## 2018.8.28 
     echo "2018.8.26 vertex_value * [nthreads]" >> graphchi_metrics.txt.statistics 
     echo "app = PageRank, dataset = Wikipedia from echo" >> graphchi_metrics.txt.statistics 
-    echo "tail = 0, R = 10, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
-    for(( times = 0; times < 5; times++))
+    for(( nshards = 5; nshards <= 50; nshards=nshards+5))
     do
-        echo "times = " $times " from echo"
-        ./bin/apps/pagerank file "/home/wang/Documents/DataSet/Wikipedia/wikipedia_sorted.data" nvertices 12150977 nedges 378102402 R 10 L 20 tail 0
+      echo "nshards = " $nshards " tail = 0, R = 10, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+      for(( times = 0; times < 1; times++))
+      do
+          echo "times = " $times " from echo"
+          ./bin/apps/pagerank file "/home/wang/Documents/DataSet/Wikipedia/wikipedia_sorted.data" nvertices 12150977 nedges 378102402 R 10 L 20 tail 0 nshards $nshards
+      done
     done
+
+    ## 2018.8.25 validate the efficiency and accuracy of cutting long tail PageRank
+    # echo "2018.8.26 vertex_value * [nthreads]" >> graphchi_metrics.txt.statistics 
+    # echo "app = PageRank, dataset = Wikipedia from echo" >> graphchi_metrics.txt.statistics 
+    # echo "tail = 0, R = 10, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+    # for(( times = 0; times < 5; times++))
+    # do
+    #     echo "times = " $times " from echo"
+    #     ./bin/apps/pagerank file "/home/wang/Documents/DataSet/Wikipedia/wikipedia_sorted.data" nvertices 12150977 nedges 378102402 R 10 L 20 tail 0
+    # done
 
     # echo "2018.8.26 vertex_value * [nthreads]" >> graphchi_metrics.txt.statistics 
     # echo "app = PageRank, dataset = Wikipedia from echo" >> graphchi_metrics.txt.statistics 
