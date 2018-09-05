@@ -36,13 +36,6 @@ static std::string filename_intervals(std::string basefilename, int nshards){
     return ss.str();
 }
 
-static std::string filename_vertex_data(std::string basefilename) {
-        std::stringstream ss;
-        ss << basefilename;
-        ss << "_GraphWalker/" << sizeof(VertexDataType) << "B.vvalue";
-        return ss.str();
-    }
-
 static std::string filename_nvertices(std::string basefilename) {
     std::stringstream ss;
     ss << basefilename;

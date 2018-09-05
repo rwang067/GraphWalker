@@ -12,7 +12,7 @@
 #include "util/comperror.hpp"
 
 typedef unsigned VertexDataType;
-const bool semi_external = true;
+const bool semi_external = false;
 
 class PageRank : public RandomWalkwithJump{
 public:
@@ -22,6 +22,13 @@ public:
     vid_t cur_window_st;
 
 public:
+
+    static std::string filename_vertex_data(std::string basefilename) {
+        std::stringstream ss;
+        ss << basefilename;
+        ss << "_GraphWalker/" << sizeof(VertexDataType) << "B.vvalue";
+        return ss.str();
+    }
 
     void initializeApp( unsigned _N, unsigned _R, unsigned _L, float tail, std::string _basefilename ){
         N = _N;
@@ -35,10 +42,10 @@ public:
     void startWalksbyApp( WalkManager &walk_manager  ){
         //muti threads to start walks
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
-        int nthreads = get_option_int("execthreads", omp_get_max_threads());
-        for( int p = 0; p < nshards; p++ ){
-            int cap = R*(intervals[p].second-intervals[p].first)/nthreads + 1;
-            for( int t = 0; t < nthreads; t++ )
+        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
+        for( unsigned p = 0; p < 1; p++ ){
+            unsigned cap = R*(intervals[p].second-intervals[p].first)/nthreads + 1;
+            for( unsigned t = 0; t < nthreads; t++ )
                 walk_manager.pwalks[t][p].reserve(cap);
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] = (intervals[p].second-intervals[p].first+1)*R;
@@ -57,7 +64,7 @@ public:
         }
         if(semi_external){ 
             vertex_value = new VertexDataType*[nthreads];
-            for(int i = 0; i < nthreads; i++){
+            for(unsigned i = 0; i < nthreads; i++){
                 vertex_value[i] = new VertexDataType[N];
                 memset(vertex_value[i], 0, N*sizeof(VertexDataType));
             }
@@ -74,7 +81,7 @@ public:
     /**
      * Called before an execution interval is started.
      */
-    void before_exec_interval(int exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         if(semi_external) return ;
         /*load walks*/
         walk_manager.readIntervalWalks(exec_interval);
@@ -93,11 +100,11 @@ public:
     /**
      * Called after an execution interval has finished.
      */
-    void after_exec_interval(int exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
         unsigned nthreads = get_option_int("execthreads");
-        for( int p = 0; p < nshards; p++){
+        for( unsigned p = 0; p < nshards; p++){
             if(p == exec_interval ) continue;
             if(semi_external) walk_manager.walknum[p] = 0;
 			for(unsigned t=0;t<nthreads;t++){
@@ -116,7 +123,7 @@ public:
          /*write back vertex value*/
         unsigned  window_len =  window_en -  window_st + 1;
         VertexDataType *vertex_value_sum = (VertexDataType*)malloc(sizeof(VertexDataType)*window_len);
-        int f = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        unsigned f = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         assert(f >= 0);
         preada(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
         close(f);
@@ -130,9 +137,9 @@ public:
         pwritea(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
         close(f);
         free(vertex_value_sum);
-        free(vertex_value);
         for(unsigned i = 0; i < nthreads; i++)
             free(vertex_value[i]);
+        free(vertex_value);
     }
 
 };
@@ -149,11 +156,11 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    int nvertices = get_option_int("nvertices", 4847571); // Number of vertices
-    long long nedges = get_option_long("nedges", 68993773); // Number of vertices
-    int nshards = get_option_int("nshards", 0); // Number of vertices
-    int R = get_option_int("R", 10); // Number of steps
-    int L = get_option_int("L", 10); // Number of steps per walk
+    unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
+    long long nedges = get_option_long("nedges", 68993773); // Number of edges
+    unsigned nshards = get_option_int("nshards", 0); // Number of intervals
+    unsigned R = get_option_int("R", 1); // Number of steps
+    unsigned L = get_option_int("L", 20); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     
@@ -169,11 +176,11 @@ int main(int argc, const char ** argv) {
     if(semi_external){
         unsigned nthreads = get_option_int("execthreads");
         for(unsigned t = 1; t < nthreads; t++){
-            for(int i = 0; i < nvertices; i++ ){
+            for(unsigned i = 0; i < nvertices; i++ ){
                 program.vertex_value[0][i] += program.vertex_value[t][i];
             }
         }
-        int f = open(filename_vertex_data(filename).c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        unsigned f = open(filename_vertex_data(filename).c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         assert(f >= 0);
         pwritea(f, program.vertex_value[0], sizeof(VertexDataType)*nvertices, 0);
         close(f);

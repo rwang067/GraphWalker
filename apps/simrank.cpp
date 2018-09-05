@@ -7,14 +7,16 @@
 #include <cmath>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/simplerandomwalk.hpp"
+#include "walks/randomwalkwithrestartwithjoint.hpp"
 
-class SimRank : public SimpleRandomWalk{
+class SimRank : public RandomWalkwithRestartwithJoint{
 private:
 	vid_t a, b;
 	unsigned R, L;
-	std::vector<vid_t> walksfroma;
+	std::vector<vid_t> walksfroma; //record the path of walks
 	std::vector<vid_t> walksfromb;
+    std::string basefilename;
+    vid_t cur_window_st;
 
 public:
 	void initializeApp( vid_t _a, vid_t _b, unsigned _R, unsigned _L, float tail ){
@@ -31,30 +33,40 @@ public:
 
 	void startWalksbyApp(WalkManager &walk_manager){
 		// R random walk start from a
-		std::cout << "Start walks from a and b : " << std::endl;
-		int p = getInterval(a);
-            vid_t cur = a - intervals[p].first;
-          	walk_manager.minstep[p] = 0;
-          	for(unsigned i = 0; i < R; i++){
-          		int hop = i * L;
-          		WalkDataType walk = walk_manager.encode(a, cur, hop);
-          		walk_manager.walks[p].push_back(walk);
-          	}
+		logstream(LOG_INFO) << "Start " << R << " walks of length " << L << " from a and b : " << std::endl;
+		unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
+		unsigned p = getInterval(a);
+		assert( p == getInterval(b) );
+		vid_t cur = a - intervals[p].first;
+		walk_manager.minstep[p] = 0;
+		walk_manager.walknum[p] = 2*R;
+
+		unsigned cap = 2*R/nthreads + 1;
+		for( unsigned t = 0; t < nthreads; t++ )
+			walk_manager.pwalks[t][p].reserve(cap);
+
+		omp_set_num_threads(nthreads);
+		#pragma omp parallel for schedule(static)
+			for(unsigned i = 0; i < R; i++){
+				unsigned hop = i * L;
+				WalkDataType walk = walk_manager.encode(a, cur, hop);
+				walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+			}
 		// R random walk start from b
-		p = getInterval(b);
-            cur = b - intervals[p].first;
-          	walk_manager.minstep[p] = 0;
-          	for(unsigned i = 0; i < R; i++){
-          		int hop = i * L;
-          		WalkDataType walk = walk_manager.encode(b, cur, hop);
-          		walk_manager.walks[p].push_back(walk);
-          	}
-          	walk_manager.freshIntervalWalks();
+		cur = b - intervals[p].first;
+		#pragma omp parallel for schedule(static)
+			for(unsigned i = 0; i < R; i++){
+				unsigned hop = i * L;
+				WalkDataType walk = walk_manager.encode(b, cur, hop);
+				walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+			}
+		//write to file
+		walk_manager.freshIntervalWalks();
       }
 
 	void updateInfo(WalkManager &walk_manager, WalkDataType walk, vid_t dstId){
 		vid_t s = walk_manager.getSourceId(walk);
-		int r = walk_manager.getHop(walk);
+		unsigned r = walk_manager.getHop(walk);
 		if( s == a )
 			walksfroma[r] = dstId;
 		else if( s == b )
@@ -66,6 +78,32 @@ public:
 		// std::cout << "s , r, dstId = " << s << " " << r << " " << dstId << std::endl;
 	}
 
+	/**
+     * Called before an execution interval is started.
+     */
+    void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+        /*load walks*/
+        walk_manager.readIntervalWalks(exec_interval);
+    }
+    
+    /**
+     * Called after an execution interval has finished.
+     */
+    void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+        walk_manager.walknum[exec_interval] = 0;
+		walk_manager.minstep[exec_interval] = 0xfffffff;
+        unsigned nthreads = get_option_int("execthreads");
+        for( unsigned p = 0; p < nshards; p++){
+            if(p == exec_interval ) continue;
+			for(unsigned t=0;t<nthreads;t++){
+				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
+            }
+        }
+
+         /*write back walks*/
+        walk_manager.writeIntervalWalks(exec_interval);
+    }
+
 	float computeResult(){
 		float simrank = 0;
 		for( unsigned i = 0; i < R; i++ )
@@ -74,7 +112,7 @@ public:
 					// std::cout << i << " " << j << " " << l << " : " << walksfroma[i*R+l] << " " << walksfromb[j*R+l] << std::endl;
 					if( walksfroma[i*L+l] == walksfromb[j*L+l] && walksfroma[i*L+l] != 0xffffffff ){
 						simrank += (1.0/(R*R))*pow(0.8, l);
-						std::cout << i << " " << j << " " << l << " " << walksfroma[i*L+l] << " " << simrank << std::endl;
+						// std::cout << i << " " << j << " " << l << " " << walksfroma[i*L+l] << " " << simrank << std::endl;
 						break;
 					}
 				}
@@ -90,16 +128,19 @@ int main(int argc, const char ** argv) {
     metrics m("simrank");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt");  // Base filename
-    int a = get_option_int("a", 0); // vertex id of start source
-    int b = get_option_int("b", 1); // Number of sources
-    int R = get_option_int("R", 1600); // Number of steps
-    int L = get_option_int("L", 10); // Number of steps per walk
-    float tail = get_option_float("tail", 0.05); // Ratio of stop long tail
+    std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
+    long long nedges = get_option_long("nedges", 68993773); // Number of edges
+    unsigned nshards = get_option_int("nshards", 0); // Number of intervals
+    unsigned a = get_option_int("a", 1); // vertex id of start source
+    unsigned b = get_option_int("b", 2); // Number of sources
+    unsigned R = get_option_int("R", 1000); // Number of steps
+    unsigned L = get_option_int("L", 11); // Number of steps per walk
+    float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     
     /* Detect the number of shards or preprocess an input to create them */
-    int nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"));
+    nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, 2*R, nshards);
 
     /* Run */
     SimRank program;

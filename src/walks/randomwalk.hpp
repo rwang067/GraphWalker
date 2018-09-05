@@ -16,12 +16,12 @@
 class RandomWalk {
 
 public:
-    int nwalks;  //total walks
-    int nsteps;
-    int nvertices;
-    int nshards;
+    unsigned nwalks;  //total walks
+    unsigned nsteps;
+    unsigned nvertices;
+    unsigned nshards;
     float tail;
-    int tailwalknum;
+    unsigned tailwalknum;
     std::vector<std::pair<vid_t, vid_t> > intervals;
 
 public:
@@ -42,31 +42,33 @@ public:
     /**
      *  Walk update function.
      */
-    //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, int sub_interval_st, int sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
-    virtual void updateByWalk(WalkDataType walk, unsigned walkid, int exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, unsigned sub_interval_st, unsigned sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
+    virtual void updateByWalk(WalkDataType walk, unsigned walkid, unsigned exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+            logstream(LOG_ERROR) << "Not define updateByWalk!" << std::endl;
+            assert(false);
     }
 
-    virtual void initializeRW( int _nwalks, int _nsteps, float _tail) {
+    virtual void initializeRW( unsigned _nwalks, unsigned _nsteps, float _tail) {
         nwalks = _nwalks;
         nsteps = _nsteps;
         tail = _tail;
-        tailwalknum = (int)(nwalks*tail);
+        tailwalknum = (unsigned)(nwalks*tail);
         logstream(LOG_INFO) << nwalks << " " << nsteps << " " << tail << std::endl;
     }
 
-    virtual void startWalks( WalkManager &walk_manager , int _nvertices, std::vector<std::pair<vid_t, vid_t> > _intervals ){
+    virtual void startWalks( WalkManager &walk_manager , unsigned _nvertices, std::vector<std::pair<vid_t, vid_t> > _intervals ){
         nvertices = _nvertices;
         intervals = _intervals;
         nshards = intervals.size();
-        for( int i = 0; i < nshards; i++ ){
+        for( unsigned i = 0; i < nshards; i++ ){
             walk_manager.walknum[i] = 0;
             walk_manager.minstep[i] = 0xffffffff;
         }
         startWalksbyApp(walk_manager);
     }
 
-    virtual int getInterval( vid_t v ){
-        for( int p = 0; p < nshards; p++ ){
+    virtual unsigned getInterval( vid_t v ){
+        for( unsigned p = 0; p < nshards; p++ ){
             if( v <= intervals[p].second )
                 return p;
         }
@@ -77,7 +79,7 @@ public:
      * check if it has finished all walks
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
-        int remaining_walknum = walk_manager.walksum();
+        unsigned remaining_walknum = walk_manager.walksum();
         logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << " , tailwalknum = " << tailwalknum << std::endl;
         return ( remaining_walknum > tailwalknum ); 
     }
@@ -85,13 +87,13 @@ public:
     /**
      * Called before an execution interval is started.
      */
-    virtual void before_exec_interval(int exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    virtual void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
     
     /**
      * Called after an execution interval has finished.
      */
-    virtual void after_exec_interval(int exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    virtual void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
     
 };

@@ -66,7 +66,7 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "/home/wang/Documents/graph processing system/dataset/LiveJournal1/soc-LiveJournal1.txt");  // Base filename
-    int N = get_option_int("N", 4847576); // Number of sources
+    int N = get_option_int("N", 4847571); // Number of sources
     int R = get_option_int("R", 1000); // Number of steps
     int L = get_option_int("L", 1000); // Number of steps per walk
     float tail = get_option_float("tail", 0.05); // Ratio of stop long tail

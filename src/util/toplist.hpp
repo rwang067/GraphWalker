@@ -45,6 +45,13 @@
         vertex_value() {}
         vertex_value(vid_t v, VertexDataType x) : vertex(v), value(x) {}
     };
+
+    static std::string filename_vertex_data(std::string basefilename) {
+        std::stringstream ss;
+        ss << basefilename;
+        ss << "_GraphWalker/" << sizeof(VertexDataType) << "B.vvalue";
+        return ss.str();
+    }
     
     template <typename VertexDataType>
     bool vertex_value_greater(const vertex_value<VertexDataType> &a, const vertex_value<VertexDataType> &b) {

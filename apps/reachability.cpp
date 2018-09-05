@@ -5,89 +5,112 @@
 #include <cmath>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithsunk.hpp"
+#include "walks/randomwalkwithrestart.hpp"
 
 
-class graphLet : public RandomWalkwithSunk{
-    private:
-        unsigned N, R, L;
-        vid_t a,b;
-        bool ans;
+class Reachability : public RandomWalkwithRestart{
+public:
+    unsigned N, R, L;
+    vid_t a,b;
+    bool ans;
 
-    public:
-        void initializeApp(unsigned _N, unsigned _R, unsigned _L, float tail, vid_t _a, vid_t _b){
-            N = _N;
-            R = _R;
-            L = _L;
-            a = _a;
-            b = _b;
-            ans = false;
-            initializeRW(R, L, tail);
-        }
+public:
+	void initializeApp( vid_t _a, vid_t _b, unsigned _R, unsigned _L, float tail ){
+		a = _a;
+		b = _b;
+		R = _R;
+		L = _L;
+		initializeRW( a, R, L, tail );
+	}
 
-        void startWalksbyApp(WalkManager &walk_manager){
-            std::cout << "graphLet:\tStart walks randomly ..." << std::endl;
-            srand((unsigned)time(NULL));
-            for (unsigned i = 0; i < R; i++){
-                int p = getInterval(a);
-                vid_t cur = a - intervals[p].first;
-                WalkDataType walk = walk_manager.encode(b, cur, 0); // a->b
-                walk_manager.walks[p].push_back(walk);
-                walk_manager.minstep[p] = 0;
+	void startWalksbyApp(WalkManager &walk_manager){
+		// R random walk start from a
+		logstream(LOG_INFO) << "Start " << R << " walks of length " << L << " from a and b : " << std::endl;
+		unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
+		unsigned p = getInterval(a);
+		vid_t cur = a - intervals[p].first;
+		walk_manager.minstep[p] = 0;
+		walk_manager.walknum[p] = R;
+
+		unsigned cap = R/nthreads + 1;
+		for( unsigned t = 0; t < nthreads; t++ )
+			walk_manager.pwalks[t][p].reserve(cap);
+
+        WalkDataType walk = walk_manager.encode(a, cur, 0);
+		omp_set_num_threads(nthreads);
+		#pragma omp parallel for schedule(static)
+			for(unsigned i = 0; i < R; i++){
+				walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+			}
+		//write to file
+		walk_manager.freshIntervalWalks();
+    }
+
+    void updateInfo(vid_t dstId, unsigned threadid, unsigned hop){
+        // logstream(LOG_DEBUG) << "dstId : " << dstId << std::endl; 
+        if( dstId == b )
+            ans = true;
+    }
+
+	/**
+     * Called before an execution interval is started.
+     */
+    void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+        /*load walks*/
+        walk_manager.readIntervalWalks(exec_interval);
+    }
+    
+    /**
+     * Called after an execution interval has finished.
+     */
+    void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+        walk_manager.walknum[exec_interval] = 0;
+		walk_manager.minstep[exec_interval] = 0xfffffff;
+        unsigned nthreads = get_option_int("execthreads");
+        for( unsigned p = 0; p < nshards; p++){
+            if(p == exec_interval ) continue;
+			for(unsigned t=0;t<nthreads;t++){
+				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
             }
-            for (unsigned i = 0; i < R; i++){
-                int p = getInterval(b);
-                vid_t cur = b - intervals[p].first;
-                WalkDataType walk = walk_manager.encode(a, cur, 0); // b->a
-                walk_manager.walks[p].push_back(walk);
-                walk_manager.minstep[p] = 0;
-            }
-            walk_manager.freshIntervalWalks();
         }
 
-        void updateInfo(vid_t dstId, unsigned srcId){
-            //std::cout<<"updateInfo:\t"<<"dstId="<<dstId<<"\tsrcId="<<srcId<<std::endl;
-        }
-        void updateInfo(WalkManager &walk_manager, WalkDataType walk, vid_t dstId){
-            vid_t finalId = walk_manager.getSourceId(walk);
-            if (finalId == dstId){
-                //std::cout << "updateInfo:\t" << "finalId=" << finalId << "\tdstId="<<dstId<<std::endl;
-                ans = true;
-                nsteps = 1;  // halt signal
-            }
-        }
+         /*write back walks*/
+        walk_manager.writeIntervalWalks(exec_interval);
+    }
 
-        bool computeResult(){
-            return ans;
-        }
 };
 
-int main(int argc, const char ** argv){
-    set_argc(argc,argv);
-    metrics m("randomwalkwithsunk");
+int main(int argc, const char ** argv) {
+    /* Read the command line arguments and the configuration file. */
+    set_argc(argc, argv);  
+    /* Metrics object for keeping track of performance count_invectorers and other information. Currently required. */
+    metrics m("reachability");
     
-    std::string filename = get_option_string("file");
-    int N = get_option_int("N", 4847576);   // number of vertices
-    int R = get_option_int("R", 100000);    // number of walks
-    int L = get_option_int("L", 3);         // number of steps per walk
-    float tail = get_option_float("tail", 0.05);    // ratio of stop long tail
-    float prob = get_option_float("prob", 0.2);     // prob of choosing min step
-    int a = get_option_int("a", 1);
-    int b = get_option_int("b", 1000000);
+    /* Basic arguments for application */
+    std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
+    long long nedges = get_option_long("nedges", 68993773); // Number of edges
+    unsigned nshards = get_option_int("nshards", 0); // Number of intervals
+    unsigned a = get_option_int("a", 1); // vertex id of start source
+    unsigned b = get_option_int("b", 2); // Number of sources
+    unsigned R = get_option_int("R", 1000); // Number of steps
+    unsigned L = get_option_int("L", 100); // Number of steps per walk
+    float tail = get_option_float("tail", 0); // Ratio of stop long tail
+    float prob = get_option_float("prob", 0.2); // prob of chose min step
+    
+    /* Detect the number of shards or preprocess an input to create them */
+    nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, R, nshards);
 
-
-    int nshards = convert_if_notexists(filename, get_option_string("nshards", "auto")); //detect the number of shards or preprocess an input to create them.
-
-    // run
-    graphLet program;
-    program.initializeApp(N,R,L,tail,a,b);
+    /* Run */
+    Reachability program;
+    program.initializeApp( a, b, R, L, tail );
+    // program.initializeRW( 2*R, L, tail );
     graphwalker_engine engine(filename, nshards, m);
     engine.run(program, prob);
 
-    std::cout << std::endl;
-    std::cout << " === print result ===" << std::endl;
-    std::cout << "ans:\t" << program.computeResult() << std::endl;
-
+    std::cout << "Reachability from " << a << " to " << b << " = " << program.ans << std::endl;
+    
+    /* Report execution metrics */
     metrics_report(m);
     return 0;
 }

@@ -18,26 +18,26 @@ public:
     vid_t source;
 
 public:
-    void initializeRW( vid_t _source, int _nwalks, int _nsteps, float _tail) {
+    void initializeRW( vid_t _source, unsigned _nwalks, unsigned _nsteps, float _tail) {
         source = _source;
         nwalks = _nwalks;
         nsteps = _nsteps;
         tail = _tail;
-        tailwalknum = (int)(nwalks*tail);
+        tailwalknum = (unsigned)(nwalks*tail);
         std::cout << "nwalks, nsteps, tail, tailwalknum : "  << nwalks << " " << nsteps << " " << tail << " " << tailwalknum << std::endl;
     }
     /**
      *  Walk update function.
      */
-    //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, int sub_interval_st, int sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
-    void updateByWalk(WalkDataType walk, unsigned walkid, int exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    //void updateByWalk(std::vector<graphchi_vertex<VertexDataType, EdgeDataType> > &vertices, vid_t vid, unsigned sub_interval_st, unsigned sub_interval_en, walkManager &walk_manager, graphchi_context &gcontext){
+    void updateByWalk(WalkDataType walk, unsigned walkid, unsigned exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
             unsigned threadid = omp_get_thread_num();
             WalkDataType nowWalk = walk;
             vid_t dstId = walk_manager.getCurrentId(nowWalk) + intervals[exec_interval].first;
-            int hop = walk_manager.getHop(nowWalk);
+            unsigned hop = walk_manager.getHop(nowWalk);
             unsigned seed = walkid+dstId+hop+(unsigned)time(NULL);
             while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < nsteps ){
-                // std::cout  << " -> " << dstId ;
+                // std::cout  << " -> " << dstId << std::endl;
                 updateInfo(dstId, threadid, hop);
                 Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
                 if (nowVertex.outd > 0 && ((float)rand_r(&seed))/RAND_MAX > 0.15 )
@@ -49,8 +49,7 @@ public:
             }
             // std::cout  << " hop, to " << hop << " " << dstId << std::endl;
             if( hop < nsteps ){
-                int p = getInterval( dstId );
-                if(p==-1) logstream(LOG_FATAL) << "Invalid p = -1 with dstId = " << dstId << std::endl;
+                unsigned p = getInterval( dstId );
                 walk_manager.moveWalk(nowWalk, p, threadid, dstId - intervals[p].first);
                 walk_manager.setMinStep( p, hop );
             }

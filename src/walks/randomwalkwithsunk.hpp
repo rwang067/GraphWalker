@@ -1,3 +1,6 @@
+/**
+ *  for SimRank
+ */
 #ifndef RANDOMWALKWITHSUNK
 #define RANDOMWALKWITHSUNK
 
@@ -9,34 +12,35 @@
 #include "api/datatype.hpp"
 
 class RandomWalkwithSunk : public RandomWalk {
-    void updateByWalk(WalkDataType walk, int exec_interval, Vertex *&vertices, WalkManager &walk_manager){
+    /**
+     *  Walk update function.
+     */
+    void updateByWalk(WalkDataType walk, unsigned walkid, unsigned exec_interval, Vertex *&vertices, WalkManager &walk_manager ){ 
+        //get current time in microsecond as seed to compute rand_r
+        unsigned threadid = omp_get_thread_num();
         WalkDataType nowwalk = walk;
         vid_t curId = walk_manager.getCurrentId(nowwalk) + intervals[exec_interval].first;
         vid_t dstId = curId;
-        int hop = walk_manager.getHop(nowwalk);
-        //std::cout << "updateByWalk:\t" << "dstId=" << dstId << "\thop=" << hop << "\tnsteps=" << nsteps << "\texec_interval=" << exec_interval <<  std::endl;
-        while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop%nsteps != nsteps-1){
+        unsigned hop = walk_manager.getHop(nowwalk);
+        // unsigned seed = (unsigned)std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        unsigned seed = walk+curId+hop+(unsigned)time(NULL);
+        while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < nsteps ){
+            updateInfo(walk_manager, nowwalk, dstId);
             Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
-
-            if (nowVertex.outd > 0)
-                dstId = random_outneighbor(nowVertex);
-            else
-                dstId = (vid_t)-1;  // sunk
-            
-            hop ++;
+            if (nowVertex.outd > 0 && ((float)rand_r(&seed))/RAND_MAX > 0.15){
+                dstId = random_outneighbor(nowVertex, seed);
+            }else{
+                dstId = 0xffffffff;
+                hop = nsteps;
+                break;
+            }
+            hop++;
             nowwalk++;
         }
-
-        if (dstId == (vid_t)-1){ // sunk
-            ;
-        }
-        else if (hop%nsteps != nsteps -1){ // not finished, continue
-            int p = getInterval(dstId);
-            walk_manager.moveWalk(nowwalk, p, dstId - intervals[p].first);
-            walk_manager.setMinStep(p, hop);
-        }
-        else{ // finished 
-            updateInfo(dstId , walk_manager.getSourceId(walk));
+        if( hop < nsteps ){
+            unsigned p = getInterval( dstId );
+            walk_manager.moveWalk(nowwalk, p, threadid, dstId - intervals[p].first);
+            walk_manager.setMinStep( p, hop );
         }
     }
 };
