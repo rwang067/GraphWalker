@@ -9,6 +9,8 @@
 #include "api/graphwalker_basic_includes.hpp"
 #include "walks/randomwalkwithrestartwithjoint.hpp"
 
+bool semi_external;
+
 class SimRank : public RandomWalkwithRestartwithJoint{
 private:
 	vid_t a, b;
@@ -60,8 +62,10 @@ public:
 				WalkDataType walk = walk_manager.encode(b, cur, hop);
 				walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
 			}
-		//write to file
-		walk_manager.freshIntervalWalks();
+		if(!semi_external){
+			//write to file
+			walk_manager.freshIntervalWalks();
+		}
       }
 
 	void updateInfo(WalkManager &walk_manager, WalkDataType walk, vid_t dstId){
@@ -82,8 +86,10 @@ public:
      * Called before an execution interval is started.
      */
     void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        /*load walks*/
-        walk_manager.readIntervalWalks(exec_interval);
+		if(!semi_external){
+			/*load walks*/
+			walk_manager.readIntervalWalks(exec_interval);
+		}
     }
     
     /**
@@ -93,15 +99,20 @@ public:
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
         unsigned nthreads = get_option_int("execthreads");
+        for(unsigned t = 0; t < nthreads; t++)
+            walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
             if(p == exec_interval ) continue;
+            if(semi_external) walk_manager.walknum[p] = 0;
 			for(unsigned t=0;t<nthreads;t++){
 				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
             }
         }
 
-         /*write back walks*/
-        walk_manager.writeIntervalWalks(exec_interval);
+        if(!semi_external){ 
+			/*write back walks*/
+			walk_manager.writeIntervalWalks(exec_interval);
+		}
     }
 
 	float computeResult(){
@@ -138,6 +149,7 @@ int main(int argc, const char ** argv) {
     unsigned L = get_option_int("L", 11); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
+	semi_external = get_option_int("semi_external", 0);
     
     /* Detect the number of shards or preprocess an input to create them */
     nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, 2*R, nshards);

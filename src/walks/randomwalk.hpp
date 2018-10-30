@@ -80,7 +80,7 @@ public:
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
         unsigned remaining_walknum = walk_manager.walksum();
-        logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << " , tailwalknum = " << tailwalknum << std::endl;
+        // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << " , tailwalknum = " << tailwalknum << std::endl;
         return ( remaining_walknum > tailwalknum ); 
     }
     
@@ -93,6 +93,7 @@ public:
     /**
      * Called after an execution interval has finished.
      */
+    // virtual void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager, Vertex *&vertices) {
     virtual void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
     

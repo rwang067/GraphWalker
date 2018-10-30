@@ -15,6 +15,10 @@
  */
  
 class RandomWalkwithJump : public RandomWalk{
+
+public:
+    unsigned used_edges[4], total_edges[4];
+
     /**
      *  Walk update function.
      */

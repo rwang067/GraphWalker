@@ -82,13 +82,17 @@ public:
 	}
 
      unsigned walksum(){
-     		metrics_entry me = m.start_time();
-     		unsigned sum = 0;
-          	for(unsigned p=0; p < nshards; p++){
-          		sum += walknum[p];
-          	}
-          	m.stop_time(me, "_check-finish");
-          	return sum;
+		metrics_entry me = m.start_time();
+		unsigned sum = 0;
+		for(unsigned p=0; p < nshards; p++){
+			sum += walknum[p];
+		}
+		m.stop_time(me, "_check-finish");
+		// std::ofstream walkfile;
+		// walkfile.open(base_filename + "_GraphWalker/remianing_walks.csv", std::ofstream::app);
+		// walkfile << sum << "\n" ;
+		// walkfile.close();
+		return sum;
      }
 
      void setMinStep(unsigned p, unsigned hop ){
@@ -224,6 +228,7 @@ public:
 
 	 void writeIntervalWalks( unsigned p ){
 		m.start_time("writeIntervalWalks");
+		logstream(LOG_INFO) << "writeIntervalWalks of p : " << p << std::endl;
 		//Clear walks of interval p in file
 		std::string walksfile = walksname( base_filename, p );
 		unsigned f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -231,7 +236,6 @@ public:
 		    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 		 }
 		close(f);
-		pwalks[0][p].clear();
 		//Write walks of other intervals to file
 		for( p = 0; p < nshards; p++){
 			std::string walksfile = walksname( base_filename, p );
@@ -269,9 +273,11 @@ public:
 	}    
 
       void freshIntervalWalks(unsigned p){
+		logstream(LOG_INFO) << "Write started walks of interval " << p << " to files!" << std::endl;
 		std::string walksfile = walksname( base_filename, p );
    		unsigned f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC| O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		for(unsigned t=0;t<nthreads;t++){
+			logstream(LOG_INFO) << pwalks[t][p].size() << std::endl;
 			if(!pwalks[t][p].isEmpty()){
 				pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
 				pwalks[t][p].clear();

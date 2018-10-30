@@ -5,34 +5,30 @@
 #include <cmath>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithsunk.hpp"
+#include "walks/randomwalkwithjump.hpp"
 
 bool semi_external;
 
 
-class graphLet : public RandomWalkwithSunk{
+class RandomWalks : public RandomWalkwithJump{
     private:
         unsigned N, R, L;
-        unsigned *cnt_all;
-        unsigned *cnt_ok;
 
     public:
         void initializeApp(unsigned _N, unsigned _R, unsigned _L, float tail){
             N = _N;
             R = _R;
             L = _L;
-            cnt_all = 0;
-            cnt_ok = 0;
             initializeRW(R, L, tail);
         }
 
         void startWalksbyApp(WalkManager &walk_manager){
-            std::cout << "graphLet:\tStart walks randomly ..." << std::endl;
+            std::cout << "Random walks:\tStart " << R << " walks randomly ..." << std::endl;
             srand((unsigned)time(NULL));
             unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
             omp_set_num_threads(nthreads);
             #pragma omp parallel for schedule(static)
-                for (unsigned i = 0; i < nwalks; i++){
+                for (unsigned i = 0; i < R; i++){
                     vid_t s = rand()%N;
                     int p = getInterval(s);
                     vid_t cur = s - intervals[p].first;
@@ -40,28 +36,16 @@ class graphLet : public RandomWalkwithSunk{
                     WalkDataType walk = walk_manager.encode(s,cur,0);
                     walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
                     walk_manager.minstep[p] = 0;
-                    walk_manager.walknum[p]++;
                 }
-            cnt_all = new unsigned [nthreads];
-            cnt_ok = new unsigned [nthreads];
-            for(unsigned i = 0; i < nthreads; i++ ){
-                cnt_all[i] = 0;
-                cnt_ok[i] = 0;
-            }
+            for( unsigned p = 0; p < nshards; p++)
+                for(unsigned t=0;t<nthreads;t++)
+                    walk_manager.walknum[p] +=  walk_manager.pwalks[t][p].size();
             if(!semi_external){
                 walk_manager.freshIntervalWalks();
             }
         }
 
         void updateInfo(WalkManager &walk_manager, WalkDataType walk, vid_t dstId){
-		    unsigned hop = walk_manager.getHop(walk);
-            if(hop < L-1) return;
-		    vid_t srcId = walk_manager.getSourceId(walk);
-            unsigned threadid = omp_get_thread_num();
-            cnt_all[threadid]++;
-            if (dstId == srcId){
-                cnt_ok[threadid]++;
-            }
         }
 
         /**
@@ -96,27 +80,11 @@ class graphLet : public RandomWalkwithSunk{
                 walk_manager.writeIntervalWalks(exec_interval);
             }
         }
-
-        float computeResult(){
-            unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
-            for(unsigned i = 1; i < nthreads; i++ ){
-                cnt_all[0] += cnt_all[i];
-                cnt_ok[0] += cnt_ok[i];
-            }
-            float triangle_ratio = (float) cnt_ok[0] / (float) cnt_all[0];
-            return triangle_ratio;
-        }
-        unsigned getCntAll(){
-            return cnt_all[0];
-        }
-        unsigned getCntOK(){
-            return cnt_ok[0];
-        }
 };
 
 int main(int argc, const char ** argv){
     set_argc(argc,argv);
-    metrics m("graphlet");
+    metrics m("randomwalks");
     
     std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
@@ -132,15 +100,10 @@ int main(int argc, const char ** argv){
     nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, R, nshards);
 
     // run
-    graphLet program;
+    RandomWalks program;
     program.initializeApp(nvertices,R,L,tail);
     graphwalker_engine engine(filename, nshards, m);
     engine.run(program, prob);
-
-    float triangle_ratio = program.computeResult();
-    std::cout << "The ratio of triangle:\t" << triangle_ratio << std::endl;
-    std::cout << "cnt_all:\t" << program.getCntAll() << std::endl;
-    std::cout << "cnt_ok:\t" << program.getCntOK() << std::endl;
 
     metrics_report(m);
     return 0;

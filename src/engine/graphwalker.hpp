@@ -83,7 +83,7 @@ public:
     }
 
     void loadSubGraph(int p, Vertex *&vertices ){
-        logstream(LOG_INFO) << "LoadSubGraph data..." << std::endl;
+        // logstream(LOG_INFO) << "LoadSubGraph data..." << std::endl;
         m.start_time("loadSubGraph");
         std::string invlname = intervalname( base_filename, p );
         int inf = open(invlname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -150,7 +150,7 @@ public:
     void exec_updates(RandomWalk &userprogram, Vertex *&vertices ){ //, VertexDataType* vertex_value){
         // unsigned count = walk_manager->readIntervalWalks(exec_interval);
         m.start_time("exec_updates");
-        logstream(LOG_INFO) << "exec_updates.." << std::endl;
+        // logstream(LOG_INFO) << "exec_updates.." << std::endl;
         omp_set_num_threads(exec_threads);
         for(int t = 0; t < exec_threads; t++){
             unsigned count = walk_manager->pwalks[t][exec_interval].size();
@@ -181,13 +181,14 @@ public:
             m.start_time("in_run_interval");
             numIntervals++;
             float cc = ((float)rand())/RAND_MAX;
-            // logstream(LOG_DEBUG) << "proc < 0.2 --> minstep, choose probability = " << cc << std::endl;
             if( cc < prob ){
+                // logstream(LOG_DEBUG) << "proc < 0.2 --> minstep, choose probability = " << cc << std::endl;
                 exec_interval = walk_manager->intervalWithMinStep();
             }else{
+                // logstream(LOG_DEBUG) << "proc > 0.2 --> maxwalk, choose probability = " << cc << std::endl;
                 exec_interval =walk_manager->intervalWithMaxWalks();
             }
-            logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
+            // logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
             //walk_manager->printWalksDistribution( exec_interval );
             /*load graph and walks info*/
             loadSubGraph(exec_interval, vertices);
@@ -195,6 +196,7 @@ public:
             userprogram.before_exec_interval(exec_interval, intervals[exec_interval].first, intervals[exec_interval].second, *walk_manager);
             exec_updates(userprogram, vertices);
             userprogram.after_exec_interval(exec_interval, intervals[exec_interval].first, intervals[exec_interval].second, *walk_manager);
+            // userprogram.after_exec_interval(exec_interval, intervals[exec_interval].first, intervals[exec_interval].second, *walk_manager, vertices);
 
             m.start_time("free vertices");
             for(unsigned i = 0; i < (intervals[exec_interval].second-intervals[exec_interval].first+1); i++){

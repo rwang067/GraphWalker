@@ -10,7 +10,9 @@
 #include "walks/randomwalkwithrestart.hpp"
 #include "util/toplist.hpp"
 #include "util/comperror.hpp"
-const bool semi_external = false;
+
+typedef unsigned VertexDataType;
+bool semi_external;
 
 class PersonalizedPageRank : public RandomWalkwithRestart{
 public:
@@ -65,9 +67,9 @@ public:
                 vertex_value[i] = new VertexDataType[N];
                 memset(vertex_value[i], 0, N*sizeof(VertexDataType));
             }
-            return ;
+        }else{
+            walk_manager.freshIntervalWalks();
         }
-        walk_manager.freshIntervalWalks();
     }
 
     void updateInfo(vid_t dstId, unsigned threadid, unsigned hop){
@@ -79,18 +81,19 @@ public:
      * Called before an execution interval is started.
      */
     void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        if(semi_external) return ;
-        /*load walks*/
-        walk_manager.readIntervalWalks(exec_interval);
+        if(!semi_external){
+            /*load walks*/
+            walk_manager.readIntervalWalks(exec_interval);
 
-        /*load vertex value*/
-        cur_window_st = window_st;
-        unsigned  window_len =  window_en -  window_st + 1;
-        unsigned nthreads = get_option_int("execthreads");
-        vertex_value = new VertexDataType*[nthreads];
-		for(unsigned t = 0; t < nthreads; t++){
-			vertex_value[t] = new VertexDataType[window_len];
-            memset(vertex_value[t], 0, window_len*sizeof(VertexDataType));
+            /*load vertex value*/
+            cur_window_st = window_st;
+            unsigned  window_len =  window_en -  window_st + 1;
+            unsigned nthreads = get_option_int("execthreads");
+            vertex_value = new VertexDataType*[nthreads];
+            for(unsigned t = 0; t < nthreads; t++){
+                vertex_value[t] = new VertexDataType[window_len];
+                memset(vertex_value[t], 0, window_len*sizeof(VertexDataType));
+            }
         }
     }
     
@@ -101,6 +104,8 @@ public:
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
         unsigned nthreads = get_option_int("execthreads");
+        for(unsigned t = 0; t < nthreads; t++)
+            walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
             if(p == exec_interval ) continue;
             if(semi_external) walk_manager.walknum[p] = 0;
@@ -109,34 +114,31 @@ public:
             }
         }
 
-        if(semi_external){ 
-            for(unsigned t = 0; t < nthreads; t++)
-                walk_manager.pwalks[t][exec_interval].clear();
-            return ;
-        }
-         /*write back walks*/
-        walk_manager.writeIntervalWalks(exec_interval);
+        if(!semi_external){
+            /*write back walks*/
+            walk_manager.writeIntervalWalks(exec_interval);
 
-         /*write back vertex value*/
-        unsigned  window_len =  window_en -  window_st + 1;
-        VertexDataType *vertex_value_sum = (VertexDataType*)malloc(sizeof(VertexDataType)*window_len);
-        unsigned f = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        assert(f >= 0);
-        preada(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
-        close(f);
-        for(unsigned i = 0; i < nthreads; i++){
-            for(unsigned j = 0; j < window_len; j++){
-                vertex_value_sum[j] += vertex_value[i][j];
+            /*write back vertex value*/
+            unsigned  window_len =  window_en -  window_st + 1;
+            VertexDataType *vertex_value_sum = (VertexDataType*)malloc(sizeof(VertexDataType)*window_len);
+            unsigned f = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+            assert(f >= 0);
+            preada(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
+            close(f);
+            for(unsigned i = 0; i < nthreads; i++){
+                for(unsigned j = 0; j < window_len; j++){
+                    vertex_value_sum[j] += vertex_value[i][j];
+                }
             }
+            f = open(filename_vertex_data(basefilename).c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+            assert(f >= 0);
+            pwritea(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
+            close(f);
+            free(vertex_value_sum);
+            for(unsigned i = 0; i < nthreads; i++)
+                free(vertex_value[i]);
+            free(vertex_value);
         }
-        f = open(filename_vertex_data(basefilename).c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        assert(f >= 0);
-        pwritea(f, vertex_value_sum, sizeof(VertexDataType)*window_len, sizeof(VertexDataType)*window_st);
-        close(f);
-        free(vertex_value_sum);
-        free(vertex_value);
-        for(unsigned i = 0; i < nthreads; i++)
-            free(vertex_value[i]);
     }
 
 };
@@ -162,6 +164,7 @@ int main(int argc, const char ** argv) {
     unsigned L = get_option_int("L", 10); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
+    semi_external = get_option_int("semi_external", 0);
 
     /* Detect the number of shards or preprocess an input to create them */
     nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, nsources*R, nshards);
@@ -186,7 +189,7 @@ int main(int argc, const char ** argv) {
         free(program.vertex_value[0]);
     }
     
-    computeError<unsigned>(nvertices, filename, 100, "ppr");
+    // computeError<unsigned>(nvertices, filename, 100, "ppr");
     
     // /* List top 20 */
     // unsigned ntop = 20;
