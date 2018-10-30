@@ -74,7 +74,8 @@
         close(fv);
 
         // read the accurate value and compute the error
-        std::ifstream fin(basefilename + "_CompError/accurate_" + app + "_top100.value");
+        std::string accurate_value_file = basefilename + "_CompError/accurate_" + app + "_top100.value";
+        std::ifstream fin(accurate_value_file.c_str());
         logstream(LOG_DEBUG) << "accurate " + app + " file : " << basefilename + "_accurate " + app + " top100.value" << std::endl;
         int vid ;
         float err=0, appv; //accurate pagerank value
@@ -87,8 +88,9 @@
         err = err / ntop;
         logstream(LOG_DEBUG) << "Error : " << err << std::endl;
 
+        std::string error_file = basefilename + "_CompError/GraphWalker_" + app + "_top100.error";
         std::ofstream errfile;
-        errfile.open(basefilename + "_CompError/GraphWalker_" + app + "_top100.error", std::ofstream::app);
+        errfile.open(error_file.c_str(), std::ofstream::app);
         errfile << err << "\n" ;
         errfile.close();
     }

@@ -162,8 +162,9 @@ public:
         }
         float utilization = (float)used_edges[0] / (float)total_edges[0];
         logstream(LOG_DEBUG) << "IO utilization = " << utilization << std::endl;
+        std::string utilization_filename = basefilename + "_CompError/GraphWalker_pr_utilization.csv";
         std::ofstream utilizationfile;
-        utilizationfile.open(basefilename + "_CompError/GraphWalker_pr_utilization.csv", std::ofstream::app);
+        utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);
         utilizationfile << total_edges[0] << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
         utilizationfile.close();
 
