@@ -1,14 +1,15 @@
 
 # GraphWalker configuration.
 # Commandline parameters override values in the configuration file.
-execthreads = 4
+execthreads = 24
 loadthreads = 1
-niothreads = 4
+niothreads = 24
 
 # Self define
-membudget_mb = 1600
-# membudget_mb = 8192
-cachesize_mb = 1000
+#membudget_mb = 1600
+#cachesize_mb = 1000
+membudget_mb = 8192
+cachesize_mb = 8000
 
 # Good for 8gigs
 # membudget_mb = 1600
@@ -19,7 +20,8 @@ cachesize_mb = 1000
 #cachesize_mb = 0
 
 # I/O settings
-io.blocksize = 1048576 
+#io.blocksize = 1048576
+io.blocksize = 8388608
 mmap = 0  # Use mmaped files where applicable
 
 
