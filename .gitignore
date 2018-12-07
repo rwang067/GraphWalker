@@ -1,6 +1,7 @@
 *.[oa]
 bin/*
-graphchi_metrics.*
+graphchi_metrics.txt
+graphchi_metrics.html
 ./monitor/*.csv
 ./runsh/*
-
+.vscode/

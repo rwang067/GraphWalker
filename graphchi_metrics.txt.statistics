@@ -1,0 +1,112 @@
+2018.12.6 observe the effect of nshards
+app = PageRank, dataset = Twitter from echo
+R = 1×N, L = 20, choose prob=0.2 from echo
+nshards =  4
+58  	  345.854
+57  	  343.122
+nshards =  5
+76  	  365.399
+74  	  319.443
+nshards =  6
+94  	  323.761
+94  	  317.611
+nshards =  7
+111  	  309.409
+113  	  315.893
+nshards =  8
+130  	  298.009
+131  	  291.127
+nshards =  9
+152  	  294.585
+153  	  281.507
+nshards =  10
+165  	  281.454
+166  	  279.668
+nshards =  11
+188  	  276.315
+186  	  278.281
+nshards =  12
+203  	  276.562
+207  	  273.823
+nshards =  13
+225  	  271.066
+223  	  264.247
+nshards =  14
+242  	  269.239
+244  	  257.441
+nshards =  15
+262  	  267.323
+262  	  256.122
+nshards =  16
+279  	  258.049
+277  	  247.9
+nshards =  17
+298  	  258.017
+294  	  243.549
+nshards =  18
+318  	  255.356
+321  	  248.288
+nshards =  19
+332  	  253.362
+332  	  237.448
+nshards =  20
+352  	  250.099
+348  	  233.924
+nshards =  21
+372  	  247.193
+371  	  230.545
+nshards =  22
+392  	  247.029
+386  	  224.63
+nshards =  23
+407  	  229.344
+410  	  222.276
+nshards =  24
+426  	  229.287
+430  	  213.084
+nshards =  25
+446  	  220.169
+455  	  213.496
+nshards =  26
+469  	  207.244
+nshards =  27
+487  	  209.175
+nshards =  28
+500  	  214.264
+505  	  201.042
+nshards =  29
+523  	  213.942
+522  	  203.315
+nshards =  30
+545  	  212.516
+541  	  203.264
+nshards =  31
+nshards =  32
+581  	  208.853
+587  	  216.554
+nshards =  33
+598  	  221.227
+nshards =  34
+620  	  207.224
+618  	  206.18
+nshards =  35
+641  	  209.781
+nshards =  36
+655  	  210.831
+653  	  200.901
+nshards =  37
+675  	  200.055
+nshards =  38
+689  	  208.407
+685  	  204.203
+nshards =  39
+713  	  211.906
+
+
+2018.12.7 observe the effect of nshards
+app = PageRank, dataset = Friendster from echo
+R = 1×N, L = 20, choose prob=0.2 from echo
+nshards =  6
+90  	  1799.55
+91  	  1853.15
+nshards =  7
