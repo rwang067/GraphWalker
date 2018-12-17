@@ -220,7 +220,7 @@ int main(int argc, const char ** argv) {
         free(program.vertex_value[0]);
     }
     
-    computeError<unsigned>(nvertices, filename, 100, "pr");
+    // computeError<unsigned>(nvertices, filename, 100, "pr");
 
     /* Report execution metrics */
     metrics_report(m);

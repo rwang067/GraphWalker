@@ -1,12 +1,60 @@
 # !/bin/bash
 
 # # 2018.12.6
-#     echo "2018.12.6 observe the effect of nshards" >> graphchi_metrics.txt.statistics 
+#    echo "2018.12.9 observe the effect of nshards in PC(dell) HDD" >> graphchi_metrics.txt.statistics 
+
+# # Twitter  
+#     echo "app = PageRank, dataset = Wikipedia from echo" >> graphchi_metrics.txt.statistics 
+#     echo "R = 1×N, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+#     for(( nshards = 1; nshards < 21; nshards++))
+#     do
+#         echo "nshards = " $nshards >> graphchi_metrics.txt.statistics 
+# 	    for(( times = 0; times < 1; times++))
+# 	    do
+# 	        echo "times = " $times " from echo"
+# 	        ./bin/apps/pagerank file ../DataSet/Wikipedia/wikipedia_sorted.data nvertices 12150977 nedges 378102402 membudget_mb 6144 nshards $nshards
+#             done
+# 	done
+
+# # 2018.12.7
+#     echo "2018.12.7 observe the effect of nshards in PC(dell)" >> graphchi_metrics.txt.statistics 
+
+# # LiveJournal  
+#     echo "app = PageRank, dataset = LiveJournal from echo" >> graphchi_metrics.txt.statistics 
+#     echo "R = 1×N, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+#     for(( nshards = 1; nshards < 100; nshards++))
+#     do
+#         echo "nshards = " $nshards >> graphchi_metrics.txt.statistics 
+# 	    for(( times = 0; times < 2; times++))
+# 	    do
+# 	        echo "times = " $times " from echo"
+# 	        ./bin/apps/pagerank file ../DataSet/LiveJournal/soc-LiveJournal1.txt nvertices 4847571 nedges 68993757 membudget_mb 6144 nshards $nshards
+#             done
+# 	done
+
+# # 2018.12.7
+#     echo "2018.12.7 observe the effect of nshards in PC(dell)" >> graphchi_metrics.txt.statistics 
+
+# # Friendster  
+#     echo "app = PageRank, dataset = Friendster from echo" >> graphchi_metrics.txt.statistics 
+#     echo "R = 1×N, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+#     for(( nshards = 6; nshards < 100; nshards++))
+#     do
+#         echo "nshards = " $nshards >> graphchi_metrics.txt.statistics 
+# 	    for(( times = 0; times < 2; times++))
+# 	    do
+# 	        echo "times = " $times " from echo"
+# 	        ./bin/apps/pagerank file ../DataSet/Friendster/out.friendster-reorder nvertices 68349467 nedges 2586147869 membudget_mb 6144 nshards $nshards
+#             done
+# 	done
+
+# # 2018.12.6
+#    echo "2018.12.6 observe the effect of nshards in PC(dell) HDD" >> graphchi_metrics.txt.statistics 
 
 # # Twitter  
 #     echo "app = PageRank, dataset = Twitter from echo" >> graphchi_metrics.txt.statistics 
 #     echo "R = 1×N, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
-#     for(( nshards = 4; nshards < 40; nshards++))
+#     for(( nshards = 101; nshards < 201; nshards++))
 #     do
 #         echo "nshards = " $nshards >> graphchi_metrics.txt.statistics 
 # 	    for(( times = 0; times < 2; times++))
@@ -15,19 +63,3 @@
 # 	        ./bin/apps/pagerank file ../DataSet/Twitter/twitter_rv.net nvertices 61578415 nedges 1468365182 membudget_mb 6144 nshards $nshards
 #             done
 # 	done
-
-# 2018.12.7
-    echo "2018.12.7 observe the effect of nshards" >> graphchi_metrics.txt.statistics 
-
-# Friendster  
-    echo "app = PageRank, dataset = Friendster from echo" >> graphchi_metrics.txt.statistics 
-    echo "R = 1×N, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
-    for(( nshards = 6; nshards < 100; nshards++))
-    do
-        echo "nshards = " $nshards >> graphchi_metrics.txt.statistics 
-	    for(( times = 0; times < 2; times++))
-	    do
-	        echo "times = " $times " from echo"
-	        ./bin/apps/pagerank file ../DataSet/Friendster/out.friendster-reorder nvertices 68349467 nedges 2586147869 membudget_mb 6144 nshards $nshards
-            done
-	done
