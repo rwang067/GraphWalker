@@ -72,7 +72,7 @@ public:
         }
     }
 
-    void updateInfo(vid_t dstId, unsigned threadid, unsigned hop){
+    void updateInfo(vid_t sourId, vid_t dstId, unsigned threadid, unsigned hop){
         // if(hop >= L-10)
             vertex_value[threadid][dstId-cur_window_st]++; // #pragma omp critical
     }

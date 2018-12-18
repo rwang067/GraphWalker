@@ -34,9 +34,12 @@ public:
     } 
 
     virtual void updateInfo(vid_t dstId){
-    }    
+    }  
 
     virtual void updateInfo(vid_t dstId, unsigned d, unsigned hop){
+    }  
+
+    virtual void updateInfo(vid_t sourId, vid_t dstId, unsigned d, unsigned hop){
     }
 
     /**

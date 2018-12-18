@@ -277,11 +277,11 @@
         if(nshards == 0 ){
             double max_shardsize = 1024. * 1024. * size_t(get_option_int("membudget_mb", 1024)) / 4 ;
             if( nwalks > nedges ) {
-                nshards = (int) ( (nwalks * sizeof(WalkDataType) / max_shardsize) + 0.5);
+                nshards = (int) ( (nwalks * sizeof(WalkDataType) / max_shardsize) + 1.0);
                 is_convert_by_walks = true;
             }
             else{
-                nshards = (int) ( (nedges * sizeof(VertexDataType) / max_shardsize) + 0.5);
+                nshards = (int) ( (nedges * sizeof(VertexDataType) / max_shardsize) + 1.0);
                 is_convert_by_walks = false;
             }
             logstream(LOG_DEBUG) << "membudget_b nvertices nedges nwalks nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nwalks << " " << nshards << std::endl;

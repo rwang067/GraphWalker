@@ -37,7 +37,13 @@ public:
             exit(-1);
         }
 		capacity_w = newcapacity;
-		walks = (WalkDataType*)realloc(walks, capacity_w*sizeof(WalkDataType));
+		// walks = (WalkDataType*)realloc(walks, capacity_w*sizeof(WalkDataType));
+        WalkDataType* tmp = (WalkDataType*)realloc(walks, capacity_w*sizeof(WalkDataType));
+        if (tmp == NULL) {
+            // do something to deal with the problem
+            logstream(LOG_WARNING) << "cannot realloc vector_w as newcapacity, capacity , size : " << newcapacity << " , "<< capacity_w << " , " << size_w << std::endl;
+        }
+        walks = tmp; // safe to use walks
 	}
 
     void resize(int newsize){
@@ -47,10 +53,11 @@ public:
     }
 
     void clear(){
-        size_w = 0;
-        capacity_w = 0;
-        free(walks);
-        walks = NULL;
+        // free(walks);
+        // walks = NULL;
+        // capacity_w = init_capacity;
+		size_w = 0;
+		// walks = (WalkDataType*)malloc(capacity_w*sizeof(WalkDataType));
     }
 
 	void push_back(WalkDataType w){

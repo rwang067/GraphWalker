@@ -1,5 +1,21 @@
 # !/bin/bash
 
+# 2018.12.17
+   echo "2018.12.17 observe the runtime of msppr" >> graphchi_metrics.txt.statistics 
+
+# Twitter  
+    echo "app = MSPPR, dataset = Twitter from echo" >> graphchi_metrics.txt.statistics 
+    echo "R = 1×N, L = 20, choose prob=0.2 from echo" >> graphchi_metrics.txt.statistics 
+    for(( walkspersource = 2000; walkspersource > 0; walkspersource/=10))
+    do
+        echo "walkspersource = " $walkspersource >> graphchi_metrics.txt.statistics 
+	    for(( times = 0; times < 100; times++))
+	    do
+	        echo "times = " $times " from echo"
+            ./bin/apps/msppr file ../DataSet/Twitter/twitter_rv.net nvertices 61578415 nedges 1468365182 firstsource 12 numsources 1000 walkspersource $walkspersource
+            done
+	done
+
 # # 2018.12.6
 #    echo "2018.12.9 observe the effect of nshards in PC(dell) HDD" >> graphchi_metrics.txt.statistics 
 

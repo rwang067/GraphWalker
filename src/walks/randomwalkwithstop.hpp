@@ -1,5 +1,5 @@
-#ifndef RANDOMWALKWITHRESTART
-#define RANDOMWALKWITHRESTART
+#ifndef RANDOMWALKWITHSTOP
+#define RANDOMWALKWITHSTOP
 
 #include <string>
 #include <fstream>
@@ -13,18 +13,17 @@
  * Sharder-program.
  */
  
-class RandomWalkwithRestart : public RandomWalk {
-public:
-    vid_t source;
+class RandomWalkwithStop : public RandomWalk {
+
+    unsigned numsources, walkspersource, maxwalklength;
 
 public:
-    void initializeRW( vid_t _source, unsigned _nwalks, unsigned _nsteps, float _tail) {
-        source = _source;
+    void initializeRW(unsigned _nwalks, unsigned _maxwalklength) {
         nwalks = _nwalks;
-        nsteps = _nsteps;
-        tail = _tail;
+        maxwalklength = _maxwalklength;
+        tail = 0;
         tailwalknum = (unsigned)(nwalks*tail);
-        std::cout << "nwalks, nsteps, tail, tailwalknum : "  << nwalks << " " << nsteps << " " << tail << " " << tailwalknum << std::endl;
+        std::cout << "nwalks, maxwalklength : "  << nwalks << " " << maxwalklength << std::endl;
     }
     /**
      *  Walk update function.
@@ -37,29 +36,22 @@ public:
             vid_t dstId = walk_manager.getCurrentId(nowWalk) + intervals[exec_interval].first;
             unsigned hop = walk_manager.getHop(nowWalk);
             unsigned seed = walkid+dstId+hop+(unsigned)time(NULL);
-            while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < nsteps ){
+            while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < maxwalklength ){
                 // std::cout  << " -> " << dstId << " " << walk_manager.getSourceId(walk) << std::endl;
                 updateInfo(sourId, dstId, threadid, hop);
                 Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
                 if (nowVertex.outd > 0 && ((float)rand_r(&seed))/RAND_MAX > 0.15 )
                     dstId = random_outneighbor(nowVertex, seed);
                 else
-                    dstId = walk_manager.getSourceId(walk);
-                    // dstId = walk_manager.getSourceId(walk) + source;
+                    return ;
                 hop++;
                 nowWalk++;
             }
-            // std::cout  << " hop, to " << hop << " " << dstId << std::endl;
-            if( hop < nsteps ){
-            // if( hop < nsteps && dstId != source){
+            if( hop < maxwalklength ){
                 unsigned p = getInterval( dstId );
                 walk_manager.moveWalk(nowWalk, p, threadid, dstId - intervals[p].first);
                 walk_manager.setMinStep( p, hop );
             }
-            // else if(dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second) {
-            //     ;//updateInfo(dstId);
-            // }
-            // std::cout << " move walk " << nowWalk << "  " << dstId << "  " << hop << std::endl;
     }   
 
 };

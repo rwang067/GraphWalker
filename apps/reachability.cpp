@@ -49,7 +49,7 @@ public:
         }
     }
 
-    void updateInfo(vid_t dstId, unsigned threadid, unsigned hop){
+    void updateInfo(vid_t sourId, vid_t dstId, unsigned threadid, unsigned hop){
         // logstream(LOG_DEBUG) << "dstId : " << dstId << std::endl; 
         if( dstId == b )
             ans = true;

@@ -188,7 +188,7 @@ public:
                 // logstream(LOG_DEBUG) << "proc > 0.2 --> maxwalk, choose probability = " << cc << std::endl;
                 exec_interval =walk_manager->intervalWithMaxWalks();
             }
-            // logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
+            logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
             //walk_manager->printWalksDistribution( exec_interval );
             /*load graph and walks info*/
             loadSubGraph(exec_interval, vertices);
