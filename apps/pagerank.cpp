@@ -189,21 +189,21 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
-    long long nedges = get_option_long("nedges", 68993773); // Number of edges
-    unsigned nshards = get_option_int("nshards", 0); // Number of intervals
     unsigned R = get_option_int("R", 1); // Number of steps
     unsigned L = get_option_int("L", 20); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     semi_external = get_option_int("semi_external", 0);
     
+    long long shardsize = get_option_long("shardsize", 0); // Size of shard, represented in KB
+
     /* Detect the number of shards or preprocess an input to create them */
-    nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, nvertices*R, nshards);
+    unsigned nshards = convert_if_notexists(filename, shardsize);
 
     /* Run */
     PageRank program;
     program.initializeApp( nvertices, R, L, tail, filename );
-    graphwalker_engine engine(filename, nshards, m);
+    graphwalker_engine engine(filename, shardsize, nshards, m);
     engine.run(program, prob);
 
     if(semi_external){
@@ -220,7 +220,7 @@ int main(int argc, const char ** argv) {
         free(program.vertex_value[0]);
     }
     
-    // computeError<unsigned>(nvertices, filename, 100, "pr");
+    computeError<unsigned>(nvertices, filename, 20, "pr");
 
     /* Report execution metrics */
     metrics_report(m);

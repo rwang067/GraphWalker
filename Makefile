@@ -8,7 +8,7 @@ DEBUGFLAGS = -g -ggdb $(INCFLAGS)
 HEADERS=$(shell find . -name '*.hpp')
 
 
-apps : apps/pagerank apps/rwdomination apps/graphlet apps/personalizedpagerank apps/simrank apps/reachability apps/randomwalks apps/randomwalkswithrestart
+apps : apps/pagerank apps/rwdomination apps/graphlet apps/personalizedpagerank apps/simrank apps/reachability
  
 echo:
 	echo $(HEADERS)

@@ -98,9 +98,6 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
-    long long nedges = get_option_long("nedges", 68993773); // Number of edges
-    unsigned nshards = get_option_int("nshards", 0); // Number of intervals
     unsigned a = get_option_int("a", 1); // vertex id of start source
     unsigned b = get_option_int("b", 2); // Number of sources
     unsigned R = get_option_int("R", 1000); // Number of steps
@@ -109,14 +106,16 @@ int main(int argc, const char ** argv) {
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     semi_external = get_option_int("semi_external", 0);
     
+    long long shardsize = get_option_long("shardsize", 0); // Size of shard, represented in KB
+
     /* Detect the number of shards or preprocess an input to create them */
-    nshards = convert_if_notexists(filename, get_option_string("nshards", "auto"), nvertices, nedges, R, nshards);
+    unsigned nshards = convert_if_notexists(filename, shardsize);
 
     /* Run */
     Reachability program;
     program.initializeApp( a, b, R, L, tail );
     // program.initializeRW( 2*R, L, tail );
-    graphwalker_engine engine(filename, nshards, m);
+    graphwalker_engine engine(filename, shardsize, nshards, m);
     engine.run(program, prob);
 
     std::cout << "Reachability from " << a << " to " << b << " = " << program.ans << std::endl;

@@ -67,7 +67,9 @@
               std::string statistic_filename = filename + ".statistics";
               std::ofstream ofs;
               ofs.open(statistic_filename.c_str(), std::ofstream::out | std::ofstream::app );
-              if( it->first == "exec_updates")
+              if( it->first == "nshards")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "exec_updates")
                   ofs << ent.count << "  \t  " ;
               else if( it->first == "runtime" )
                   ofs << ent.value << std::endl;

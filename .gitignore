@@ -4,5 +4,5 @@ graphchi_metrics.txt
 graphchi_metrics.html
 graphchi_metrics.txt.statistics
 ./monitor/*.csv
-./runsh/*
+./runsh/graphchi_metrics*
 .vscode/

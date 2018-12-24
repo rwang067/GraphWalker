@@ -24,6 +24,7 @@
 class graphwalker_engine {
 public:     
     std::string base_filename;
+    int shardsize;  
     int nshards;  
     int nvertices;      
     size_t blocksize;
@@ -62,7 +63,7 @@ public:
      * @param nshards number of shards
      * @param selective_scheduling if true, uses selective scheduling 
      */
-    graphwalker_engine(std::string _base_filename, int _nshards, metrics &_m) : base_filename(_base_filename), nshards(_nshards), m(_m) {
+    graphwalker_engine(std::string _base_filename, long long _shardsize, int _nshards, metrics &_m) : base_filename(_base_filename), shardsize(_shardsize), nshards(_nshards), m(_m) {
         // m.start_time("iomgr_init");
         // iomgr = new stripedio(m);
         // m.stop_time("iomgr_init");
@@ -70,7 +71,7 @@ public:
         membudget_mb = get_option_int("membudget_mb", 1024);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
 
-        load_vertex_intervals(base_filename, nshards, intervals);
+        load_vertex_intervals(base_filename, shardsize, intervals);
         nvertices = num_vertices();
         walk_manager = new WalkManager(m,nshards,exec_threads,base_filename);
 
@@ -118,9 +119,8 @@ public:
         m.stop_time("loadSubGraph");
     }
 
-    static VARIABLE_IS_NOT_USED void load_vertex_intervals(std::string base_filename, int nshards, std::vector<std::pair<vid_t, vid_t> > & intervals, bool allowfail=false) {
-        std::string intervalsFilename = filename_intervals(base_filename, nshards);
-        // logstream(LOG_INFO) << intervalsFilename << std::endl;
+    void load_vertex_intervals(std::string base_filename, long long shardsize, std::vector<std::pair<vid_t, vid_t> > & intervals, bool allowfail=false) {
+        std::string intervalsFilename = filename_intervals(base_filename, shardsize);
         std::ifstream intervalsF(intervalsFilename.c_str());
         
         if (!intervalsF.good()) {

@@ -29,11 +29,6 @@
     vid_t stv, env;
     std::vector<std::pair<vid_t, vid_t> > invls;
 
-    bool is_convert_by_walks;
-    int num_verts, verts_per_invl;
-    long long num_edges, edges_per_invl;
-    unsigned long long malloc_size;
-
     int rm_dir(std::string dir_full_path){    
         DIR* dirp = opendir(dir_full_path.c_str());    
         if(!dirp){
@@ -72,6 +67,28 @@
             return -1;
         }
         closedir(dirp);
+        return 0;
+    }
+
+    /**
+     * Returns the number of shards if a file has been already
+     * sharded or 0 if not found.
+     */
+    static int find_shards(std::string base_filename, long long shardsize) {
+        std::string intervalfname = filename_intervals(base_filename, shardsize);
+        FILE *tryf = fopen(intervalfname.c_str(), "r");
+        if (tryf != NULL) { // Found!
+            int nshards = 0;
+            while(!feof(tryf)){
+                char flag = fgetc(tryf);
+                if(flag == '\n')
+                nshards++;
+            }
+            fclose(tryf);
+            return nshards;
+        }
+        // Not found!
+        logstream(LOG_WARNING) << "Could not find shards with shardsize = " << shardsize/1024 << "MB." << std::endl;
         return 0;
     }
 
@@ -129,19 +146,10 @@
     }
 
     void bwritezero( char * buf, char * &bufptr, int count ){
-        num_verts += count;
         while( count-- ){
             *((int*)bufptr) = 0;
             bufptr += sizeof(int);
         }
-    }
-
-    bool is_fill_up(){
-        if(is_convert_by_walks && num_verts > verts_per_invl)
-            return true;
-        if(!is_convert_by_walks && num_edges >= edges_per_invl)
-            return true;
-        return false;
     }
 
     void bwrite( char * buf, char * &bufptr, int count, std::vector<vid_t> outv, std::string filename ){
@@ -151,34 +159,27 @@
             *((vid_t*)bufptr) = outv[i];
             bufptr += sizeof(vid_t);
         }
-        num_verts++;
-        num_edges += count;
         env++;
-
-        //Judge if an interval buffer is fill up, if so write the buffer into file
-        if( is_fill_up() ){
-            std::string invlname = intervalname(filename,invlid);
-            writefile(invlname, buf, bufptr);
-            std::pair<vid_t, vid_t> invl(stv, env-1);
-            invls.push_back(invl);
-            logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
-            stv = env;
-            invlid++;
-            num_verts = num_edges = 0;
-            malloc_size = verts_per_invl+edges_per_invl;
-        }
     }
 
-    /**
-     * Converts graph from an edge list format. Input may contain
-     * value for the edges. Self-edges are ignored.
-     */
-    void convert_edgelist(std::string filename, int nshards, int nvertices, long long nedges) {
-        num_verts = num_edges = 0;
-        verts_per_invl = nvertices / nshards + 1;
-        edges_per_invl = nedges / nshards + 1;
-        logstream(LOG_INFO) << "verts/edges_per_invl , nedges : " << verts_per_invl << " " << edges_per_invl << " , " << nedges << std::endl;
+    void flushInvl(std::string filename, char * buf, char * &bufptr){
+        std::string invlname = intervalname(filename,invlid);
+        writefile(invlname, buf, bufptr);
+        std::pair<vid_t, vid_t> invl(stv, env-1);
+        invls.push_back(invl);
+        logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
+        stv = env;
+        invlid++;
+        bufptr = buf;
+    }
+
+    int convert_by_shardsize(std::string filename, long long shardsize){
+
+        unsigned long long malloc_size = shardsize * 1024 / 4; //max number of (vertices+edges) of a shard
         
+        logstream(LOG_INFO) << "Begin convert_by_shardsize, malloc_size = " << malloc_size << std::endl;
+        
+        // return 0;
         FILE * inf = fopen(filename.c_str(), "r");
         if (inf == NULL) {
             logstream(LOG_FATAL) << "Could not load :" << filename << " error: " << strerror(errno) << std::endl;
@@ -190,10 +191,6 @@
         mkdir((filename+"_GraphWalker/graphinfo/").c_str(), 0777);
         
         logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
-
-        // malloc_size = min_value((nvertices+nedges), max_value((verts_per_invl+edges_per_invl),0));//10*edges_per_invl));
-        malloc_size = verts_per_invl+edges_per_invl;
-        logstream(LOG_INFO) << "malloc_size = " << malloc_size << std::endl;
         char * buf = (char*) malloc(malloc_size*sizeof(int));
         char * bufptr = buf;
         
@@ -227,16 +224,21 @@
                 count++;
             }else{
                 if( (bufptr-buf)/sizeof(int)+count+1 >= malloc_size ){
-                    int offset = bufptr-buf;
-                    logstream(LOG_DEBUG) << "Realloc : " << (bufptr-buf)/sizeof(int)+count+1 << " " << malloc_size << std::endl;
-                    malloc_size = malloc_size * 2;
-                    buf = (char*) realloc(buf, malloc_size*sizeof(int));
-                    bufptr = buf + offset;
+                    flushInvl(filename, buf, bufptr);
                 }
                 bwrite( buf, bufptr, count, outv, filename); //write a vertex to buffer
-                if( from - curvertex > 1 ){ 
-                    bwritezero( buf, bufptr, from-curvertex-1 ); 
-                    env += from - curvertex -1 ;
+                if( from - curvertex > 1 ){
+                    vid_t remainsize = malloc_size - (bufptr-buf)/sizeof(int);
+                    if( from-curvertex-1 < remainsize ){
+                        bwritezero( buf, bufptr, from-curvertex-1 ); 
+                        env += from - curvertex -1 ;
+                    }else{
+                        bwritezero( buf, bufptr, remainsize ); 
+                        env += remainsize ;
+                        flushInvl(filename, buf, bufptr);
+                        bwritezero( buf, bufptr, from - curvertex - 1 - remainsize ); 
+                        env += from - curvertex - 1 - remainsize ;
+                    }
                 }
                 curvertex = from;
                 count = 1;
@@ -256,7 +258,7 @@
         logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << std::endl;
 
         /*write interval info*/
-        std::string intervalsFilename = filename_intervals(filename, invlnum);
+        std::string intervalsFilename = filename_intervals(filename, shardsize);
         std::ofstream intervalsF(intervalsFilename.c_str());      
         for( int p = 0; p < invlnum; p++ ){
             intervalsF << invls[p].second << std::endl;
@@ -270,21 +272,43 @@
         nverticesF << max_vert+1 << std::endl;
         nverticesF << invls[invlnum-1].second+1 << std::endl;
         intervalsF.close();
+        return invlnum;
+    }
+
+    /**
+     * Converts graph from an edge list format. Input may contain
+     * value for the edges. Self-edges are ignored.
+     */
+    void convert_edgelist(std::string filename, int nshards, int nvertices, long long nedges) {
+        unsigned long long malloc_size = (nvertices + nedges) / nshards + 1;
+        logstream(LOG_INFO) << "malloc_size = " << malloc_size << std::endl;
+        int invlnum = convert_by_shardsize(filename, malloc_size);
         assert(invlnum==nshards);
     }
+
+    int convert_if_notexists(std::string basefilename, long long shardsize) {
+        int nshards = find_shards(basefilename, shardsize);
+        /* Check if input file is already sharded */
+        if(nshards > 0) {
+            logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << shardsize/1024 << "MB, num shards=" << nshards << std::endl;
+            return nshards;
+        }
+        logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;
+        // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
+        logstream(LOG_INFO) << "Will try create them now..." << std::endl;
+
+        nshards = convert_by_shardsize(basefilename, shardsize);
+
+        logstream(LOG_INFO) << "Successfully finished sharding for " << basefilename << std::endl;
+        logstream(LOG_INFO) << "Created " << nshards << " shards." << std::endl;
+        return nshards;
+    }
     
-    int convert_if_notexists(std::string basefilename, std::string nshards_string, int nvertices, long long nedges, int nwalks, int nshards) {
+    int convert_if_notexists_nshards(std::string basefilename, std::string nshards_string, int nvertices, long long nedges, int nshards) {
         if(nshards == 0 ){
             double max_shardsize = 1024. * 1024. * size_t(get_option_int("membudget_mb", 1024)) / 4 ;
-            if( nwalks > nedges ) {
-                nshards = (int) ( (nwalks * sizeof(WalkDataType) / max_shardsize) + 1.0);
-                is_convert_by_walks = true;
-            }
-            else{
-                nshards = (int) ( (nedges * sizeof(VertexDataType) / max_shardsize) + 1.0);
-                is_convert_by_walks = false;
-            }
-            logstream(LOG_DEBUG) << "membudget_b nvertices nedges nwalks nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nwalks << " " << nshards << std::endl;
+            nshards = (int) ( ((nedges+nvertices) * sizeof(VertexDataType) / max_shardsize) + 1.0);
+            logstream(LOG_DEBUG) << "membudget_b nvertices nedges nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nshards << std::endl;
         }
         /* Check if input file is already sharded */
         if ((nshards == find_shards(basefilename, nshards_string))) {
