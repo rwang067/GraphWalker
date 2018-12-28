@@ -84,7 +84,6 @@ public:
     }
 
     void loadSubGraph(int p, Vertex *&vertices ){
-        // logstream(LOG_INFO) << "LoadSubGraph data..." << std::endl;
         m.start_time("loadSubGraph");
         std::string invlname = intervalname( base_filename, p );
         int inf = open(invlname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -98,6 +97,7 @@ public:
         int vcnt = sz / sizeof(int);
         int curvertex = 0;
         int numv = (intervals[p].second-intervals[p].first+1);
+        // logstream(LOG_INFO) << "LoadSubGraph data of p : " << p << ", numvertices of p = " << numv << ", num(verts+edges) = " << vcnt << "..." << std::endl;
         vertices = (Vertex*)malloc((numv+1)*sizeof(Vertex));
         while( vcnt > 0 ){
             Vertex v;
@@ -105,7 +105,7 @@ public:
             int dcnt = *((int*)bufptr);
             bufptr += sizeof(int);
             v.outd = 0;
-            v.outv = (vid_t*)malloc(dcnt*sizeof(vid_t));
+            if(dcnt > 0) v.outv = (vid_t*)malloc(dcnt*sizeof(vid_t));
             for( int i = 0; i < dcnt; i++ ){
                 vid_t to = *((vid_t*)bufptr);
                 bufptr += sizeof(vid_t);
@@ -117,6 +117,7 @@ public:
         free(buf);
         close(inf);
         m.stop_time("loadSubGraph");
+        // logstream(LOG_INFO) << "LoadSubGraph data end." << std::endl;
     }
 
     void load_vertex_intervals(std::string base_filename, long long shardsize, std::vector<std::pair<vid_t, vid_t> > & intervals, bool allowfail=false) {
@@ -137,7 +138,8 @@ public:
             intervals.push_back(std::pair<vid_t,vid_t>(st, en));
             st = en + 1;
         }
-        for(int i=0; i < nshards; i++) {
+        // for(int i=0; i < nshards; i++) {
+        for(int i=nshards-1; i < nshards; i++) {
              logstream(LOG_INFO) << "shard: " << intervals[i].first << " - " << intervals[i].second << std::endl;
         }
         intervalsF.close();
@@ -167,13 +169,13 @@ public:
 
     void run(RandomWalk &userprogram, float prob) {
         gettimeofday(&start, NULL);
-        m.start_time("runtime");
         // srand((unsigned)time(NULL));
         m.start_time("startWalks");
         userprogram.startWalks(*walk_manager, nvertices, intervals);
         m.stop_time("startWalks");
         //initialnizeVertexData();
 
+        m.start_time("runtime");
         /*loadOnDemand -- Interval loop */
         int numIntervals = 0;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
@@ -188,7 +190,7 @@ public:
                 // logstream(LOG_DEBUG) << "proc > 0.2 --> maxwalk, choose probability = " << cc << std::endl;
                 exec_interval =walk_manager->intervalWithMaxWalks();
             }
-            logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
+            if(numIntervals%10==0) logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
             //walk_manager->printWalksDistribution( exec_interval );
             /*load graph and walks info*/
             loadSubGraph(exec_interval, vertices);

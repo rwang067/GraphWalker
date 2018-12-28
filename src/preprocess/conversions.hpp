@@ -88,7 +88,7 @@
             return nshards;
         }
         // Not found!
-        logstream(LOG_WARNING) << "Could not find shards with shardsize = " << shardsize/1024 << "MB." << std::endl;
+        logstream(LOG_WARNING) << "Could not find shards with shardsize = " << shardsize << "KB." << std::endl;
         return 0;
     }
 
@@ -175,7 +175,7 @@
 
     int convert_by_shardsize(std::string filename, long long shardsize){
 
-        unsigned long long malloc_size = shardsize * 1024 / 4; //max number of (vertices+edges) of a shard
+        unsigned long long malloc_size = shardsize * 1024 / sizeof(int); //max number of (vertices+edges) of a shard
         
         logstream(LOG_INFO) << "Begin convert_by_shardsize, malloc_size = " << malloc_size << std::endl;
         
@@ -205,13 +205,14 @@
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
             
+            // logstream(LOG_INFO) << " s= " << s << std::endl;
             char *t1, *t2;
             t1 = strtok(s, "\t, ");
             t2 = strtok(NULL, "\t, ");
             if (t1 == NULL || t2 == NULL ) {
                 logstream(LOG_ERROR) << "Input file is not in right format. "
-                << "Expecting \"<from>\t<to>\". "
-                << "Current line: \"" << s << "\"\n";
+                << "Expecting <from> <to>. "
+                << "Current line: " << s << "\n";
                 assert(false);
             }
             vid_t from = atoi(t1);
@@ -222,23 +223,30 @@
             if( from == curvertex ){
                 outv.push_back(to);
                 count++;
-            }else{
+            }else{  //a new vertex
                 if( (bufptr-buf)/sizeof(int)+count+1 >= malloc_size ){
+                    // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
                     flushInvl(filename, buf, bufptr);
+                    if( count+1 > (int)malloc_size){
+                        logstream(LOG_ERROR) << "Too small shardsize with malloc_size = " << malloc_size << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << count << std::endl;
+                        assert(false);
+                    }
                 }
                 bwrite( buf, bufptr, count, outv, filename); //write a vertex to buffer
-                if( from - curvertex > 1 ){
-                    vid_t remainsize = malloc_size - (bufptr-buf)/sizeof(int);
-                    if( from-curvertex-1 < remainsize ){
-                        bwritezero( buf, bufptr, from-curvertex-1 ); 
-                        env += from - curvertex -1 ;
-                    }else{
+                if( from - curvertex > 1 ){ //there are verts with zero out-links
+                    vid_t remianzero = from-curvertex-1;
+                    vid_t remainsize = malloc_size - ((bufptr-buf)/sizeof(int));
+                    // logstream(LOG_INFO) << "remianzero = " << remianzero << " , remainsize =  " << remainsize << " malloc_size = " << malloc_size << std::endl;
+                    while(remianzero > remainsize){
                         bwritezero( buf, bufptr, remainsize ); 
                         env += remainsize ;
                         flushInvl(filename, buf, bufptr);
-                        bwritezero( buf, bufptr, from - curvertex - 1 - remainsize ); 
-                        env += from - curvertex - 1 - remainsize ;
+                        logstream(LOG_DEBUG) << remianzero << " , remainsize =  " << remainsize << std::endl;
+                        remianzero -= remainsize;
+                        remainsize = malloc_size;
                     }
+                    bwritezero( buf, bufptr, remianzero ); 
+                    env += remianzero ;
                 }
                 curvertex = from;
                 count = 1;

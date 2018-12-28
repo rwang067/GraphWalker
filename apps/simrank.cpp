@@ -1,5 +1,4 @@
-
-#define DYNAMICEDATA 1
+#define KEEPWALKSINDISK 1
 
 #include <string>
 #include <fstream>
@@ -8,8 +7,6 @@
 
 #include "api/graphwalker_basic_includes.hpp"
 #include "walks/randomwalkwithrestartwithjoint.hpp"
-
-bool semi_external;
 
 class SimRank : public RandomWalkwithRestartwithJoint{
 private:
@@ -62,11 +59,10 @@ public:
 				WalkDataType walk = walk_manager.encode(b, cur, hop);
 				walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
 			}
-		if(!semi_external){
-			//write to file
+		#ifdef KEEPWALKSINDISK
 			walk_manager.freshIntervalWalks();
-		}
-      }
+		#endif
+    }
 
 	void updateInfo(WalkManager &walk_manager, WalkDataType walk, vid_t dstId){
 		vid_t s = walk_manager.getSourceId(walk);
@@ -86,10 +82,9 @@ public:
      * Called before an execution interval is started.
      */
     void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-		if(!semi_external){
-			/*load walks*/
-			walk_manager.readIntervalWalks(exec_interval);
-		}
+		#ifdef KEEPWALKSINDISK
+            walk_manager.readIntervalWalks(exec_interval);
+        #endif
     }
     
     /**
@@ -103,16 +98,17 @@ public:
             walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
             if(p == exec_interval ) continue;
-            if(semi_external) walk_manager.walknum[p] = 0;
+            #ifndef KEEPWALKSINDISK
+                walk_manager.walknum[p] = 0;
+            #endif
 			for(unsigned t=0;t<nthreads;t++){
 				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
             }
         }
 
-        if(!semi_external){ 
-			/*write back walks*/
-			walk_manager.writeIntervalWalks(exec_interval);
-		}
+        #ifdef KEEPWALKSINDISK
+            walk_manager.writeIntervalWalks(exec_interval);
+        #endif
     }
 
 	float computeResult(){
@@ -146,7 +142,6 @@ int main(int argc, const char ** argv) {
     unsigned L = get_option_int("L", 11); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-	semi_external = get_option_int("semi_external", 0);
     long long shardsize = get_option_long("shardsize", 0); // Size of shard, represented in KB
 
     /* Detect the number of shards or preprocess an input to create them */

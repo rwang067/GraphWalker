@@ -37,10 +37,9 @@ static std::string filename_intervals(std::string basefilename, int nshards){
 }
 
 static std::string filename_intervals(std::string basefilename, long long shardsize_kb){
-    int shardsize_mb = (int)(shardsize_kb / 1024);
     std::stringstream ss;
     ss << basefilename;
-    ss << "_GraphWalker/shardsize_" << shardsize_mb << "MB.intervals";
+    ss << "_GraphWalker/shardsize_" << shardsize_kb << "KB.intervals";
     return ss.str();
 }
 

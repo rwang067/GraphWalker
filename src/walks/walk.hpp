@@ -169,7 +169,7 @@ public:
 
      void readIntervalWalks( unsigned p ){
 		m.start_time("readIntervalWalks");
-        logstream(LOG_INFO) << "readIntervalWalks.." << std::endl;
+        // logstream(LOG_INFO) << "readIntervalWalks.." << std::endl;
 		std::string walksfile = walksname( base_filename, p );
 		unsigned f = open(walksfile.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
@@ -191,7 +191,7 @@ public:
 				}
 			}
 		}
-        logstream(LOG_INFO) << "readIntervalWalks of p : " << p << " : " << count << std::endl;
+        // logstream(LOG_INFO) << "readIntervalWalks of p : " << p << " : " << count << std::endl;
 		m.stop_time("readIntervalWalks");
      }
 
@@ -228,7 +228,7 @@ public:
 
 	 void writeIntervalWalks( unsigned p ){
 		m.start_time("writeIntervalWalks");
-		logstream(LOG_INFO) << "writeIntervalWalks of p : " << p << std::endl;
+		// logstream(LOG_INFO) << "writeIntervalWalks of p : " << p << std::endl;
 		//Clear walks of interval p in file
 		std::string walksfile = walksname( base_filename, p );
 		unsigned f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);

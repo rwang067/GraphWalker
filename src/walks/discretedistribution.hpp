@@ -4,6 +4,8 @@
 #include <queue>
 #include "api/datatype.hpp"
 
+const unsigned capacity = 1000;
+
 struct IdCount {
     vid_t id;
     uint16_t count;
@@ -24,19 +26,12 @@ public:
 	vid_t* ids;
 	uint16_t* counts;
 	unsigned size;
-    unsigned capacity;
+    // unsigned capacity;
 
 public:
 	DiscreteDistribution(){
 		size = 0;
-        capacity = 10;
-        ids = (vid_t*)malloc(capacity*sizeof(vid_t));
-		counts = (uint16_t*)malloc(capacity*sizeof(uint16_t));
-	}
-
-    DiscreteDistribution(unsigned _capacity){
-		size = 0;
-        capacity = _capacity;
+        // capacity = 1000;
         ids = (vid_t*)malloc(capacity*sizeof(vid_t));
 		counts = (uint16_t*)malloc(capacity*sizeof(uint16_t));
 	}
@@ -46,24 +41,6 @@ public:
 		free(counts);
 	}
 
-    void reserve(unsigned newcapacity){
-		if( newcapacity < size ){
-            logstream(LOG_WARNING) << "cannot reserve vector_w as capacity < size : " << newcapacity << " < " << size << std::endl;
-            exit(-1);
-        }
-		capacity = newcapacity;
-		// ids = (vid_t*)realloc(ids, capacity*sizeof(vid_t));
-		// counts = (uint16_t*)realloc(counts, capacity*sizeof(uint16_t));
-        vid_t *tmpids = (vid_t*)realloc(ids, capacity*sizeof(vid_t));
-        if (tmpids == NULL)
-            logstream(LOG_WARNING) << "cannot realloc ids as newcapacity, capacity , size : " << newcapacity << " , "<< capacity << " , " << size << std::endl;
-        ids = tmpids;
-        uint16_t *tmpcounts = (uint16_t*)realloc(counts, capacity*sizeof(uint16_t));
-        if (tmpcounts == NULL)
-            logstream(LOG_WARNING) << "cannot realloc counts as newcapacity, capacity , size : " << newcapacity << " , "<< capacity << " , " << size << std::endl;
-        counts = tmpcounts;
-	}
-
     void add(vid_t _id){
         for(unsigned i = 0; i < size; i++){
             if(ids[i] == _id){
@@ -71,37 +48,26 @@ public:
                 return ;
             }
         }
-        if(size == capacity)  reserve(2*capacity+1);
+        while(size == capacity){  //reserve(2*capacity+1);
+            filter(2);
+        }
         ids[size] = _id;
         counts[size] = 1;
         size++;
     }
 
-    DiscreteDistribution* filter(uint16_t mincount){
-        if (mincount <= 1) {
-            return this;
-        }
-
-        int toRemove = 0;
-        for(unsigned i=0; i < size; i++) {
-            toRemove += (counts[i] < mincount &&  counts[i] > 0 ? 1 : 0);
-        }
-        if (toRemove == 0) {
-            return this;   // We can safely return same instance, as this is immutable
-        }
-
-        DiscreteDistribution *filteredDist = new DiscreteDistribution(size - toRemove);
+    void filter(uint16_t mincount){
         // filteredDist.reserve(size - toRemove);
         int idx = 0;
         for(unsigned i=0; i < size; i++) {
             if (counts[i] >= mincount) {
-                filteredDist->ids[idx] = ids[i];
-                filteredDist->counts[idx] = (uint16_t) (counts[i] - mincount + 1);
+                ids[idx] = ids[i];
+                counts[idx] = (uint16_t) (counts[i] - mincount + 1);
                 idx++;
             }
         }
-        //mark : need to free old dist??!!
-        return filteredDist;
+        size = idx;
+        // logstream(LOG_INFO) << "after filter, size = " << size << std::endl;
     }
 
     void getTop(unsigned ntop){

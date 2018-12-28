@@ -46,7 +46,7 @@
         vertex_value(vid_t v, VertexDataType x) : vertex(v), value(x) {}
     };
 
-    static std::string filename_vertex_data(std::string basefilename) {
+    static VARIABLE_IS_NOT_USED std::string filename_vertex_data(std::string basefilename) {
         std::stringstream ss;
         ss << basefilename;
         ss << "_GraphWalker/" << sizeof(VertexDataType) << "B.vvalue";

@@ -1,5 +1,5 @@
 
-#define DYNAMICEDATA 1
+#define KEEPWALKSINDISK 1
 
 #include <string>
 #include <fstream>
@@ -12,7 +12,6 @@
 #include "util/comperror.hpp"
 
 typedef unsigned VertexDataType;
-bool semi_external;
 
 class PersonalizedPageRank : public RandomWalkwithRestart{
 public:
@@ -60,15 +59,15 @@ public:
             for( unsigned j = 0; j < R; j++ ){
                 walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
             }
-        if(semi_external){ 
+        #ifdef KEEPWALKSINDISK
+            walk_manager.freshIntervalWalks();
+        #else
             vertex_value = new VertexDataType*[nthreads];
             for(unsigned i = 0; i < nthreads; i++){
                 vertex_value[i] = new VertexDataType[N];
                 memset(vertex_value[i], 0, N*sizeof(VertexDataType));
             }
-        }else{
-            walk_manager.freshIntervalWalks();
-        }
+        #endif
     }
 
     void updateInfo(vid_t sourId, vid_t dstId, unsigned threadid, unsigned hop){
@@ -80,7 +79,7 @@ public:
      * Called before an execution interval is started.
      */
     void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        if(!semi_external){
+        #ifdef KEEPWALKSINDISK
             /*load walks*/
             walk_manager.readIntervalWalks(exec_interval);
 
@@ -93,7 +92,7 @@ public:
                 vertex_value[t] = new VertexDataType[window_len];
                 memset(vertex_value[t], 0, window_len*sizeof(VertexDataType));
             }
-        }
+        #endif
     }
     
     /**
@@ -107,13 +106,15 @@ public:
             walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
             if(p == exec_interval ) continue;
-            if(semi_external) walk_manager.walknum[p] = 0;
+            #ifndef KEEPWALKSINDISK
+                walk_manager.walknum[p] = 0;
+            #endif
 			for(unsigned t=0;t<nthreads;t++){
 				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
             }
         }
 
-        if(!semi_external){
+        #ifdef KEEPWALKSINDISK
             /*write back walks*/
             walk_manager.writeIntervalWalks(exec_interval);
 
@@ -137,7 +138,7 @@ public:
             for(unsigned i = 0; i < nthreads; i++)
                 free(vertex_value[i]);
             free(vertex_value);
-        }
+        #endif
     }
 
 };
@@ -160,7 +161,6 @@ int main(int argc, const char ** argv) {
     unsigned L = get_option_int("L", 10); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    semi_external = get_option_int("semi_external", 0);
     long long shardsize = get_option_long("shardsize", 0); // Size of shard, represented in KB
 
     /* Detect the number of shards or preprocess an input to create them */
@@ -172,7 +172,7 @@ int main(int argc, const char ** argv) {
     graphwalker_engine engine(filename, shardsize, nshards, m);
     engine.run(program, prob);
 
-    if(semi_external){
+    #ifndef KEEPWALKSINDISK
         unsigned nthreads = get_option_int("execthreads");
         for(unsigned t = 1; t < nthreads; t++){
             for(unsigned i = 0; i < nvertices; i++ ){
@@ -184,7 +184,7 @@ int main(int argc, const char ** argv) {
         pwritea(f, program.vertex_value[0], sizeof(VertexDataType)*nvertices, 0);
         close(f);
         free(program.vertex_value[0]);
-    }
+    #endif
     
     // computeError<unsigned>(nvertices, filename, 100, "ppr");
     
