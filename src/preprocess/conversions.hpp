@@ -295,10 +295,11 @@
     }
 
     int convert_if_notexists(std::string basefilename, long long shardsize) {
+        assert(shardsize > 0);
         int nshards = find_shards(basefilename, shardsize);
         /* Check if input file is already sharded */
         if(nshards > 0) {
-            logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << shardsize/1024 << "MB, num shards=" << nshards << std::endl;
+            logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << shardsize << "KB, num shards=" << nshards << std::endl;
             return nshards;
         }
         logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;

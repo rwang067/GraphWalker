@@ -48,7 +48,7 @@ public:
                 return ;
             }
         }
-        while(size == capacity){  //reserve(2*capacity+1);
+        while(size >= capacity){
             filter(2);
         }
         ids[size] = _id;
@@ -57,7 +57,6 @@ public:
     }
 
     void filter(uint16_t mincount){
-        // filteredDist.reserve(size - toRemove);
         int idx = 0;
         for(unsigned i=0; i < size; i++) {
             if (counts[i] >= mincount) {
@@ -71,6 +70,7 @@ public:
     }
 
     void getTop(unsigned ntop){
+        // logstream(LOG_INFO) << "getTop " << ntop << " from size = " << size << std::endl;
         std::priority_queue<IdCount> topDist;
         IdCount minIC(ids[0],counts[0]);
         for(unsigned i = 0; i < size; i++){

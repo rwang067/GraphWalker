@@ -37,7 +37,9 @@ public:
         R = _R;
         L = _L;
         basefilename = _basefilename;
-        initialVertexValue<unsigned>(N, basefilename);
+        #ifdef KEEPWALKSINDISK
+            initialVertexValue<unsigned>(N, basefilename);
+        #endif
         initializeRW( source, nsources*R, L, tail );
     }
 
@@ -86,7 +88,8 @@ public:
             /*load vertex value*/
             cur_window_st = window_st;
             unsigned  window_len =  window_en -  window_st + 1;
-            unsigned nthreads = get_option_int("execthreads");
+            unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
+            // logstream(LOG_DEBUG) << "nthreads = " << nthreads << std::endl;
             vertex_value = new VertexDataType*[nthreads];
             for(unsigned t = 0; t < nthreads; t++){
                 vertex_value[t] = new VertexDataType[window_len];
@@ -101,7 +104,7 @@ public:
     void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
-        unsigned nthreads = get_option_int("execthreads");
+        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());;
         for(unsigned t = 0; t < nthreads; t++)
             walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
@@ -157,11 +160,11 @@ int main(int argc, const char ** argv) {
     std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     unsigned nvertices = get_option_int("nvertices", 4847571); // Number of vertices
     unsigned source = get_option_int("source", 0); // vertex id of start source
-    unsigned R = get_option_int("R", 1000); // Number of steps
+    unsigned R = get_option_int("R", 2000); // Number of steps
     unsigned L = get_option_int("L", 10); // Number of steps per walk
     float tail = get_option_float("tail", 0); // Ratio of stop long tail
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    long long shardsize = get_option_long("shardsize", 0); // Size of shard, represented in KB
+    long long shardsize = get_option_long("shardsize", 128); // Size of shard, represented in KB
 
     /* Detect the number of shards or preprocess an input to create them */
     unsigned nshards = convert_if_notexists(filename, shardsize);
@@ -173,7 +176,7 @@ int main(int argc, const char ** argv) {
     engine.run(program, prob);
 
     #ifndef KEEPWALKSINDISK
-        unsigned nthreads = get_option_int("execthreads");
+        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());;
         for(unsigned t = 1; t < nthreads; t++){
             for(unsigned i = 0; i < nvertices; i++ ){
                 program.vertex_value[0][i] += program.vertex_value[t][i];

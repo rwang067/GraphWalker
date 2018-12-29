@@ -3,6 +3,8 @@ bin/*
 graphchi_metrics.txt
 graphchi_metrics.html
 graphchi_metrics.txt.statistics
+graphwalker_metrics.txt
+graphwalker_metrics.txt.statistics
 ./monitor/*.csv
 ./runsh/graphchi_metrics*
 .vscode/

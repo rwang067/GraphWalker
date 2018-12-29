@@ -70,6 +70,8 @@ public:
 
         membudget_mb = get_option_int("membudget_mb", 1024);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
+        logstream(LOG_INFO) << "Max available exec_threads = " << exec_threads << std::endl;
+        omp_set_num_threads(exec_threads);
 
         load_vertex_intervals(base_filename, shardsize, intervals);
         nvertices = num_vertices();
@@ -190,7 +192,7 @@ public:
                 // logstream(LOG_DEBUG) << "proc > 0.2 --> maxwalk, choose probability = " << cc << std::endl;
                 exec_interval =walk_manager->intervalWithMaxWalks();
             }
-            if(numIntervals%10==0) logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
+            if(numIntervals%10==1) logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
             //walk_manager->printWalksDistribution( exec_interval );
             /*load graph and walks info*/
             loadSubGraph(exec_interval, vertices);

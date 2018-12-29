@@ -88,7 +88,7 @@ public:
             /*load vertex value*/
             cur_window_st = window_st;
             unsigned  window_len =  window_en -  window_st + 1;
-            unsigned nthreads = get_option_int("execthreads");
+            unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());;
             vertex_value = new VertexDataType*[nthreads];
             for(unsigned t = 0; t < nthreads; t++){
                 vertex_value[t] = new VertexDataType[window_len];
@@ -103,7 +103,7 @@ public:
     void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
-        unsigned nthreads = get_option_int("execthreads");
+        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());;
         for(unsigned t = 0; t < nthreads; t++)
             walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
@@ -175,7 +175,7 @@ int main(int argc, const char ** argv) {
     engine.run(program, prob);
 
     #ifndef KEEPWALKSINDISK
-        unsigned nthreads = get_option_int("execthreads");
+        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());;
         for(unsigned t = 1; t < nthreads; t++){
             for(unsigned i = 0; i < nvertices; i++ ){
                 program.vertex_value[0][i] += program.vertex_value[t][i];

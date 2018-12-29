@@ -1,5 +1,5 @@
 
-// #define KEEPWALKSINDISK 0
+// #define KEEPWALKSINDISK 1
 
 #include <string>
 #include <fstream>
@@ -36,7 +36,7 @@ public:
         walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
         #pragma omp parallel for schedule(static)
         for(vid_t s = firstsource; s < firstsource+numsources; s++){
-            logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
+            // logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
             unsigned p = getInterval(s);
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] += walkspersource;
@@ -45,10 +45,10 @@ public:
             for( unsigned j = 0; j < walkspersource; j++ ){
                 walk_manager.pwalks[0][p].push_back(walk);
             }
-            #ifdef KEEPWALKSINDISK
-                walk_manager.freshIntervalWalks(p);
-            #endif
         }
+        #ifdef KEEPWALKSINDISK
+            walk_manager.freshIntervalWalks();
+        #endif
     }
 
     void updateInfo(vid_t s, vid_t dstId, unsigned threadid, unsigned hop){
@@ -70,7 +70,7 @@ public:
     void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
-        unsigned nthreads = get_option_int("execthreads");
+        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
         for(unsigned t = 0; t < nthreads; t++)
             walk_manager.pwalks[t][exec_interval].clear();
         for( unsigned p = 0; p < nshards; p++){
@@ -106,7 +106,7 @@ int main(int argc, const char ** argv) {
     unsigned walkspersource = get_option_int("walkspersource", 2000); // Number of steps
     unsigned maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    long long shardsize = get_option_long("shardsize", 4096); // Size of shard, represented in KB
+    long long shardsize = get_option_long("shardsize", 1048576); // Size of shard, represented in KB
     
     /* Detect the number of shards or preprocess an input to create them */
     unsigned nshards = convert_if_notexists(filename, shardsize);

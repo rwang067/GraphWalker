@@ -256,8 +256,6 @@ public:
 
      void freshIntervalWalks( ){
 		logstream(LOG_INFO) << "Write all started walks to files!" << std::endl;
-		unsigned niothreads = get_option_int("niothreads");
-		omp_set_num_threads(niothreads);
 		#pragma omp parallel for schedule(dynamic, 1)
 			for( unsigned p = 0; p < nshards; p++){
 				std::string walksfile = walksname( base_filename, p );

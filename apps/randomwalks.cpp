@@ -64,7 +64,7 @@ class RandomWalks : public RandomWalkwithJump{
         void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
             walk_manager.walknum[exec_interval] = 0;
             walk_manager.minstep[exec_interval] = 0xfffffff;
-            unsigned nthreads = get_option_int("execthreads");
+            unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());;
             for(unsigned t = 0; t < nthreads; t++)
                 walk_manager.pwalks[t][exec_interval].clear();
             for( unsigned p = 0; p < nshards; p++){
