@@ -227,7 +227,7 @@
                 if( (bufptr-buf)/sizeof(int)+count+1 >= malloc_size ){
                     // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
                     flushInvl(filename, buf, bufptr);
-                    if( count+1 > (int)malloc_size){
+                    if( (unsigned long long)(count+1) > malloc_size){
                         logstream(LOG_ERROR) << "Too small shardsize with malloc_size = " << malloc_size << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << count << std::endl;
                         assert(false);
                     }
