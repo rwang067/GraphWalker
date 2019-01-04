@@ -44,7 +44,7 @@ public:
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
-        logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*nsources << std::endl;
+        logstream(LOG_INFO) << "Start walks ! Total walk number = " << R << std::endl;
         unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
         unsigned cap = R/nthreads + 1;
         vid_t s = source;

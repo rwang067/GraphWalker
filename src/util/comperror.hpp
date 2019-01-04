@@ -5,9 +5,10 @@
 #include "api/filename.hpp"
 
     template <typename VertexDataType>
-    void initialVertexValue(int N, std::string basefilename){
-    int maxwindow = 256*1024*1024;
-    int st = 0, len = 0;
+    void initialVertexValue(unsigned N, std::string basefilename){
+        unsigned maxwindow = 256*1024*1024;
+        logstream(LOG_INFO) << " N , maxwindow : " << N << " " << maxwindow << std::endl;
+        unsigned st = 0, len = 0;
         while( st < N ){
             len = N-st < maxwindow ? N-st : maxwindow;
             logstream(LOG_INFO) << " s , len : " << st << " " << len << std::endl;
@@ -23,7 +24,7 @@
     }
 
     template <typename VertexDataType>
-    void writeFile(int N, std::string basefilename){
+    void writeFile(unsigned N, std::string basefilename){
         // compute the sum of counting
         VertexDataType *vertex_value = (VertexDataType*)malloc(sizeof(VertexDataType)*N);
         int fv = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -38,8 +39,8 @@
         free(vertex_value);
 
         // compute the counting probability
-        int maxwindow = 256*1024*1024;
-        int st = 0, len = 0;
+        unsigned maxwindow = 256*1024*1024;
+        unsigned st = 0, len = 0;
         while( st < N ){
             len = N-st < maxwindow ? N-st : maxwindow;
             // logstream(LOG_INFO) << " s , len : " << st << " " << len << std::endl;
@@ -50,7 +51,7 @@
             preada(fv, vertex_value, sizeof(VertexDataType)*len, sizeof(VertexDataType)*st);
             close(fv);
             float *visit_prob = (float*)malloc(sizeof(float)*len);
-            for(int i = 0; i < len; i++ )
+            for(unsigned i = 0; i < len; i++ )
                 visit_prob[i] = vertex_value[i] * 1.0 / sum;
             int fp = open(filename_vertex_data(basefilename).c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
             assert(fp >= 0);
@@ -63,7 +64,7 @@
     }
 
     template <typename VertexDataType>
-    void computeError(int N, std::string basefilename, int ntop, std::string app){
+    void computeError(unsigned N, std::string basefilename, int ntop, std::string app){
         writeFile<VertexDataType>(N, basefilename);
         //read the vertex value
         logstream(LOG_INFO) << "compute error.." << std::endl;
@@ -77,9 +78,9 @@
         std::string accurate_value_file = basefilename + "_CompError/accurate_" + app + "_top100.value";
         std::ifstream fin(accurate_value_file.c_str());
         logstream(LOG_DEBUG) << "accurate " + app + " file : " << basefilename + "_accurate " + app + " top100.value" << std::endl;
-        int vid ;
+        unsigned vid ;
         float err=0, appv; //accurate pagerank value
-        for(int i = 0; i < ntop; i++ ){
+        for(unsigned i = 0; i < ntop; i++ ){
             fin >> vid >> appv;
             // logstream(LOG_INFO) << "vid appv vertex_value err: " << vid << " " << appv << " " << visit_prob[vid] << " " << fabs(visit_prob[vid]-appv)<< " " << fabs(visit_prob[vid]-appv)/appv << std::endl;
             err += fabs(visit_prob[vid]-appv)/appv;
