@@ -1,5 +1,5 @@
 
-// #define KEEPWALKSINDISK 1
+#define KEEPWALKSINDISK
 
 #include <string>
 #include <fstream>
@@ -25,16 +25,19 @@ public:
         numsources = _numsources;
         walkspersource = _walkspersource;
         maxwalklength = _maxwalklength;
-        visitfrequencies = new DiscreteDistribution[numsources];
         initializeRW(numsources*walkspersource, maxwalklength);
+        #ifdef KEEPWALKSINDISK
+        #else
+            visitfrequencies = new DiscreteDistribution[numsources];
+        #endif
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
         unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(nthreads);
-        walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
-        #pragma omp parallel for schedule(static)
+        // walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
+        // #pragma omp parallel for schedule(static)
         for(vid_t s = firstsource; s < firstsource+numsources; s++){
             // logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
             unsigned p = getInterval(s);
@@ -45,6 +48,10 @@ public:
             for( unsigned j = 0; j < walkspersource; j++ ){
                 walk_manager.pwalks[0][p].push_back(walk);
             }
+            #ifdef KEEPWALKSINDISK
+                if(s%50000==0) walk_manager.freshIntervalWalks();
+            #endif
+            if(s%50000==0) logstream(LOG_DEBUG) << s << std::endl;
         }
         #ifdef KEEPWALKSINDISK
             walk_manager.freshIntervalWalks();
@@ -52,7 +59,10 @@ public:
     }
 
     void updateInfo(vid_t s, vid_t dstId, unsigned threadid, unsigned hop){
-        visitfrequencies[s].add(dstId);
+        #ifdef KEEPWALKSINDISK
+        #else
+            visitfrequencies[s].add(dstId);
+        #endif
     }
 
     /**

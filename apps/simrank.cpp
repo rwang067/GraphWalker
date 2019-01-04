@@ -1,4 +1,4 @@
-#define KEEPWALKSINDISK 1
+// #define KEEPWALKSINDISK 1
 
 #include <string>
 #include <fstream>
@@ -40,9 +40,9 @@ public:
 		walk_manager.minstep[p] = 0;
 		walk_manager.walknum[p] = 2*R;
 
-		unsigned cap = 2*R/nthreads + 1;
-		for( unsigned t = 0; t < nthreads; t++ )
-			walk_manager.pwalks[t][p].reserve(cap);
+		// unsigned cap = 2*R/nthreads + 1;
+		// for( unsigned t = 0; t < nthreads; t++ )
+		// 	walk_manager.pwalks[t][p].reserve(cap);
 
 		omp_set_num_threads(nthreads);
 		#pragma omp parallel for schedule(static)

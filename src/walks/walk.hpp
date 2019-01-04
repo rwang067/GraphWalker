@@ -271,7 +271,7 @@ public:
 	}    
 
       void freshIntervalWalks(unsigned p){
-		logstream(LOG_INFO) << "Write started walks of interval " << p << " to files!" << std::endl;
+		// logstream(LOG_INFO) << "Write started walks of interval " << p << " to files!" << std::endl;
 		std::string walksfile = walksname( base_filename, p );
    		unsigned f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC| O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		for(unsigned t=0;t<nthreads;t++){

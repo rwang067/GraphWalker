@@ -1,4 +1,5 @@
 #define KEEPWALKSINDISK 1
+
 #include <string>
 #include <fstream>
 #include <vector>
