@@ -204,8 +204,11 @@ public:
 
             m.start_time("free vertices");
             for(unsigned i = 0; i < (intervals[exec_interval].second-intervals[exec_interval].first+1); i++){
-                free(vertices[i].outv);
-                vertices[i].outv = NULL;
+                if(vertices[i].outd > 0){
+                    // logstream(LOG_DEBUG) << "free vertices : i vertices[i].id outd " << i << " " << vertices[i].vid << " " << vertices[i].outd << " " << vertices[i].outv[0] << std::endl;
+                    free(vertices[i].outv);
+                    vertices[i].outv = NULL;
+                }
             }
             free(vertices);
             vertices = NULL;
