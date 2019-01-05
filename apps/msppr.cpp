@@ -1,5 +1,5 @@
 
-#define KEEPWALKSINDISK
+// #define KEEPWALKSINDISK
 
 #include <string>
 #include <fstream>
@@ -27,6 +27,7 @@ public:
         maxwalklength = _maxwalklength;
         initializeRW(numsources*walkspersource, maxwalklength);
         #ifdef KEEPWALKSINDISK
+            visitfrequencies = new DiscreteDistribution[numsources];
         #else
             visitfrequencies = new DiscreteDistribution[numsources];
         #endif
@@ -48,9 +49,9 @@ public:
             for( unsigned j = 0; j < walkspersource; j++ ){
                 walk_manager.pwalks[0][p].push_back(walk);
             }
-            #ifdef KEEPWALKSINDISK
-                if(s%50000==0) walk_manager.freshIntervalWalks();
-            #endif
+            // #ifdef KEEPWALKSINDISK
+            //     if(s%50000==0) walk_manager.freshIntervalWalks();
+            // #endif
             if(s%50000==0) logstream(LOG_DEBUG) << s << std::endl;
         }
         #ifdef KEEPWALKSINDISK
@@ -60,6 +61,7 @@ public:
 
     void updateInfo(vid_t s, vid_t dstId, unsigned threadid, unsigned hop){
         #ifdef KEEPWALKSINDISK
+            visitfrequencies[s].add(dstId);
         #else
             visitfrequencies[s].add(dstId);
         #endif
