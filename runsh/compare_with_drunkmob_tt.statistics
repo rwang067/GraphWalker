@@ -1,0 +1,88 @@
+2019.1.5 observe the effect of shardsize for MSPPR in PC(dell)
+app = MSPPR, dataset = Twitter
+
+502  	  92  	  42.2002
+488  	  92  	  41.561
+494  	  92  	  42.2729
+501  	  92  	  42.4751
+
+608  	  92  	  48.44
+609  	  92  	  47.859
+614  	  92  	  49.1924
+625  	  92  	  49.45
+614  	  92  	  48.9035
+
+656  	  92  	  51.9489
+654  	  92  	  50.8503
+661  	  92  	  51.9925
+661  	  92  	  52.1042
+661  	  92  	  52.0054
+
+721  	  92  	  80.2236
+718  	  92  	  67.7024
+718  	  92  	  65.6867
+714  	  92  	  65.9076
+716  	  92  	  61.8654
+
+45  	  6  	  314.607
+46  	  6  	  273.745
+46  	  6  	  285.666
+45  	  6  	  262.49
+45  	  6  	  266.001
+
+///
+760  	  92  	  226.055
+764  	  92  	  171.05
+764  	  92  	  174.146
+755  	  92  	  169.251
+760  	  92  	  173.312
+
+774  	  92  	  357.345
+776  	  92  	  354.734
+///
+758  	  92  	  166.971
+761  	  92  	  147.625
+763  	  92  	  163.733
+
+2019.1.5 observe the effect of shardsize for MSPPR in PC(dell)
+app = MSPPR, dataset = Twitter
+numsources = 1, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+1522  	  374  	  66.0864
+1541  	  374  	  28.0961
+1546  	  374  	  26.7622
+1537  	  374  	  26.7349
+1559  	  374  	  26.2981
+numsources = 10, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+2314  	  374  	  35.8461
+2285  	  374  	  34.6672
+2285  	  374  	  34.516
+2284  	  374  	  34.7734
+2307  	  374  	  35.3031
+numsources = 100, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+2523  	  374  	  37.3975
+2516  	  374  	  37.439
+2521  	  374  	  36.7151
+2515  	  374  	  37.7208
+2504  	  374  	  37.1405
+numsources = 1000, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+2817  	  374  	  42.8536
+2833  	  374  	  44.0176
+2835  	  374  	  44.508
+2823  	  374  	  43.621
+2840  	  374  	  44.5709
+numsources = 10000, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+3033  	  374  	  118.93
+3033  	  374  	  110.236
+3026  	  374  	  113.971
+3034  	  374  	  109.334
+3019  	  374  	  95.8285
+numsources = 100000, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+3117  	  374  	  406.868
+3124  	  374  	  397.059
+
+keep walks in disk
+///////////////////////////
+numsources = 100000, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+numsources = 100000, shardsize = 16384(16MB), walkspersource = 2000, firstsource = 13
+3112  	  374  	  374.579
+3115  	  374  	  528.06
