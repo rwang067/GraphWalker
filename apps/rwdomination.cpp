@@ -35,6 +35,10 @@ public:
         basefilename = _basefilename;
         initialVertexValue<unsigned>(N, basefilename);
         initializeRW( R*N, L, tail );
+        // for(unsigned i=0; i<4; i++){
+        //     used_edges[i] = 0;
+        //     total_edges[i] = 0;
+        // }
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
@@ -75,6 +79,7 @@ public:
     void updateInfo(vid_t dstId, unsigned threadid, unsigned hop){
         // if(hop >= L-10)
             vertex_value[threadid][dstId-cur_window_st]++; // #pragma omp critical
+            // used_edges[threadid]++;
      }
 
     /**
@@ -100,6 +105,7 @@ public:
     /**
      * Called after an execution interval has finished.
      */
+    // void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager, Vertex *&vertices) {
     void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         walk_manager.walknum[exec_interval] = 0;
 		walk_manager.minstep[exec_interval] = 0xfffffff;
@@ -141,6 +147,30 @@ public:
                 free(vertex_value[i]);
             free(vertex_value);
         #endif
+    
+        // for(unsigned i=0; i<window_len; i++ ){
+        //     total_edges[0] += vertices[i].outd;
+        // }
+        // compUtilization();
+    }
+
+    void compUtilization(){
+        for(int i = 1; i < 4; i++){
+            used_edges[0] += used_edges[i];
+            total_edges[0] += total_edges[i];
+        }
+        float utilization = (float)used_edges[0] / (float)total_edges[0];
+        // logstream(LOG_DEBUG) << "IO utilization = " << utilization << std::endl;
+        std::string utilization_filename = "rwd_utilization.csv";
+        std::ofstream utilizationfile;
+        utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);
+        utilizationfile << total_edges[0] << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
+        utilizationfile.close();
+
+        for(unsigned i=0; i<4; i++){
+            used_edges[i] = 0;
+            total_edges[i] = 0;
+        }
     }
 
 };

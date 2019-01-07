@@ -89,7 +89,7 @@ public:
 		}
 		m.stop_time(me, "_check-finish");
 		// std::ofstream walkfile;
-		// walkfile.open(base_filename + "_GraphWalker/remianing_walks.csv", std::ofstream::app);
+		// walkfile.open("remianing_walks.csv", std::ofstream::app);
 		// walkfile << sum << "\n" ;
 		// walkfile.close();
 		return sum;
