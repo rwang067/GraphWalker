@@ -23,7 +23,7 @@ public:
         maxwalklength = _maxwalklength;
         tail = 0;
         tailwalknum = (unsigned)(nwalks*tail);
-        std::cout << "nwalks, maxwalklength : "  << nwalks << " " << maxwalklength << std::endl;
+        std::cout << "initializeRW -- nwalks, maxwalklength : "  << nwalks << " " << maxwalklength << std::endl;
     }
     /**
      *  Walk update function.

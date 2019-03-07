@@ -31,6 +31,7 @@ public:
         #else
             visitfrequencies = new DiscreteDistribution[numsources];
         #endif
+        logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
     }
 
     void startWalksbyApp( WalkManager &walk_manager  ){
