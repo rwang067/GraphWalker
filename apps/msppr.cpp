@@ -113,8 +113,8 @@ int main(int argc, const char ** argv) {
     metrics m("multi-source-personalizedpagerank");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
+    std::string filename = get_option_string("file", "/data/rwang067/Wiki/wikipedia_sorted.data");  // Base filename
+    vid_t firstsource = get_option_int("firstsource", 1); // vertex id of start source
     unsigned numsources = get_option_int("numsources", 1000); // Number of sources
     unsigned walkspersource = get_option_int("walkspersource", 2000); // Number of steps
     unsigned maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk

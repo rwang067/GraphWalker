@@ -17,7 +17,7 @@ static std::string intervalname( std::string basefilename, int p ){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/graphinfo/interval";
-    ss << "_" << p << ".outlink";
+    ss << "_" << p;
     return ss.str();
 }
 

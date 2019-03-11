@@ -8,6 +8,7 @@
 #define	RAND_MAX	2147483647
 
 typedef uint32_t vid_t;
+typedef uint64_t eid_t;
 typedef unsigned VertexDataType;
 typedef unsigned long WalkDataType;
 

@@ -15,12 +15,16 @@ echo:
 clean:
 	@rm -rf bin/*
 
-apps/% : apps/%.cpp $(HEADERS) bin/cudacode.o
+apps/% : apps/%.cpp $(HEADERS)
 	@mkdir -p bin/$(@D)
-	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp bin/cudacode.o -l/usr/local/cuda/lib64/libcudart.so -o bin/$@ $(LINKERFLAGS)
+	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp -o bin/$@ $(LINKERFLAGS)
 
-bin/cudacode.o:
-	nvcc -I./src/ -c src/cuda/exec_update.cu
+# apps/% : apps/%.cpp $(HEADERS) bin/cudacode.o
+# 	@mkdir -p bin/$(@D)
+# 	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp bin/cudacode.o -l/usr/local/cuda/lib64/libcudart.so -o bin/$@ $(LINKERFLAGS)
+
+# bin/cudacode.o:
+# 	nvcc -I./src/ -c src/cuda/exec_update.cu
 
 # test pagerank
 testp:

@@ -51,6 +51,11 @@ public:
             assert(false);
     }
 
+    virtual void updateByWalk(WalkDataType walk, unsigned walkid, unsigned exec_interval, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+            logstream(LOG_ERROR) << "Not define updateByWalk!" << std::endl;
+            assert(false);
+    }
+
     virtual void initializeRW( unsigned _nwalks, unsigned _nsteps, float _tail) {
         nwalks = _nwalks;
         nsteps = _nsteps;

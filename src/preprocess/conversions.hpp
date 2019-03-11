@@ -27,6 +27,7 @@
     int invlid;
     int invlnum;
     vid_t stv, env;
+    eid_t cur_pos;
     std::vector<std::pair<vid_t, vid_t> > invls;
 
     int rm_dir(std::string dir_full_path){    
@@ -145,32 +146,40 @@
         return 0;
     }
 
-    void bwritezero( char * buf, char * &bufptr, int count ){
+    void bwritezero( char * beg_pos, char * &beg_posptr, int count ){
         while( count-- ){
-            *((int*)bufptr) = 0;
-            bufptr += sizeof(int);
+            *((eid_t*)beg_posptr) = cur_pos;
+            beg_posptr += sizeof(eid_t);
         }
     }
 
-    void bwrite( char * buf, char * &bufptr, int count, std::vector<vid_t> outv, std::string filename ){
-        *((int*)bufptr) = count;
-        bufptr += sizeof(int);
+    void bwrite(char * beg_pos, char * &beg_posptr, char * csr, char * &csrptr, int count, std::vector<vid_t> outv, std::string filename ){
+        cur_pos += count;
+        *((eid_t*)beg_posptr) = cur_pos;
+        beg_posptr += sizeof(eid_t);
         for( int i = 0; i < count; i++ ){
-            *((vid_t*)bufptr) = outv[i];
-            bufptr += sizeof(vid_t);
+            *((vid_t*)csrptr) = outv[i];
+            csrptr += sizeof(vid_t);
         }
         env++;
     }
 
-    void flushInvl(std::string filename, char * buf, char * &bufptr){
+    void flushInvl(std::string filename, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
         std::string invlname = intervalname(filename,invlid);
-        writefile(invlname, buf, bufptr);
+        std::string csrname = invlname + ".csr";
+        std::string beg_posname = invlname + ".beg_pos";
+        writefile(csrname, csr, csrptr);
+        writefile(beg_posname, beg_pos, beg_posptr);
         std::pair<vid_t, vid_t> invl(stv, env-1);
         invls.push_back(invl);
         logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
         stv = env;
         invlid++;
-        bufptr = buf;
+        csrptr = csr;
+        beg_posptr = beg_pos;
+        cur_pos = 0;
+        *((eid_t*)beg_posptr) = cur_pos;
+        beg_posptr += sizeof(eid_t);
     }
 
     int convert_by_shardsize(std::string filename, long long shardsize){
@@ -191,16 +200,21 @@
         mkdir((filename+"_GraphWalker/graphinfo/").c_str(), 0777);
         
         logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
-        char * buf = (char*) malloc(malloc_size*sizeof(int));
-        char * bufptr = buf;
+        char * csr = (char*) malloc(malloc_size*sizeof(vid_t));
+        char * csrptr = csr;
+        char * beg_pos = (char*) malloc((malloc_size/10)*sizeof(eid_t));
+        char * beg_posptr = beg_pos;
         
         char s[1024];
         invlid = 0;
         vid_t curvertex = 0;
-        int count = 0;
+        eid_t count = 0;
         std::vector<vid_t> outv;
         stv = env = 0;
         vid_t max_vert = 0;
+        cur_pos = 0;
+        *((eid_t*)beg_posptr) = cur_pos;
+        beg_posptr += sizeof(eid_t);
         while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
@@ -224,28 +238,28 @@
                 outv.push_back(to);
                 count++;
             }else{  //a new vertex
-                if( (bufptr-buf)/sizeof(int)+count+1 >= malloc_size ){
+                if( (csrptr-csr)/sizeof(vid_t)+count >= malloc_size ){
                     // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
-                    flushInvl(filename, buf, bufptr);
-                    if( (unsigned long long)(count+1) > malloc_size){
+                    flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
+                    if( count > malloc_size){
                         logstream(LOG_ERROR) << "Too small shardsize with malloc_size = " << malloc_size << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << count << std::endl;
                         assert(false);
                     }
                 }
-                bwrite( buf, bufptr, count, outv, filename); //write a vertex to buffer
+                bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename); //write a vertex to buffer
                 if( from - curvertex > 1 ){ //there are verts with zero out-links
                     vid_t remianzero = from-curvertex-1;
-                    vid_t remainsize = malloc_size - ((bufptr-buf)/sizeof(int));
+                    vid_t remainsize = malloc_size - ((csrptr-csr)/sizeof(int));
                     // logstream(LOG_INFO) << "remianzero = " << remianzero << " , remainsize =  " << remainsize << " malloc_size = " << malloc_size << std::endl;
                     while(remianzero > remainsize){
-                        bwritezero( buf, bufptr, remainsize ); 
+                        bwritezero( beg_pos, beg_posptr, remainsize ); 
                         env += remainsize ;
-                        flushInvl(filename, buf, bufptr);
+                        flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
                         logstream(LOG_DEBUG) << remianzero << " , remainsize =  " << remainsize << std::endl;
                         remianzero -= remainsize;
                         remainsize = malloc_size;
                     }
-                    bwritezero( buf, bufptr, remianzero ); 
+                    bwritezero( beg_pos, beg_posptr, remianzero ); 
                     env += remianzero ;
                 }
                 curvertex = from;
@@ -255,10 +269,16 @@
             }
         }
         fclose(inf);
-        bwrite( buf, bufptr, count, outv, filename);
-        if(max_vert > env-1) bwritezero( buf, bufptr, max_vert - (env-1) ); 
+        bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename);
+        if(max_vert > env-1) bwritezero( beg_pos, beg_posptr, max_vert - (env-1) ); 
         std::string invlname = intervalname(filename, invlid);
-        writefile(invlname, buf, bufptr);
+        std::string csrname = invlname + ".csr";
+        std::string beg_posname = invlname + ".beg_pos";
+        writefile(csrname, csr, csrptr);
+        writefile(beg_posname, beg_pos, beg_posptr);
+        free(csr);
+        free(beg_pos);
+        
         std::pair<vid_t, vid_t> invl(stv, max_vert);
         invls.push_back(invl);
         logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
@@ -272,13 +292,13 @@
             intervalsF << invls[p].second << std::endl;
         }
         intervalsF.close();
-        free(buf);
 
         /*write nvertices*/
         std::string nverticesFilename = filename_nvertices(filename);
-        std::ofstream nverticesF(nverticesFilename.c_str());      
+        std::ofstream nverticesF(nverticesFilename.c_str());
+        assert(max_vert == invls[invlnum-1].second);      
         nverticesF << max_vert+1 << std::endl;
-        nverticesF << invls[invlnum-1].second+1 << std::endl;
+        // nverticesF << invls[invlnum-1].second+1 << std::endl;
         intervalsF.close();
         return invlnum;
     }
