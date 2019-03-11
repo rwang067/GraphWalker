@@ -171,7 +171,7 @@ public:
 		m.start_time("readIntervalWalks");
         // logstream(LOG_INFO) << "readIntervalWalks.." << std::endl;
 		std::string walksfile = walksname( base_filename, p );
-		unsigned f = open(walksfile.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+		int f = open(walksfile.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
 			logstream(LOG_FATAL) << "Could not load :" << walksfile << " error: " << strerror(errno) << std::endl;
 		}
@@ -200,7 +200,7 @@ public:
 		logstream(LOG_INFO) << "writeIntervalWalks.." << std::endl;
 		//Clear walks of interval p in file
 		std::string walksfile = walksname( base_filename, p );
-		unsigned f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+		int f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
 		    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 		 }
@@ -216,7 +216,7 @@ public:
 			}
 			if(!pwalks[0][p].isEmpty()){
 				std::string walksfile = walksname( base_filename, p );
-				unsigned f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+				int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 				if (f < 0)	logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 				writea( f, &pwalks[0][p][0], pwalks[0][p].size()*sizeof(WalkDataType));
 				close(f);
@@ -231,7 +231,7 @@ public:
 		// logstream(LOG_INFO) << "writeIntervalWalks of p : " << p << std::endl;
 		//Clear walks of interval p in file
 		std::string walksfile = walksname( base_filename, p );
-		unsigned f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+		int f = open(walksfile.c_str(), O_WRONLY | O_TRUNC, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
 		    logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 		 }
@@ -239,7 +239,7 @@ public:
 		//Write walks of other intervals to file
 		for( p = 0; p < nshards; p++){
 			std::string walksfile = walksname( base_filename, p );
-			unsigned f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+			int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 			if (f < 0) {
 				logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 			}

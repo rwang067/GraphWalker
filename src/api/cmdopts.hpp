@@ -37,6 +37,7 @@
         } else {
             std::cout << "ERROR: could not find option " << option_name << " from config.";
             assert(false);
+            return "ERROR";
         }
     }
     
@@ -63,6 +64,7 @@
         } else {
             std::cout << "ERROR: could not find option " << option_name << " from config.";
             assert(false);
+            return 0;
         }
     }
     

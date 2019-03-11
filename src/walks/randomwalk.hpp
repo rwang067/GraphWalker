@@ -75,7 +75,8 @@ public:
             if( v <= intervals[p].second )
                 return p;
         }
-        return -1;
+        assert(false);
+        return nshards;
     }
     
     /**
