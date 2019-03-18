@@ -89,7 +89,7 @@ public:
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
         unsigned remaining_walknum = walk_manager.walksum();
-        // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << " , tailwalknum = " << tailwalknum << std::endl;
+        logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << " , tailwalknum = " << tailwalknum << std::endl;
         return ( remaining_walknum > tailwalknum ); 
     }
     
