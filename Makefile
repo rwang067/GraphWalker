@@ -1,4 +1,5 @@
-INCFLAGS = -I/usr/local/include/ -I./src/
+INCFLAGS = -I/usr/local/include/ -I./src/ -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+CUDAFLAGS = -I/usr/local/cuda/include -I./src/ 
 
 CPP = g++
 # CPPFLAGS = -g -O0 $(INCFLAGS)  -fopenmp -Wall -Wno-strict-aliasing 
@@ -15,16 +16,16 @@ echo:
 clean:
 	@rm -rf bin/*
 
-apps/% : apps/%.cpp $(HEADERS)
-	@mkdir -p bin/$(@D)
-	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp -o bin/$@ $(LINKERFLAGS)
-
-# apps/% : apps/%.cpp $(HEADERS) bin/cudacode.o
+# apps/% : apps/%.cpp $(HEADERS)
 # 	@mkdir -p bin/$(@D)
-# 	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp bin/cudacode.o -l/usr/local/cuda/lib64/libcudart.so -o bin/$@ $(LINKERFLAGS)
+# 	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp -o bin/$@ $(LINKERFLAGS)
 
-# bin/cudacode.o:
-# 	nvcc -I./src/ -c src/cuda/exec_update.cu
+apps/% : apps/%.cpp $(HEADERS) bin/cudacode.o
+	@mkdir -p bin/$(@D)
+	$(CPP) $(CPPFLAGS) -Iapp/ $@.cpp bin/cudacode.o -lcudart -o bin/$@ $(LINKERFLAGS)
+
+bin/cudacode.o:
+	nvcc $(CUDAFLAGS)  -c src/cuda/exec_update.cu -o bin/cudacode.o
 
 # test pagerank
 testp:

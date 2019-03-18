@@ -1,5 +1,5 @@
 
-// #define KEEPWALKSINDISK
+#define KEEPWALKSINDISK
 
 #include <string>
 #include <fstream>
@@ -15,12 +15,13 @@
 class MultiSourcePersonalizedPageRank : public RandomWalkwithStop{
 public:
     vid_t firstsource;
-    unsigned numsources, walkspersource, maxwalklength;
+    wid_t numsources, walkspersource; 
+    hid_t maxwalklength;
     DiscreteDistribution *visitfrequencies;
 
 public:
 
-    void initializeApp(vid_t _firstsource, unsigned _numsources, unsigned _walkspersource, unsigned _maxwalklength){
+    void initializeApp(vid_t _firstsource, wid_t _numsources, wid_t _walkspersource, hid_t _maxwalklength){
         firstsource = _firstsource;
         numsources = _numsources;
         walkspersource = _walkspersource;
@@ -37,30 +38,38 @@ public:
     void startWalksbyApp( WalkManager &walk_manager  ){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
         unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
-        omp_set_num_threads(nthreads);
-        // walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
-        // #pragma omp parallel for schedule(static)
-        for(vid_t s = firstsource; s < firstsource+numsources; s++){
-            // logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
-            unsigned p = getInterval(s);
-            walk_manager.minstep[p] = 0;
-            walk_manager.walknum[p] += walkspersource;
-            vid_t cur = s - intervals[p].first;
-            WalkDataType walk = walk_manager.encode(s-firstsource, cur, 0);
-            for( unsigned j = 0; j < walkspersource; j++ ){
-                walk_manager.pwalks[0][p].push_back(walk);
+        while(numsources > 0){
+            sid_t p = getInterval(firstsource);
+
+            vid_t lastsource = firstsource + numsources - 1;
+            if( lastsource >= intervals[p+1] ){
+                numsources = lastsource - intervals[p+1] + 1;
+                lastsource = intervals[p+1] - 1;
+            }else{
+                numsources = 0;
             }
-            // #ifdef KEEPWALKSINDISK
-            //     if(s%50000==0) walk_manager.freshIntervalWalks();
-            // #endif
-            if(s%50000==0) logstream(LOG_DEBUG) << s << std::endl;
+
+            wid_t walknum = (lastsource-firstsource+1)*walkspersource;
+            walk_manager.pwalks[p] = (WalkDataType*)malloc(sizeof(WalkDataType) * walknum);
+
+            logstream(LOG_INFO) << "Start walks from sources [ " << firstsource << " , " << lastsource << " ]" << std::endl;
+            omp_set_num_threads(nthreads);
+            for(vid_t s = firstsource; s <= lastsource; s++){
+                vid_t cur = s - intervals[p];
+                WalkDataType walk = walk_manager.encode(s-firstsource, cur, 0);
+                for( wid_t j = 0; j < walkspersource; j++ ){
+                    walk_manager.pwalks[p][ walk_manager.pnwalks[p]++ ] = walk;
+                }
+                // logstream(LOG_DEBUG) << "walk_manager.pnwalks[p] " << walk_manager.pnwalks[p] << std::endl;
+                if(s%50000==0) logstream(LOG_DEBUG) << s << std::endl;
+            }
         }
         #ifdef KEEPWALKSINDISK
-            walk_manager.freshIntervalWalks();
+            walk_manager.writeWalkPools();
         #endif
     }
 
-    void updateInfo(vid_t s, vid_t dstId, unsigned threadid, unsigned hop){
+    void updateInfo(vid_t s, vid_t dstId, unsigned threadid, hid_t hop){
         #ifdef KEEPWALKSINDISK
             visitfrequencies[s].add(dstId);
         #else
@@ -71,34 +80,13 @@ public:
     /**
      * Called before an execution interval is started.
      */
-    void before_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        #ifdef KEEPWALKSINDISK
-            walk_manager.readIntervalWalks(exec_interval);
-        #endif
+    void before_exec_interval(sid_t exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
     
     /**
      * Called after an execution interval has finished.
      */
-    void after_exec_interval(unsigned exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        walk_manager.walknum[exec_interval] = 0;
-		walk_manager.minstep[exec_interval] = 0xfffffff;
-        unsigned nthreads = get_option_int("execthreads", omp_get_max_threads());
-        for(unsigned t = 0; t < nthreads; t++)
-            walk_manager.pwalks[t][exec_interval].clear();
-        for( unsigned p = 0; p < nshards; p++){
-            if(p == exec_interval ) continue;
-            #ifndef KEEPWALKSINDISK
-                walk_manager.walknum[p] = 0;
-            #endif
-			for(unsigned t=0;t<nthreads;t++){
-				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
-            }
-        }
-
-        #ifdef KEEPWALKSINDISK
-            walk_manager.writeIntervalWalks(exec_interval);
-        #endif
+    void after_exec_interval(sid_t exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
     }
 };
 
@@ -115,14 +103,14 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "/data/rwang067/Wiki/wikipedia_sorted.data");  // Base filename
     vid_t firstsource = get_option_int("firstsource", 1); // vertex id of start source
-    unsigned numsources = get_option_int("numsources", 1000); // Number of sources
-    unsigned walkspersource = get_option_int("walkspersource", 2000); // Number of steps
-    unsigned maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
+    wid_t numsources = (wid_t)get_option_int("numsources", 100000); // Number of sources
+    wid_t walkspersource = (wid_t)get_option_int("walkspersource", 2000); // Number of steps
+    hid_t maxwalklength = (hid_t)get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     long long shardsize = get_option_long("shardsize", 1048576); // Size of shard, represented in KB
     
     /* Detect the number of shards or preprocess an input to create them */
-    unsigned nshards = convert_if_notexists(filename, shardsize);
+    sid_t nshards = convert_if_notexists(filename, shardsize);
 
     /* Run */
     MultiSourcePersonalizedPageRank program;

@@ -51,7 +51,7 @@ void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {
     }  
 }
 
-    template <typename T>
+template <typename T>
 void writea(int f, T * tbuf, size_t nbytes) {
     size_t nwritten = 0;
     T * buf = (T*)tbuf;
