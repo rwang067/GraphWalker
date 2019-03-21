@@ -13,7 +13,7 @@
 #include "api/datatype.hpp"
 #include "logger/logger.hpp"
 
-static std::string intervalname( std::string basefilename, int p ){
+static std::string prefixname( std::string basefilename, int p ){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/graphinfo/interval";

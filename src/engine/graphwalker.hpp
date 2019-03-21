@@ -105,7 +105,7 @@ public:
 
     void loadSubGraph(sid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
         m.start_time("loadSubGraph");
-        std::string invlname = intervalname( base_filename, p );
+        std::string invlname = prefixname( base_filename, p );
         std::string beg_posname = invlname + ".beg_pos";
         std::string csrname = invlname + ".csr";
         int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -153,7 +153,6 @@ public:
         /*loadOnDemand -- Interval loop */
         int numIntervals = 0;
         while( walk_manager->walkSum() > 0 ){
-            m.start_time("in_run_interval");
             numIntervals++;
             // float cc = ((float)rand())/RAND_MAX;
             // if( cc < prob ){
@@ -174,19 +173,14 @@ public:
             /*load walks info*/
             walk_manager->loadWalkPool(exec_interval);
             
-            m.start_time("exec_updates in GPU");
-            exec_updates(beg_pos, csr, exec_interval, intervals, walk_manager->walks, walk_manager->pwalks, walk_manager->pnwalks, nverts, nedges, walk_manager->nwalks, nshards);
-            m.stop_time("exec_updates in GPU");
+            exec_updates(m, beg_pos, csr, exec_interval, intervals, walk_manager->walks, walk_manager->pwalks, walk_manager->pnwalks, nverts, nedges, walk_manager->nwalks, nshards);
             
             walk_manager->walknum[exec_interval] = 0;
             walk_manager->writeWalkPools();
 
-            m.start_time("freeSubGraph");
             free(beg_pos);
             free(csr);
-            m.stop_time("freeSubGraph");
 
-            m.stop_time("in_run_interval");
         } // For Interval loop
         m.stop_time("runtime");
     }

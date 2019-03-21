@@ -59,7 +59,7 @@ public:
 	}
 
 	void loadWalkPool(sid_t p){
-		m.start_time("loadWalkPool");
+		m.start_time("Walk_IO");
 
 		std::string walkname = walksname(base_filename, p);
 		int walkf = open(walkname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -68,13 +68,14 @@ public:
 		}
 		assert(walkf > 0);
 		nwalks = readfull(walkf, &walks) / sizeof(WalkDataType);
+		logstream(LOG_INFO) << "loadWalks, nwalks = " << nwalks << std::endl;
 
-		m.stop_time("loadWalkPool");
+		m.stop_time("Walk_IO");
 		// logstream(LOG_INFO) << "loadWalkPool end." << std::endl;
 	}
 
 	void writeWalkPools(){
-		m.start_time("writeWalkPools");
+		m.start_time("Walk_IO");
 		for(sid_t p =0; p < nshards; p++){
 			if(pnwalks[p]>0){
 				std::string walkname = walksname(base_filename, p);
@@ -90,7 +91,7 @@ public:
 		logstream(LOG_INFO) << "updateStatistics" << std::endl;
 		updateStatistics();
 		logstream(LOG_INFO) << "writeWalkPools end." << std::endl;
-		m.stop_time("writeWalkPools");
+		m.stop_time("Walk_IO");
 	}
 
 	void updateStatistics(){

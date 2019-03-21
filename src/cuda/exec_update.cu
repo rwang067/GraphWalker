@@ -5,8 +5,11 @@
 #include <math.h> 
 
 #include "api/datatype.hpp"
+#include "metrics/metrics.hpp"
 
 #define maxwalklength 10
+#define walkpitch 1000
+#define nthreads 28*1024
 
 __device__ vid_t getSourceId( WalkDataType walk ){
     return (vid_t)( walk >> 40 ) & 0xffffff;
@@ -48,139 +51,127 @@ __device__ int gpu_rand_r(unsigned int *seed){
     return result;
 }
  
-__global__ void updatebywalk(sid_t exec_interval, vid_t* intervals, eid_t* beg_pos, vid_t* csr, WalkDataType* walks, WalkDataType* pwalks, wid_t* pnwalks, vid_t nverts, wid_t nwalks, sid_t nshards){
-    unsigned i = blockDim.x * blockIdx.x + threadIdx.x;
+__global__ void updatebywalk(sid_t exec_interval, vid_t* intervals, eid_t* beg_pos, vid_t* csr, WalkDataType* walks, WalkDataType* tpwalks, wid_t* tpnwalks, vid_t nverts, wid_t nwalks, sid_t nshards){
+    sid_t tid = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned i = tid;
     while( i < nwalks ){
-        // if(blockDim.x * blockIdx.x + threadIdx.x == 0) {
-            // printf("\nin GPU, pnwalks[0] = %d, ", pnwalks[0] );
-            // printf("pnwalks[1] = %d\n ", pnwalks[1] );
-            // printf("pwalks[0] = %d\n ", pwalks[0] );
-            // printf("nwalks = %d\n ", nwalks );
-            WalkDataType nowWalk = walks[i];
-            //random walk
-            vid_t sourId = getSourceId(nowWalk);
-            vid_t dstId = getCurrentId(nowWalk) + intervals[exec_interval];
-            hid_t hop = getHop(nowWalk);
-            unsigned seed = i+dstId+hop; //+cur_time;
-            bool reset = false;
-            // printf("%d ， [%d, %d), %d \n", dstId, intervals[exec_interval], intervals[exec_interval+1], hop );
-            while (dstId >= intervals[exec_interval] && dstId < intervals[exec_interval+1] && hop < maxwalklength ){
-                // std::cout  << " -> " << dstId << " " << getSourceId(nowWalk) << std::endl;
-                // updateInfo(sourId, dstId, threadid, hop);
-                eid_t outd = beg_pos[dstId+1] - beg_pos[dstId];
-                // printf("dstId = %d\n ", dstId );
-                // printf("outd = %d\n ", outd );
-                if (outd > 0 && ((float)gpu_rand_r(&seed))/RAND_MAX > 0.15 ){
-                    eid_t pos = beg_pos[dstId] + ((eid_t)gpu_rand_r(&seed))%outd;
-                    dstId = csr[pos];
-                    // printf(" pos = %d", pos );
-                    // printf(" move to --> %d\n", dstId );
-                }else{
-                    // printf("%d : Reset!\n", i);
-                    reset = true;
+        WalkDataType nowWalk = walks[i];
+        vid_t sourId = getSourceId(nowWalk);
+        vid_t dstId = getCurrentId(nowWalk) + intervals[exec_interval];
+        hid_t hop = getHop(nowWalk);
+        unsigned seed = i+dstId+hop; //+cur_time;
+        bool reset = false;
+        if (dstId < intervals[exec_interval] || dstId >= intervals[exec_interval+1] || hop >= maxwalklength ){
+        }
+        while (dstId >= intervals[exec_interval] && dstId < intervals[exec_interval+1] && hop < maxwalklength ){
+            vid_t dstIdptr = dstId - intervals[exec_interval];
+            eid_t outd = beg_pos[dstIdptr+1] - beg_pos[dstIdptr];
+            if (outd > 0 && ((float)gpu_rand_r(&seed))/RAND_MAX > 0.15 ){
+                eid_t pos = beg_pos[dstIdptr] + ((eid_t)gpu_rand_r(&seed))%outd;
+                dstId = csr[pos];
+            }else{
+                reset = true;
+                break;
+            }
+            hop++;
+        }
+        if( hop < maxwalklength && !reset ){
+            sid_t p;
+            for(p = 0; p < nshards; p++){
+                if(dstId < intervals[p+1]) {
                     break;
                 }
-                hop++;
             }
-            // printf("hop = %d, ", hop );
-            // printf("maxwalklength = %d\n ", maxwalklength );
-            if( hop < maxwalklength && !reset ){
-                sid_t p;
-                for(p = 0; p < nshards; p++){
-                    if(dstId < intervals[p+1]) {
-                        // printf("p = %d, ", p );
-                        // printf("dstId = %d\n ", dstId );
-                        break;
-                    }
-                }
-                // printf("after break : dstId = %d\n ", dstId );
-                nowWalk = encode(sourId, dstId-intervals[p], hop);
-                // printf("after encode : nowWalk = %d\n ", nowWalk );
-                // printf("before : p = %d, ", p );
-                // printf("pnwalks[p] = %d\n ", pnwalks[p] );
-                wid_t w = p*nwalks + pnwalks[p]++;
-                pwalks[w] = nowWalk;
-                // printf("after : w = %d, ", w );
-                // printf("pnwalks[p] = %d\n ", pnwalks[p] );
-                // walk_manager.setMinStep( p, hop );
-            }
-        // }
-        //Next walk
-        i += 28*1024;
-        // printf("i = %d, ", i );
-        // printf("nwalks = %d\n ", nwalks );
+            nowWalk = encode(sourId, dstId-intervals[p], hop);
+            wid_t w = tid*(nshards*walkpitch) + p*walkpitch + tpnwalks[tid*nshards+p];
+            if(tpnwalks[tid*nshards+p] < walkpitch-1) tpnwalks[tid*nshards+p]++;
+            tpwalks[w] = nowWalk;
+            // if(w == walkpitch+2) printf("pwalks[w] = %lld, \n", tpwalks[w]);
+        }
+        i += nthreads; //Next walk
     }
 }
  
 //int exec_update(RandomWalk &userprogram, Vertex *&vertices, WalkManager &walk_manager )
 // int main(){
-void exec_updates(eid_t *beg_pos, vid_t *csr, sid_t exec_interval, vid_t* intervals, WalkDataType* walks, WalkDataType **&pwalks, wid_t *&pnwalks, vid_t nverts, eid_t nedges, wid_t nwalks, sid_t nshards){
+void exec_updates(metrics &m, eid_t *beg_pos, vid_t *csr, sid_t exec_interval, vid_t* intervals, WalkDataType* walks, WalkDataType **&pwalks, wid_t *&pnwalks, vid_t nverts, eid_t nedges, wid_t nwalks, sid_t nshards){
     struct timeval start, end;
     gettimeofday( &start, NULL );
-
-    // printf("in exec_updates : exec_interval = %d, nshards = %d, nverts = %d, , nedges = %d, nwalks = %d\n", exec_interval, nshards, nverts, nedges, nwalks);
 
     //define the variables used in GPU
     vid_t* d_intervals;
     eid_t* d_beg_pos;
     vid_t* d_csr;
     WalkDataType* d_walks; // walks in current interval copied to GPU
-    WalkDataType* d_pwalks; //walks moved to other intervals
-    wid_t* d_pnwalks;
+    WalkDataType* d_tpwalks; //walks moved to other intervals
+    wid_t* d_tpnwalks;
 
+    wid_t* tpnwalks;
+
+    m.start_time("CPU_GPU_Memcpy");
     // std::cout << "before malloc device memory" << std::endl;
-    //malloc device memory
+    //malloc device memory and copy data from host to device
     cudaMalloc((void**)&d_intervals, sizeof(vid_t) * (nshards+1));
     cudaMalloc((void**)&d_beg_pos, sizeof(eid_t) * (nverts+1));
     cudaMalloc((void**)&d_csr, sizeof(vid_t) * nedges);
     cudaMalloc((void**)&d_walks, sizeof(WalkDataType) * nwalks);
 
-    cudaMalloc((void**)&d_pnwalks, sizeof(wid_t) * nshards);
-    cudaMemset(d_pnwalks, 0, sizeof(wid_t) * nshards);
-
-    cudaMalloc((void**)&d_pwalks, sizeof(WalkDataType) * nshards * nwalks);
-    cudaMemset(d_pwalks, 0, sizeof(WalkDataType) * nshards * nwalks);
-
-    // std::cout << "before cudaMemcpy" << std::endl;
     cudaMemcpy(d_intervals, intervals, sizeof(vid_t)*(nshards+1), cudaMemcpyHostToDevice);
     cudaMemcpy(d_beg_pos, beg_pos, sizeof(eid_t)*(nverts+1), cudaMemcpyHostToDevice);
     cudaMemcpy(d_csr, csr, sizeof(vid_t)*nedges, cudaMemcpyHostToDevice);
     cudaMemcpy(d_walks, walks, sizeof(WalkDataType)*nwalks, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_pnwalks, pnwalks, sizeof(wid_t)*nshards, cudaMemcpyHostToDevice);
 
-    // printf("in CPU, pnwalks[0] = %d, ", pnwalks[0] );
-    // printf("pnwalks[1] = %d\n ", pnwalks[1] );
+    //malloc device memory for appended walks
+    cudaMalloc((void**)&d_tpnwalks, sizeof(wid_t) * nthreads*nshards);
+    cudaMemset(d_tpnwalks, 0, sizeof(wid_t) * nthreads*nshards);
+    tpnwalks = (wid_t*)malloc(sizeof(wid_t) * nthreads*nshards);
+
+    cudaMalloc((void**)&d_tpwalks, sizeof(WalkDataType) * nthreads*walkpitch*nshards);
+    cudaMemset(d_tpwalks, 0, sizeof(WalkDataType) * nthreads*walkpitch*nshards);
+    m.stop_time("CPU_GPU_Memcpy");
 
     // 定义kernel执行配置，28个block，每个block里面有1024个线程
     dim3 dimGrid(28);
     dim3 dimBlock(1024);
-
-	// cudaMemcpy2D(d_pwalks, pitch, pwalks, sizeof(WalkDataType) * nwalks, sizeof(WalkDataType) * nwalks, nshards, cudaMemcpyHostToDevice);
     
-    //conduct random walk moving
-    // std::cout << "before updatebywalk" << std::endl;
-    updatebywalk<<<dimGrid, dimBlock>>>(exec_interval, d_intervals, d_beg_pos, d_csr, d_walks, d_pwalks, d_pnwalks, nverts, nwalks, nshards);
+    // printf("exec_interval = %d, nverts = %d, nedges = %d \n", exec_interval, nverts, nedges);
+    m.start_time("exec_updates in GPU");
+    updatebywalk<<<dimGrid, dimBlock>>>(exec_interval, d_intervals, d_beg_pos, d_csr, d_walks, d_tpwalks, d_tpnwalks, nverts, nwalks, nshards);
+    m.stop_time("exec_updates in GPU");
 
-	// 将device端数据拷贝到host端返回数据
-    std::cout << "before cudaMemcpyDeviceToHost;" << std::endl;
-    cudaMemcpy(pnwalks, d_pnwalks, sizeof(wid_t) * nshards, cudaMemcpyDeviceToHost);
+    m.start_time("CPU_GPU_Memcpy");
+    // std::cout << "before cudaMemcpyDeviceToHost;" << std::endl;
+    cudaMemcpy(tpnwalks, d_tpnwalks, sizeof(wid_t) * nthreads*nshards, cudaMemcpyDeviceToHost);
     for(sid_t p = 0; p < nshards; p++){
-        printf("pnwalks[%d] = %d, \n", p, pnwalks[p]);
-        pwalks[p] = (WalkDataType*)malloc(sizeof(WalkDataType) * pnwalks[p]);
-        cudaMemcpy(pwalks[p], d_pwalks, sizeof(WalkDataType) * pnwalks[p], cudaMemcpyDeviceToHost);
+        pnwalks[p] = 0;
+        for(sid_t t = 0; t < nthreads; t++){
+            if(tpnwalks[t*nshards+p] >= walkpitch) printf("tpnwalks[%d][%d] = %d, pnwalks[%d] = %d, \n", t, p, tpnwalks[t*nshards+p], p, pnwalks[p]);
+            pnwalks[p] += tpnwalks[t*nshards+p];
+        }
+        // printf("pnwalks[%d] = %d, \n", p, pnwalks[p]);
     }
+    // 将device端数据拷贝到host端返回数据
+    for(sid_t p = 0; p < nshards; p++){
+        pwalks[p] = (WalkDataType*)malloc(sizeof(WalkDataType) * pnwalks[p]);
+        unsigned off = 0;
+        for(sid_t t = 0; t < nthreads; t++){
+            cudaMemcpy(pwalks[p]+off, d_tpwalks + t*nshards*walkpitch+p*walkpitch, sizeof(WalkDataType) * tpnwalks[t*nshards+p], cudaMemcpyDeviceToHost);
+            off += tpnwalks[t*nshards+p];
+        }
+    }
+    m.stop_time("CPU_GPU_Memcpy");
 
     //释放设备内存
-    std::cout << "before cudaFree(d_intervals);" << std::endl;
+    // std::cout << "before cudaFree(d_intervals);" << std::endl;
     cudaFree(d_intervals);
     cudaFree(d_beg_pos);
     cudaFree(d_csr);
     cudaFree(d_walks);
-    cudaFree(d_pnwalks);
-    cudaFree(d_pwalks);
+    cudaFree(d_tpwalks);
+    cudaFree(d_tpnwalks);
+    free(tpnwalks);
 
     gettimeofday( &end, NULL );
     // int timeuse = 1000000 * ( end.tv_sec - start.tv_sec ) + end.tv_usec - start.tv_usec;
     // printf("total time in exec_update is %d ms\n", timeuse/1000);
-
 }

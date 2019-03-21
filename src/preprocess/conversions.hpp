@@ -121,7 +121,7 @@
                 // logstream(LOG_INFO) << nshards_candidate << std::endl;
 
                 for(sid_t p=0; p < nshards_candidate; p++) {
-                    std::string sname = intervalname(base_filename, p);
+                    std::string sname = prefixname(base_filename, p);
                     int tryf2 = open(sname.c_str(), O_RDONLY);
                     if (tryf2 < 0) {
                         logstream(LOG_DEBUG) << "Missing interval file: " << sname << std::endl;
@@ -162,7 +162,7 @@
     }
 
     void flushInvl(std::string filename, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
-        std::string invlname = intervalname(filename,invlid);
+        std::string invlname = prefixname(filename,invlid);
         std::string csrname = invlname + ".csr";
         std::string beg_posname = invlname + ".beg_pos";
         writefile(csrname, csr, csrptr);
@@ -268,18 +268,11 @@
         fclose(inf);
         bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename);
         if(max_vert > env-1) bwritezero( beg_pos, beg_posptr, max_vert - (env-1) ); 
-        std::string invlname = intervalname(filename, invlid);
-        std::string csrname = invlname + ".csr";
-        std::string beg_posname = invlname + ".beg_pos";
-        writefile(csrname, csr, csrptr);
-        writefile(beg_posname, beg_pos, beg_posptr);
-        free(csr);
-        free(beg_pos);
-        
+            
         invls.push_back(max_vert+1);
         logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
         invlnum = invlid+1;
-        logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << std::endl;
+        logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << ", max_vert = " << max_vert << std::endl;
 
         /*write interval info*/
         std::string intervalsFilename = filename_intervals(filename, shardsize);
@@ -289,6 +282,16 @@
         }
         assert(f >= 0);
         writea( f, &invls[0], invls.size()*sizeof(vid_t));
+
+        std::string invlname = prefixname(filename, invlid);
+        std::string csrname = invlname + ".csr";
+        std::string beg_posname = invlname + ".beg_pos";
+        writefile(csrname, csr, csrptr);
+        writefile(beg_posname, beg_pos, beg_posptr);
+        logstream(LOG_DEBUG) << "before free csr" << std::endl;
+        if(csr != NULL) free(csr);
+        logstream(LOG_DEBUG) << "before free beg_pos" << std::endl;
+        free(beg_pos);
 
         /*write nvertices*/
         std::string nverticesFilename = filename_nvertices(filename);
