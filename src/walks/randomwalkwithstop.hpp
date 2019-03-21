@@ -78,6 +78,7 @@ public:
         }
         if( hop < maxwalklength ){
             unsigned p = getInterval( dstId );
+            if(p>=nshards) return;
             walk_manager.moveWalk(nowWalk, p, threadid, dstId - intervals[p].first);
             walk_manager.setMinStep( p, hop );
         }

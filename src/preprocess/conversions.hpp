@@ -271,13 +271,6 @@
         fclose(inf);
         bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename);
         if(max_vert > env-1) bwritezero( beg_pos, beg_posptr, max_vert - (env-1) ); 
-        std::string invlname = intervalname(filename, invlid);
-        std::string csrname = invlname + ".csr";
-        std::string beg_posname = invlname + ".beg_pos";
-        writefile(csrname, csr, csrptr);
-        writefile(beg_posname, beg_pos, beg_posptr);
-        free(csr);
-        free(beg_pos);
         
         std::pair<vid_t, vid_t> invl(stv, max_vert);
         invls.push_back(invl);
@@ -292,6 +285,14 @@
             intervalsF << invls[p].second << std::endl;
         }
         intervalsF.close();
+
+        std::string invlname = intervalname(filename, invlid);
+        std::string csrname = invlname + ".csr";
+        std::string beg_posname = invlname + ".beg_pos";
+        writefile(csrname, csr, csrptr);
+        writefile(beg_posname, beg_pos, beg_posptr);
+        if(csr!=NULL) free(csr);
+        if(beg_pos!=NULL) free(beg_pos);
 
         /*write nvertices*/
         std::string nverticesFilename = filename_nvertices(filename);

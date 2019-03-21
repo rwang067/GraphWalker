@@ -80,7 +80,8 @@ public:
             if( v <= intervals[p].second )
                 return p;
         }
-        assert(false);
+        logstream(LOG_DEBUG) << "v = " << v << ", intervals[nshards-1].second = " << intervals[nshards-1].second << std::endl;
+        // assert(false);
         return nshards;
     }
     
