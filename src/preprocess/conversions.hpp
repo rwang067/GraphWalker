@@ -24,11 +24,11 @@
         return (a < b ? a : b);
     }
 
-    int invlid;
-    int invlnum;
+    sid_t invlid;
+    sid_t invlnum;
     vid_t stv, env;
     eid_t cur_pos;
-    std::vector<std::pair<vid_t, vid_t> > invls;
+    std::vector<vid_t> invls;
 
     int rm_dir(std::string dir_full_path){    
         DIR* dirp = opendir(dir_full_path.c_str());    
@@ -75,89 +75,53 @@
      * Returns the number of shards if a file has been already
      * sharded or 0 if not found.
      */
-    static int find_shards(std::string base_filename, long long shardsize) {
+    static sid_t find_shards(std::string base_filename, unsigned long long shardsize) {
         std::string intervalfname = filename_intervals(base_filename, shardsize);
         FILE *tryf = fopen(intervalfname.c_str(), "r");
         if (tryf != NULL) { // Found!
-            int nshards = 0;
+            sid_t nshards = 0;
             while(!feof(tryf)){
                 char flag = fgetc(tryf);
                 if(flag == '\n')
                 nshards++;
             }
             fclose(tryf);
-            return nshards;
+            return nshards-1;
         }
         // Not found!
         logstream(LOG_WARNING) << "Could not find shards with shardsize = " << shardsize << "KB." << std::endl;
         return 0;
     }
 
-    /**
-     * Returns the number of shards if a file has been already
-     * sharded or 0 if not found.
-     */
-    static int find_shards(std::string base_filename, std::string shard_string="auto") {
-        int try_shard_num;
-        int start_num = 0;
-        int last_shard_num = 2400;
-        if (shard_string == "auto") {
-            start_num = 0;
-        } else {
-            start_num = atoi(shard_string.c_str());
+    void writeIntervals(std::string filename, unsigned long long shardsize){
+        /*write intervals*/
+        std::string intervalsFilename = filename_intervals(filename, shardsize);
+        std::ofstream intervalsF(intervalsFilename.c_str());      
+        for( sid_t p = 0; p < invls.size(); p++ ){
+            intervalsF << invls[p] << std::endl;
         }
-        
-        if (start_num > 0) {
-            last_shard_num = start_num;
-        }
-        
-        for(try_shard_num=start_num; try_shard_num <= last_shard_num; try_shard_num++) {
-            /* check the interval file */
-            std::string intervalfname = filename_intervals(base_filename, try_shard_num);
-            int tryf = open(intervalfname.c_str(), O_RDONLY);
-            if (tryf >= 0) {
-                // Found!
-                close(tryf);
-                int nshards_candidate = try_shard_num;
-                bool success = true;
-                // Validate all relevant files exists
-                // logstream(LOG_INFO) << nshards_candidate << std::endl;
+        intervalsF.close();
 
-                for(int p=0; p < nshards_candidate; p++) {
-                    std::string sname = intervalname(base_filename, p);
-                    int tryf2 = open(sname.c_str(), O_RDONLY);
-                    if (tryf2 < 0) {
-                        logstream(LOG_DEBUG) << "Missing interval file: " << sname << std::endl;
-                        success = false;
-                        break;
-                    }
-                    close(tryf2);
-                }
-                if (!success) {
-                    continue;
-                }
-                return nshards_candidate;
-            }
-        }
-        if (last_shard_num == start_num) {
-            logstream(LOG_WARNING) << "Could not find shards with nshards = " << start_num << std::endl;
-            logstream(LOG_WARNING) << "Please define 'nshards 0' or 'nshards auto' to automatically detect." << std::endl;
-        }
-        return 0;
+        /*write nvertices*/
+        std::string nverticesFilename = filename_nvertices(filename);
+        std::ofstream nverticesF(nverticesFilename.c_str());
+        nverticesF << invls[invlnum] << std::endl;
+        nverticesF.close();
     }
 
-    void bwritezero( char * beg_pos, char * &beg_posptr, int count ){
+    void bwritezero( char * beg_pos, char * &beg_posptr, eid_t count ){
+        env += count ;
         while( count-- ){
             *((eid_t*)beg_posptr) = cur_pos;
             beg_posptr += sizeof(eid_t);
         }
     }
 
-    void bwrite(char * beg_pos, char * &beg_posptr, char * csr, char * &csrptr, int count, std::vector<vid_t> outv, std::string filename ){
+    void bwrite(char * beg_pos, char * &beg_posptr, char * csr, char * &csrptr, eid_t count, std::vector<vid_t> outv, std::string filename ){
         cur_pos += count;
         *((eid_t*)beg_posptr) = cur_pos;
         beg_posptr += sizeof(eid_t);
-        for( int i = 0; i < count; i++ ){
+        for( eid_t i = 0; i < count; i++ ){
             *((vid_t*)csrptr) = outv[i];
             csrptr += sizeof(vid_t);
         }
@@ -170,8 +134,7 @@
         std::string beg_posname = invlname + ".beg_pos";
         writefile(csrname, csr, csrptr);
         writefile(beg_posname, beg_pos, beg_posptr);
-        std::pair<vid_t, vid_t> invl(stv, env-1);
-        invls.push_back(invl);
+        invls.push_back(env);
         logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
         stv = env;
         invlid++;
@@ -182,11 +145,12 @@
         beg_posptr += sizeof(eid_t);
     }
 
-    int convert_by_shardsize(std::string filename, long long shardsize){
+    sid_t convert_by_shardsize(std::string filename, unsigned long long shardsize){
 
-        unsigned long long malloc_size = shardsize * 1024 / sizeof(int); //max number of (vertices+edges) of a shard
+        eid_t max_nedges = shardsize * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
+        vid_t max_nverts = max_nedges / 4;
         
-        logstream(LOG_INFO) << "Begin convert_by_shardsize, malloc_size = " << malloc_size << std::endl;
+        logstream(LOG_INFO) << "Begin convert_by_shardsize, max_nedges = " << max_nedges << ", max_nverts = " << max_nverts << std::endl;
         
         // return 0;
         FILE * inf = fopen(filename.c_str(), "r");
@@ -200,9 +164,9 @@
         mkdir((filename+"_GraphWalker/graphinfo/").c_str(), 0777);
         
         logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
-        char * csr = (char*) malloc(malloc_size*sizeof(vid_t));
+        char * csr = (char*) malloc(max_nedges*sizeof(vid_t));
         char * csrptr = csr;
-        char * beg_pos = (char*) malloc((malloc_size/10)*sizeof(eid_t));
+        char * beg_pos = (char*) malloc(max_nverts*sizeof(eid_t));
         char * beg_posptr = beg_pos;
         
         char s[1024];
@@ -211,6 +175,7 @@
         eid_t count = 0;
         std::vector<vid_t> outv;
         stv = env = 0;
+        invls.push_back(env);
         vid_t max_vert = 0;
         cur_pos = 0;
         *((eid_t*)beg_posptr) = cur_pos;
@@ -238,69 +203,58 @@
                 outv.push_back(to);
                 count++;
             }else{  //a new vertex
-                if( (csrptr-csr)/sizeof(vid_t)+count >= malloc_size ){
+                if( (csrptr-csr)/sizeof(vid_t)+count >= max_nedges ){
                     // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
                     flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
-                    if( count > malloc_size){
-                        logstream(LOG_ERROR) << "Too small shardsize with malloc_size = " << malloc_size << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << count << std::endl;
+                    if( count > max_nedges){
+                        logstream(LOG_ERROR) << "Too small shardsize with max_nedges = " << max_nedges << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << count << std::endl;
                         assert(false);
                     }
                 }
                 bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename); //write a vertex to buffer
                 if( from - curvertex > 1 ){ //there are verts with zero out-links
                     vid_t remianzero = from-curvertex-1;
-                    vid_t remainsize = malloc_size - ((csrptr-csr)/sizeof(int));
+                    vid_t remainsize = max_nedges - ((csrptr-csr)/sizeof(vid_t));
                     // logstream(LOG_INFO) << "remianzero = " << remianzero << " , remainsize =  " << remainsize << " malloc_size = " << malloc_size << std::endl;
                     while(remianzero > remainsize){
                         bwritezero( beg_pos, beg_posptr, remainsize ); 
-                        env += remainsize ;
                         flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
                         logstream(LOG_DEBUG) << remianzero << " , remainsize =  " << remainsize << std::endl;
                         remianzero -= remainsize;
-                        remainsize = malloc_size;
+                        remainsize = max_nedges;
                     }
                     bwritezero( beg_pos, beg_posptr, remianzero ); 
-                    env += remianzero ;
                 }
                 curvertex = from;
                 count = 1;
                 outv.clear();
-                outv.push_back(to);     
+                outv.push_back(to);
             }
         }
+        bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename);//write the last vertex to buffer
         fclose(inf);
-        bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename);
-        if(max_vert > env-1) bwritezero( beg_pos, beg_posptr, max_vert - (env-1) ); 
+
+        //output beg_pos information
+        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges = " << (csrptr-csr)/sizeof(vid_t) << std::endl;
+        logstream(LOG_INFO) << "env = " << env << ", beg_pos : "<< std::endl;
+        for(vid_t i = env-10; i < env; i++)
+            logstream(LOG_INFO) << "beg_pos[" << i << "] = " << *((eid_t*)(beg_pos+sizeof(eid_t)*i)) << ", " << *((eid_t*)(beg_pos+sizeof(eid_t)*(i+1))) << std::endl;
+
+        if(max_vert > env-1){
+            logstream(LOG_INFO) << "need bwritezero, as max_vert = " << max_vert << ", env = " << env << std::endl;
+            bwritezero( beg_pos, beg_posptr, max_vert - (env-1) );
+        }       
         
-        std::pair<vid_t, vid_t> invl(stv, max_vert);
-        invls.push_back(invl);
-        logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
-        invlnum = invlid+1;
+        flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
+
+        invlnum = invlid;
         logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << std::endl;
 
-        /*write interval info*/
-        std::string intervalsFilename = filename_intervals(filename, shardsize);
-        std::ofstream intervalsF(intervalsFilename.c_str());      
-        for( int p = 0; p < invlnum; p++ ){
-            intervalsF << invls[p].second << std::endl;
-        }
-        intervalsF.close();
-
-        std::string invlname = intervalname(filename, invlid);
-        std::string csrname = invlname + ".csr";
-        std::string beg_posname = invlname + ".beg_pos";
-        writefile(csrname, csr, csrptr);
-        writefile(beg_posname, beg_pos, beg_posptr);
         if(csr!=NULL) free(csr);
         if(beg_pos!=NULL) free(beg_pos);
 
-        /*write nvertices*/
-        std::string nverticesFilename = filename_nvertices(filename);
-        std::ofstream nverticesF(nverticesFilename.c_str());
-        assert(max_vert == invls[invlnum-1].second);      
-        nverticesF << max_vert+1 << std::endl;
-        // nverticesF << invls[invlnum-1].second+1 << std::endl;
-        intervalsF.close();
+        writeIntervals(filename,shardsize);
+
         return invlnum;
     }
 
@@ -308,16 +262,10 @@
      * Converts graph from an edge list format. Input may contain
      * value for the edges. Self-edges are ignored.
      */
-    void convert_edgelist(std::string filename, int nshards, int nvertices, long long nedges) {
-        unsigned long long malloc_size = (nvertices + nedges) / nshards + 1;
-        logstream(LOG_INFO) << "malloc_size = " << malloc_size << std::endl;
-        int invlnum = convert_by_shardsize(filename, malloc_size);
-        assert(invlnum==nshards);
-    }
 
-    int convert_if_notexists(std::string basefilename, long long shardsize) {
+    sid_t convert_if_notexists(std::string basefilename, unsigned long long shardsize) {
         assert(shardsize > 0);
-        int nshards = find_shards(basefilename, shardsize);
+        sid_t nshards = find_shards(basefilename, shardsize);
         /* Check if input file is already sharded */
         if(nshards > 0) {
             logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << shardsize << "KB, num shards=" << nshards << std::endl;
@@ -328,28 +276,6 @@
         logstream(LOG_INFO) << "Will try create them now..." << std::endl;
 
         nshards = convert_by_shardsize(basefilename, shardsize);
-
-        logstream(LOG_INFO) << "Successfully finished sharding for " << basefilename << std::endl;
-        logstream(LOG_INFO) << "Created " << nshards << " shards." << std::endl;
-        return nshards;
-    }
-    
-    int convert_if_notexists_nshards(std::string basefilename, std::string nshards_string, int nvertices, long long nedges, int nshards) {
-        if(nshards == 0 ){
-            double max_shardsize = 1024. * 1024. * size_t(get_option_int("membudget_mb", 1024)) / 4 ;
-            nshards = (int) ( ((nedges+nvertices) * sizeof(VertexDataType) / max_shardsize) + 1.0);
-            logstream(LOG_DEBUG) << "membudget_b nvertices nedges nshards : " << max_shardsize << " " << nvertices << " " << nedges << " " << nshards << std::endl;
-        }
-        /* Check if input file is already sharded */
-        if ((nshards == find_shards(basefilename, nshards_string))) {
-            logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", num shards=" << nshards << std::endl;
-            return nshards;
-        }
-        logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;
-        // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
-        logstream(LOG_INFO) << "Will try create them now..." << std::endl;
-
-        convert_edgelist(basefilename, nshards, nvertices, nedges);
 
         logstream(LOG_INFO) << "Successfully finished sharding for " << basefilename << std::endl;
         logstream(LOG_INFO) << "Created " << nshards << " shards." << std::endl;

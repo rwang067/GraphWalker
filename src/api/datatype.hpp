@@ -9,6 +9,10 @@
 
 typedef uint32_t vid_t;
 typedef uint64_t eid_t;
+typedef uint64_t wid_t; //type of id of walks
+typedef uint16_t sid_t; //type of id of shards
+typedef uint16_t hid_t; //type of id of hops
+typedef uint8_t tid_t; //type of id of threads
 typedef unsigned VertexDataType;
 typedef unsigned long WalkDataType;
 
@@ -35,25 +39,4 @@ int my_rand_r (unsigned int *seed){
     return result;
 }
 
-struct Vertex{
-    vid_t vid;
-    int outd;
-    vid_t *outv;	
-    // std::vector<vid_t> outv;	
-    // ~Vertex(){
-    //     free(outv);
-    // }
-};
-
- vid_t random_outneighbor( Vertex v, unsigned& seed) {
-    if(false){
-        logstream(LOG_INFO) << "Vertex = " << v.vid << " , d = " << v.outd << " , out_neighbors = ";
-        for( int i = 0; i < v.outd; i++ )
-            logstream(LOG_INFO) << v.outv[i] << " , ";
-        logstream(LOG_INFO) << std::endl;
-    }
-    int ran = rand_r(&seed) % v.outd;
-    // int ran = rand() % v.outd; //rand() cause data race in muti-threads 
-    return v.outv[ran];
-}
 #endif

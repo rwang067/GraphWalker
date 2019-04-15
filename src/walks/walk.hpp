@@ -18,28 +18,28 @@ class WalkManager
 {
 protected:
 	std::string base_filename;
-	unsigned nshards;
-	unsigned nthreads;
+	sid_t nshards;
+	tid_t nthreads;
 	metrics &m;
 public:
-	unsigned curp; //current interval
-	unsigned* walknum;
-	unsigned* minstep;
+	sid_t curp; //current interval
+	wid_t* walknum;
+	hid_t* minstep;
 	VECTOR_W **pwalks;
 public:
-	WalkManager(metrics &_m,unsigned _nshards, unsigned _nthreads, std::string _base_filename):base_filename(_base_filename), nshards(_nshards), nthreads(_nthreads), m(_m){
+	WalkManager(metrics &_m,sid_t _nshards, tid_t _nthreads, std::string _base_filename):base_filename(_base_filename), nshards(_nshards), nthreads(_nthreads), m(_m){
 		pwalks = new VECTOR_W*[nthreads];
-		for(unsigned i = 0; i < nthreads; i++)
+		for(tid_t i = 0; i < nthreads; i++)
 			pwalks[i] = new VECTOR_W[nshards];
 
-		walknum = (unsigned*)malloc(nshards*sizeof(unsigned));
-		minstep = (unsigned*)malloc(nshards*sizeof(unsigned));
-		memset(walknum, 0, nshards*sizeof(unsigned));
-		memset(minstep, 0x1f, nshards*sizeof(unsigned));
+		walknum = (wid_t*)malloc(nshards*sizeof(wid_t));
+		minstep = (hid_t*)malloc(nshards*sizeof(hid_t));
+		memset(walknum, 0, nshards*sizeof(wid_t));
+		memset(minstep, 0x1f, nshards*sizeof(hid_t));
 		mkdir((base_filename+"_GraphWalker/walks/").c_str(), 0777);	
 	}
 	~WalkManager(){
-		for(unsigned p = 0; p < nthreads; p++)
+		for(sid_t p = 0; p < nthreads; p++)
 			delete [] pwalks[p];
 		delete [] pwalks;
 		// free(pwalks);
@@ -47,7 +47,7 @@ public:
 		free(minstep);
 	}
 
-	WalkDataType encode( vid_t sourceId, vid_t currentId, unsigned hop ){
+	WalkDataType encode( vid_t sourceId, vid_t currentId, hid_t hop ){
 		assert( hop < 16384 );
 		return (( (WalkDataType)sourceId & 0xffffff ) << 40 ) |(( (WalkDataType)currentId & 0x3ffffff ) << 14 ) | ( (WalkDataType)hop & 0x3fff ) ;
 	}
@@ -60,31 +60,31 @@ public:
 		return (vid_t)( walk >> 14 ) & 0x3ffffff;
 	}
 
-	unsigned getHop( WalkDataType walk ){
-		return (unsigned)(walk & 0x3fff) ;
+	hid_t getHop( WalkDataType walk ){
+		return (hid_t)(walk & 0x3fff) ;
 	}
 
 	WalkDataType reencode( WalkDataType walk, vid_t toVertex ){
-		unsigned hop = getHop(walk);
-		unsigned source = getSourceId(walk);
+		hid_t hop = getHop(walk);
+		vid_t source = getSourceId(walk);
 		walk = encode(source,toVertex,hop);
 		return walk;
 	}
 
-	void moveWalk( WalkDataType walk, unsigned p, unsigned t, vid_t toVertex ){
+	void moveWalk( WalkDataType walk, sid_t p, tid_t t, vid_t toVertex ){
 		walk = reencode( walk, toVertex );
 		pwalks[t][p].push_back( walk );
 	}
 
-	void moveWalktoHop( WalkDataType walk, unsigned p, unsigned t, vid_t toVertex, unsigned hop ){
+	void moveWalktoHop( WalkDataType walk, sid_t p, tid_t t, vid_t toVertex, hid_t hop ){
 		walk = encode( getSourceId(walk), toVertex, hop );
 		pwalks[t][p].push_back( walk );
 	}
 
-     unsigned walksum(){
+     wid_t walksum(){
 		metrics_entry me = m.start_time();
-		unsigned sum = 0;
-		for(unsigned p=0; p < nshards; p++){
+		wid_t sum = 0;
+		for(sid_t p=0; p < nshards; p++){
 			sum += walknum[p];
 		}
 		m.stop_time(me, "_check-finish");
@@ -95,7 +95,7 @@ public:
 		return sum;
      }
 
-     void setMinStep(unsigned p, unsigned hop ){
+     void setMinStep(sid_t p, hid_t hop ){
 		if(minstep[p] > hop)
 		{
 			#pragma omp critical
@@ -105,10 +105,10 @@ public:
 		}
      }
 
-     unsigned intervalWithMaxWalks(){
+     sid_t intervalWithMaxWalks(){
 		metrics_entry me = m.start_time();
-		unsigned maxw = 0, maxp = 0;
-		for(unsigned p = 0; p < nshards; p++) {
+		wid_t maxw = 0, maxp = 0;
+		for(sid_t p = 0; p < nshards; p++) {
 			if( maxw < walknum[p] ){
 				maxw = walknum[p];
 				maxp = p;
@@ -118,10 +118,10 @@ public:
 		return maxp;
      }
 
-     unsigned intervalWithMinStep(){
+     sid_t intervalWithMinStep(){
 		metrics_entry me = m.start_time();
-		unsigned mins = 0xfffffff, minp = 0;
-		for(unsigned p = 0; p < nshards; p++) {
+		hid_t mins = 0xffff, minp = 0;
+		for(sid_t p = 0; p < nshards; p++) {
 			if( mins > minstep[p] ){
 				mins = minstep[p];
 				minp = p;
@@ -131,11 +131,11 @@ public:
 		return minp;
      }
 
-     unsigned intervalWithMaxWeight(){
+     sid_t intervalWithMaxWeight(){
 		metrics_entry me = m.start_time();
 		float maxwt = 0;
-		unsigned maxp = 0;
-		for(unsigned p = 0; p < nshards; p++) {
+		sid_t maxp = 0;
+		for(sid_t p = 0; p < nshards; p++) {
 			if(  maxwt < (float)walknum[p]/minstep[p] ){
 				maxwt = (float)walknum[p]/minstep[p];
 				maxp = p;
@@ -145,21 +145,21 @@ public:
 		return maxp;
      }
 
-     unsigned intervalWithRandom(){
+     sid_t intervalWithRandom(){
      		metrics_entry me = m.start_time();
-     		unsigned ranp = rand() % nshards;
+     		sid_t ranp = rand() % nshards;
           	m.stop_time(me, "_find-interval-with-random");
           	return ranp;
      }
 
-     void printWalksDistribution( unsigned exec_interval ){
+     void printWalksDistribution(sid_t exec_interval ){
 		//print walk number decrease trend
 		metrics_entry me = m.start_time();
 		std::string walk_filename = base_filename + ".walks";
 		std::ofstream ofs;
 	    ofs.open(walk_filename.c_str(), std::ofstream::out | std::ofstream::app );
-	   	unsigned sum = 0;
-	  	for(unsigned p = 0; p < nshards; p++) {
+	   	wid_t sum = 0;
+	  	for(sid_t p = 0; p < nshards; p++) {
 	      		sum += walknum[p];
 	   	}
 	  	ofs << exec_interval << " \t " << walknum[exec_interval] << " \t " << sum << std::endl;
@@ -178,15 +178,15 @@ public:
 		assert(f > 0);
 		size_t sz = readfull(f, &pwalks[0][p].walks);
 		close(f);
-		unsigned count = sz/sizeof(WalkDataType);
+		wid_t count = sz/sizeof(WalkDataType);
 		pwalks[0][p].resize(count);
 		pwalks[0][p].reserve(count);
-		unsigned cap;
+		wid_t cap;
 		if(nshards > 1) cap = count/(nshards-1)/nthreads + 1;
 		else cap = count/nthreads + 1;
-		for(unsigned i=0;i<nshards;i++){
+		for(sid_t i=0;i<nshards;i++){
 			if(i!=p){
-				for(unsigned t=0;t<nthreads;t++){
+				for(tid_t t=0;t<nthreads;t++){
 					pwalks[t][i].reserve(cap);
 				}
 			}
@@ -195,7 +195,7 @@ public:
 		m.stop_time("readIntervalWalks");
      }
 
-     void writeIntervalWalks_joint( unsigned p ){
+     void writeIntervalWalks_joint(sid_t p ){
 		m.start_time("writeIntervalWalks");
 		logstream(LOG_INFO) << "writeIntervalWalks.." << std::endl;
 		//Clear walks of interval p in file
@@ -208,7 +208,7 @@ public:
 		pwalks[0][p].clear();
 		//Write walks of other intervals to file
 		for( p = 0; p < nshards; p++){
-			for(unsigned t = 1; t < nthreads; t++){
+			for(tid_t t = 1; t < nthreads; t++){
 				if(!pwalks[t][p].isEmpty()){
 					pwalks[0][p].joint(pwalks[t][p]);
 					pwalks[t][p].clear();
@@ -218,7 +218,7 @@ public:
 				std::string walksfile = walksname( base_filename, p );
 				int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 				if (f < 0)	logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
-				writea( f, &pwalks[0][p][0], pwalks[0][p].size()*sizeof(WalkDataType));
+				pwritea( f, &pwalks[0][p][0], pwalks[0][p].size()*sizeof(WalkDataType));
 				close(f);
 				pwalks[0][p].clear();
 			}
@@ -243,9 +243,9 @@ public:
 			if (f < 0) {
 				logstream(LOG_ERROR) << "Could not open " << walksfile << " error: " << strerror(errno) << std::endl;
 			}
-			for(unsigned t=0;t<nthreads;t++){
+			for(tid_t t=0;t<nthreads;t++){
 				if(!pwalks[t][p].isEmpty()){
-					writea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType));
+					pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType));
 				}
 				pwalks[t][p].clear();
 			}
@@ -257,10 +257,10 @@ public:
      void freshIntervalWalks( ){
 		logstream(LOG_INFO) << "Write all started walks to files!" << std::endl;
 		#pragma omp parallel for schedule(dynamic, 1)
-			for( unsigned p = 0; p < nshards; p++){
+			for( sid_t p = 0; p < nshards; p++){
 				std::string walksfile = walksname( base_filename, p );
-				unsigned f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-				for(unsigned t=0;t<nthreads;t++){
+				int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+				for(tid_t t=0;t<nthreads;t++){
 					if(!pwalks[t][p].isEmpty()){
 						pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );
 						pwalks[t][p].clear();
@@ -270,11 +270,11 @@ public:
 			}
 	}    
 
-      void freshIntervalWalks(unsigned p){
+      void freshIntervalWalks(sid_t p){
 		// logstream(LOG_INFO) << "Write started walks of interval " << p << " to files!" << std::endl;
 		std::string walksfile = walksname( base_filename, p );
-   		unsigned f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC| O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-		for(unsigned t=0;t<nthreads;t++){
+   		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC| O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+		for(tid_t t=0;t<nthreads;t++){
 			// logstream(LOG_INFO) << pwalks[t][p].size() << std::endl;
 			if(!pwalks[t][p].isEmpty()){
 				pwritea( f, &pwalks[t][p][0], pwalks[t][p].size()*sizeof(WalkDataType) );

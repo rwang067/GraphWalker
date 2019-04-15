@@ -13,7 +13,7 @@
 #include "api/datatype.hpp"
 #include "logger/logger.hpp"
 
-static std::string intervalname( std::string basefilename, int p ){
+static std::string intervalname( std::string basefilename, sid_t p ){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/graphinfo/interval";
@@ -21,7 +21,7 @@ static std::string intervalname( std::string basefilename, int p ){
     return ss.str();
 }
 
-static std::string walksname( std::string basefilename, int p ){
+static std::string walksname( std::string basefilename, sid_t p ){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/walks/pool";
@@ -29,14 +29,7 @@ static std::string walksname( std::string basefilename, int p ){
     return ss.str();
 }
 
-static std::string filename_intervals(std::string basefilename, int nshards){
-    std::stringstream ss;
-    ss << basefilename;
-    ss << "_GraphWalker/" << nshards << ".intervals";
-    return ss.str();
-}
-
-static std::string filename_intervals(std::string basefilename, long long shardsize_kb){
+static std::string filename_intervals(std::string basefilename, unsigned long long shardsize_kb){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/shardsize_" << shardsize_kb << "KB.intervals";

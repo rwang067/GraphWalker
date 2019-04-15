@@ -9,7 +9,7 @@
 #include <zlib.h>
 
 template <typename T>
-void preada(int f, T * tbuf, size_t nbytes, size_t off) {
+void preada(int f, T * tbuf, size_t nbytes, size_t off = 0) {
     size_t nread = 0;
     T * buf = (T*)tbuf;
     while(nread<nbytes) {
@@ -40,7 +40,7 @@ void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {
     size_t nwritten = 0;
     T * buf = (T*)tbuf;
     while(nwritten<nbytes) {
-        size_t a = pwrite(f, buf, nbytes-nwritten, off);
+        size_t a = pwrite(f, buf, nbytes-nwritten, off+nwritten);
         assert(a>0);
         if (a == size_t(-1)) {
             logstream(LOG_ERROR) << "Could not write " << (nbytes-nwritten) << " bytes!" << " error:" <<  strerror(errno) << std::endl;
@@ -48,22 +48,7 @@ void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {
         }
         buf += a;
         nwritten += a;
-    }  
-}
-
-    template <typename T>
-void writea(int f, T * tbuf, size_t nbytes) {
-    size_t nwritten = 0;
-    T * buf = (T*)tbuf;
-    while(nwritten<nbytes) {
-        size_t a = write(f, buf, nbytes-nwritten);
-        assert(a>0);
-        if (a == size_t(-1)) {
-            logstream(LOG_ERROR) << "Could not write " << (nbytes-nwritten) << " bytes!" << " error:" <<  strerror(errno) << std::endl;
-            assert(false);
-        }
-        buf += a;
-        nwritten += a;
+        // logstream(LOG_DEBUG) << "In pwritea, nwritten = " << nwritten << " , nbytes = " << nbytes << std::endl;
     }  
 }
 
