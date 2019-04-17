@@ -191,7 +191,7 @@ public:
 				}
 			}
 		}
-        // logstream(LOG_INFO) << "readIntervalWalks of p : " << p << " : " << count << std::endl;
+        logstream(LOG_INFO) << "readIntervalWalks of p : " << p << " : " << count << std::endl;
 		m.stop_time("readIntervalWalks");
      }
 

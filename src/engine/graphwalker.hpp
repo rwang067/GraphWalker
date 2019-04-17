@@ -24,10 +24,10 @@
 class graphwalker_engine {
 public:     
     std::string base_filename;
+    // unsigned membudget_mb;
     unsigned long long shardsize;  
     sid_t nshards;  
     vid_t nvertices;      
-    unsigned membudget_mb;
     tid_t exec_threads;
     vid_t* intervals;
     timeval start;
@@ -41,9 +41,10 @@ public:
         
     void print_config() {
         logstream(LOG_INFO) << "Engine configuration: " << std::endl;
-        logstream(LOG_INFO) << " exec_threads = " << exec_threads << std::endl;
-        // logstream(LOG_INFO) << " load_threads = " << load_threads << std::endl;
-        logstream(LOG_INFO) << " membudget_mb = " << membudget_mb << std::endl;
+        logstream(LOG_INFO) << " exec_threads = " << (int)exec_threads << std::endl;
+        logstream(LOG_INFO) << " shardsize = " << shardsize << "kb" << std::endl;
+        logstream(LOG_INFO) << " nshards = " << nshards << std::endl;
+        // logstream(LOG_INFO) << " membudget_mb = " << membudget_mb << std::endl;
         // logstream(LOG_INFO) << " scheduler = " << use_selective_scheduling << std::endl;
     }
 
@@ -62,15 +63,9 @@ public:
      * @param selective_scheduling if true, uses selective scheduling 
      */
     graphwalker_engine(std::string _base_filename, unsigned long long _shardsize, sid_t _nshards, metrics &_m) : base_filename(_base_filename), shardsize(_shardsize), nshards(_nshards), m(_m) {
-        // m.start_time("iomgr_init");
-        // iomgr = new stripedio(m);
-        // m.stop_time("iomgr_init");
-
-        membudget_mb = get_option_int("membudget_mb", 1024);
+        // membudget_mb = get_option_int("membudget_mb", 1024);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
-        logstream(LOG_INFO) << "Max available exec_threads = " << exec_threads << std::endl;
         omp_set_num_threads(exec_threads);
-
         load_vertex_intervals(base_filename, shardsize, intervals);
         nvertices = num_vertices();
         walk_manager = new WalkManager(m,nshards,exec_threads,base_filename);
@@ -78,36 +73,11 @@ public:
         _m.set("file", _base_filename);
         _m.set("engine", "default");
         _m.set("nshards", (size_t)nshards);
+
+        print_config();
     }
         
     virtual ~graphwalker_engine() {
-    }
-
-    void loadSubGraph(sid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-        m.start_time("loadSubGraph");
-        std::string invlname = intervalname( base_filename, p );
-        std::string beg_posname = invlname + ".beg_pos";
-        std::string csrname = invlname + ".csr";
-        int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        int csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        if (csrf < 0 || beg_posf < 0) {
-            logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
-        }
-        assert(csrf > 0 && beg_posf > 0);
-        *nverts = readfull(beg_posf, &beg_pos) / sizeof(eid_t) - 1;
-        *nedges = readfull(csrf, &csr) / sizeof(vid_t);
-
-        /*output load graph info*/
-        logstream(LOG_INFO) << "nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
-        // logstream(LOG_INFO) << "beg_pos : "<< std::endl;
-        // for(vid_t i = *nverts-10; i < *nverts; i++)
-        //     logstream(LOG_INFO) << "beg_pos[" << i << "] = " << beg_pos[i] << ", "<< std::endl;
-        // logstream(LOG_INFO) << "csr : "<< std::endl;
-        // for(eid_t i = *nedges-10; i < *nedges; i++)
-        //     logstream(LOG_INFO) << "csr[" << i << "] = " << csr[i] << ", "<< std::endl;
-
-        m.stop_time("loadSubGraph");
-        logstream(LOG_INFO) << "LoadSubGraph data end." << std::endl;
     }
 
     void load_vertex_intervals(std::string base_filename, unsigned long long shardsize, vid_t * &intervals, bool allowfail=false) {
@@ -126,11 +96,35 @@ public:
             intervalsF >> en;
             intervals[i] = en;
         }
-        // for(int i=0; i < nshards; i++) {
         for(sid_t i=nshards-1; i < nshards; i++) {
-             logstream(LOG_INFO) << "shard: " << intervals[i] << " - " << intervals[i+1] << std::endl;
+             logstream(LOG_INFO) << "last shard: " << intervals[i] << " - " << intervals[i+1] << std::endl;
         }
         intervalsF.close();
+    }
+
+    void loadSubGraph(sid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
+        m.start_time("loadSubGraph");
+        std::string invlname = intervalname( base_filename, p );
+        std::string beg_posname = invlname + ".beg_pos";
+        std::string csrname = invlname + ".csr";
+        int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        int csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        if (csrf < 0 || beg_posf < 0) {
+            logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
+        }
+        assert(csrf > 0 && beg_posf > 0);
+        *nverts = readfull(beg_posf, &beg_pos) / sizeof(eid_t) - 1;
+        *nedges = readfull(csrf, &csr) / sizeof(vid_t);
+
+        /*output load graph info*/
+        logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
+        // logstream(LOG_INFO) << "beg_pos : "<< std::endl;
+        // for(vid_t i = *nverts-10; i < *nverts; i++)
+        //     logstream(LOG_INFO) << "beg_pos[" << i << "] = " << beg_pos[i] << ", "<< std::endl;
+        // logstream(LOG_INFO) << "csr : "<< std::endl;
+        // for(eid_t i = *nedges-10; i < *nedges; i++)
+        //     logstream(LOG_INFO) << "csr[" << i << "] = " << csr[i] << ", "<< std::endl;
+        m.stop_time("loadSubGraph");
     }
 
     virtual size_t num_vertices() {
@@ -151,7 +145,7 @@ public:
                     userprogram.updateByWalk(walk, i, exec_interval, beg_pos, csr, *walk_manager );//, vertex_value);
                 }
         }
-        logstream(LOG_INFO) << "exec_updates end." << std::endl;
+        logstream(LOG_INFO) << "exec_updates end. Processsed walks with exec_threads = " << (int)exec_threads << std::endl;
         m.stop_time("exec_updates");
         // walk_manager->writeIntervalWalks(exec_interval);
     }
@@ -179,23 +173,25 @@ public:
                 exec_interval =walk_manager->intervalWithMaxWalks();
             }
             if(numIntervals%10==1) logstream(LOG_DEBUG) << runtime() << "s : numIntervals: " << numIntervals << " : " << exec_interval << std::endl;
-            //walk_manager->printWalksDistribution( exec_interval );
-            /*load graph and walks info*/
+
+            /*load graph info*/
             vid_t nverts, *csr;
             eid_t nedges, *beg_pos;
             loadSubGraph(exec_interval, beg_pos, csr, &nverts, &nedges);
-            // unsigned count = walk_manager->readIntervalWalks(exec_interval);
+
+            /*load walks info*/
+            // walk_manager->loadWalkPool(exec_interval);
+
             userprogram.before_exec_interval(exec_interval, intervals[exec_interval], intervals[exec_interval+1], *walk_manager);
             exec_updates(userprogram, beg_pos, csr);
             userprogram.after_exec_interval(exec_interval, intervals[exec_interval], intervals[exec_interval+1], *walk_manager);
-            // userprogram.after_exec_interval(exec_interval, intervals[exec_interval].first, intervals[exec_interval].second, *walk_manager, vertices);
+            // walk_manager->walknum[exec_interval] = 0;
+            // walk_manager->writeWalkPools();
 
-            m.start_time("freeSubGraph");
             free(beg_pos);
             free(csr);
             beg_pos = NULL;
             csr = NULL;
-            m.stop_time("freeSubGraph");
 
             m.stop_time("in_run_interval");
         } // For Interval loop

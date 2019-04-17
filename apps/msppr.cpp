@@ -1,5 +1,5 @@
 
-#define KEEPWALKSINDISK
+#define KEEPWALKSINDISK 1
 
 #include <string>
 #include <fstream>
@@ -37,10 +37,10 @@ public:
 
     void startWalksbyApp( WalkManager &walk_manager  ){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
-        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-        omp_set_num_threads(nthreads);
+        tid_t execthreads = get_option_int("execthreads", omp_get_max_threads());
+        omp_set_num_threads(execthreads);
         // walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
-        // #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static)
         for(vid_t s = firstsource; s < firstsource+numsources; s++){
             // logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
             sid_t p = getInterval(s);

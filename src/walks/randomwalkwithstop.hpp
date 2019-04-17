@@ -27,6 +27,7 @@ public:
     }   
 
     void updateByWalk(WalkDataType walk, wid_t walkid, sid_t exec_interval, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+        // logstream(LOG_INFO) << "updateByWalk in randomwalkwithstop." << std::endl;
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
         vid_t sourId = walk_manager.getSourceId(nowWalk);
