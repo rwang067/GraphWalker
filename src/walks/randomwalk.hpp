@@ -46,8 +46,9 @@ public:
     /**
      * Called before an execution block is started.
      */
-    virtual void before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    virtual wid_t before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         logstream(LOG_DEBUG) << "No definition of function : before_exec_block!" << std::endl;
+        return 0;
     }
     
     /**
@@ -83,7 +84,7 @@ public:
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
         unsigned remaining_walknum = walk_manager.walksum();
-        logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << std::endl;
+        // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << std::endl;
         return ( remaining_walknum > 0 ); 
     }
     

@@ -152,7 +152,7 @@ public:
         close(csrf);       
 
         /*output load graph info*/
-        logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
+        // logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
         
         // logstream(LOG_INFO) << "beg_pos : "<< std::endl;
         // for(vid_t i = *nverts-10; i < *nverts; i++)
@@ -181,7 +181,7 @@ public:
                     userprogram.updateByWalk(walk, i, exec_block, beg_pos, csr, *walk_manager );//, vertex_value);
                 }
         }
-        logstream(LOG_INFO) << "exec_updates end. Processsed walks with exec_threads = " << (int)exec_threads << std::endl;
+        // logstream(LOG_INFO) << "exec_updates end. Processsed walks with exec_threads = " << (int)exec_threads << std::endl;
         m.stop_time("exec_updates");
         // walk_manager->writeblockWalks(exec_block);
     }
@@ -208,17 +208,22 @@ public:
                 // logstream(LOG_DEBUG) << "proc > 0.2 --> maxwalk, choose probability = " << cc << std::endl;
                 exec_block =walk_manager->blockWithMaxWalks();
             }
-            if(numblocks%10==1) logstream(LOG_DEBUG) << runtime() << "s : numblocks: " << numblocks << " : " << exec_block << std::endl;
 
             /*load graph info*/
             vid_t nverts, *csr;
             eid_t nedges, *beg_pos;
             loadSubGraph(exec_block, beg_pos, csr, &nverts, &nedges);
-
             /*load walks info*/
             // walk_manager->loadWalkPool(exec_block);
-
-            userprogram.before_exec_block(exec_block, blocks[exec_block], blocks[exec_block+1], *walk_manager);
+            wid_t nwalks; 
+            nwalks = userprogram.before_exec_block(exec_block, blocks[exec_block], blocks[exec_block+1], *walk_manager);
+            
+            if(numblocks % 100==1){
+                logstream(LOG_DEBUG) << runtime() << "s : numblocks: " << numblocks << " : " << exec_block << std::endl;
+                logstream(LOG_DEBUG) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
+                logstream(LOG_DEBUG) << "walksum = " << walk_manager->walksum() << ", nwalks[p] = " << nwalks << std::endl;
+            }
+            
             exec_updates(userprogram, beg_pos, csr);
             userprogram.after_exec_block(exec_block, blocks[exec_block], blocks[exec_block+1], *walk_manager);
             // walk_manager->walknum[exec_block] = 0;

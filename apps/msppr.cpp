@@ -73,9 +73,9 @@ public:
     /**
      * Called before an execution block is started.
      */
-    void before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    wid_t before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         #ifdef KEEPWALKSINDISK
-            walk_manager.readblockWalks(exec_block);
+            return walk_manager.readblockWalks(exec_block);
         #endif
     }
     

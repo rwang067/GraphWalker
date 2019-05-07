@@ -167,7 +167,7 @@ public:
 	 	m.stop_time(me, "_print-walks-distribution");
      }
 
-     void readblockWalks( unsigned p ){
+     wid_t readblockWalks( unsigned p ){
 		m.start_time("readblockWalks");
         // logstream(LOG_INFO) << "readblockWalks.." << std::endl;
 		std::string walksfile = walksname( base_filename, p );
@@ -191,8 +191,9 @@ public:
 				}
 			}
 		}
-        logstream(LOG_INFO) << "readblockWalks of p : " << p << " : " << count << std::endl;
+        // logstream(LOG_INFO) << "readblockWalks of p : " << p << " : " << count << std::endl;
 		m.stop_time("readblockWalks");
+		return count;
      }
 
      void writeblockWalks_joint(bid_t p ){
