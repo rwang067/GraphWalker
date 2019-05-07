@@ -24,11 +24,19 @@
         return (a < b ? a : b);
     }
 
-    sid_t invlid;
-    sid_t invlnum;
-    vid_t stv, env;
-    eid_t cur_pos;
-    std::vector<vid_t> invls;
+    //for convert_to_csr
+    eid_t max_nedges; //max num of edges in an csr file
+    bid_t fid, fnum;
+    std::vector<vid_t> files;
+    vid_t fstv, fenv;
+    eid_t cfpos; //position in csr file
+
+    vid_t bpbpos; //position in beg_pos buffer
+    eid_t cbpos; //position in csr buffer
+
+    vid_t curvertex;
+
+    //for compute_block
 
     int rm_dir(std::string dir_full_path){    
         DIR* dirp = opendir(dir_full_path.c_str());    
@@ -75,11 +83,11 @@
      * Returns the number of shards if a file has been already
      * sharded or 0 if not found.
      */
-    static sid_t find_shards(std::string base_filename, unsigned long long shardsize) {
-        std::string intervalfname = filename_intervals(base_filename, shardsize);
-        FILE *tryf = fopen(intervalfname.c_str(), "r");
+    static bid_t find_filerange(std::string base_filename, uint16_t filesize_GB) {
+        std::string filerangefile = filerangename(base_filename, filesize_GB);
+        FILE *tryf = fopen(filerangefile.c_str(), "r");
         if (tryf != NULL) { // Found!
-            sid_t nshards = 0;
+            bid_t nshards = 0;
             while(!feof(tryf)){
                 char flag = fgetc(tryf);
                 if(flag == '\n')
@@ -89,70 +97,90 @@
             return nshards-1;
         }
         // Not found!
-        logstream(LOG_WARNING) << "Could not find shards with shardsize = " << shardsize << "KB." << std::endl;
+        logstream(LOG_WARNING) << "Could not find shards with filesize = " << filesize_GB << "GB." << std::endl;
         return 0;
     }
 
-    void writeIntervals(std::string filename, unsigned long long shardsize){
-        /*write intervals*/
-        std::string intervalsFilename = filename_intervals(filename, shardsize);
-        std::ofstream intervalsF(intervalsFilename.c_str());      
-        for( sid_t p = 0; p < invls.size(); p++ ){
-            intervalsF << invls[p] << std::endl;
+    /**
+     * Returns the number of blocks if a file has been already
+     * 0 if not found.
+     */
+    static bid_t find_blockrange(std::string base_filename, unsigned long long blocksize_kb) {
+        std::string blockrangefile = blockrangename(base_filename, blocksize_kb);
+        FILE *tryf = fopen(blockrangefile.c_str(), "r");
+        if (tryf != NULL) { // Found!
+            bid_t nblocks = 0;
+            while(!feof(tryf)){
+                char flag = fgetc(tryf);
+                if(flag == '\n')
+                nblocks++;
+            }
+            fclose(tryf);
+            return nblocks-1;
         }
-        intervalsF.close();
+        // Not found!
+        logstream(LOG_WARNING) << "Could not find blocks with blocksize = " << blocksize_kb << "KB." << std::endl;
+        return 0;
+    }
+
+    void writeFileRange(std::string filename, uint16_t filesize_GB){
+        /*write csr file range*/
+        std::string filerangefile = filerangename(filename, filesize_GB);
+        std::ofstream frf(filerangefile.c_str());      
+        for( bid_t p = 0; p < files.size(); p++ ){
+            frf << files[p] << std::endl;
+        }
+        frf.close();
 
         /*write nvertices*/
-        std::string nverticesFilename = filename_nvertices(filename);
-        std::ofstream nverticesF(nverticesFilename.c_str());
-        nverticesF << invls[invlnum] << std::endl;
-        nverticesF.close();
+        std::string nverticesfile = nverticesname(filename);
+        std::ofstream nvf(nverticesfile.c_str());
+        nvf << files[fnum] << std::endl;
+        nvf.close();
     }
 
     void bwritezero( char * beg_pos, char * &beg_posptr, eid_t count ){
-        env += count ;
         while( count-- ){
-            *((eid_t*)beg_posptr) = cur_pos;
+            *((eid_t*)beg_posptr) = cbpos;
             beg_posptr += sizeof(eid_t);
+            bpbpos++;
         }
     }
 
-    void bwrite(char * beg_pos, char * &beg_posptr, char * csr, char * &csrptr, eid_t count, std::vector<vid_t> outv, std::string filename ){
-        cur_pos += count;
-        *((eid_t*)beg_posptr) = cur_pos;
+    void bwrite(char * beg_pos, char * &beg_posptr, char * csr, char * &csrptr, eid_t outd, std::vector<vid_t> outv, std::string filename ){
+        cbpos += outd;
+        *((eid_t*)beg_posptr) = cbpos;
         beg_posptr += sizeof(eid_t);
-        for( eid_t i = 0; i < count; i++ ){
+        for( eid_t i = 0; i < outd; i++ ){
             *((vid_t*)csrptr) = outv[i];
             csrptr += sizeof(vid_t);
         }
-        env++;
+        bpbpos++;
     }
 
     void flushInvl(std::string filename, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
-        std::string invlname = intervalname(filename,invlid);
-        std::string csrname = invlname + ".csr";
-        std::string beg_posname = invlname + ".beg_pos";
-        writefile(csrname, csr, csrptr);
-        writefile(beg_posname, beg_pos, beg_posptr);
-        invls.push_back(env);
-        logstream(LOG_INFO) << "interval_" << invlid << " : [ " << stv << " , " << env-1 << " ]" << std::endl;
-        stv = env;
-        invlid++;
+        if( cfpos + cbpos >= max_nedges){ //new file needed
+            fenv = curvertex;
+            files.push_back(fenv);
+            logstream(LOG_INFO) << "FILE_" << fid << " : [ " << fstv << " , " << fenv-1 << " ]" << std::endl;
+            fstv = fenv;
+            cfpos = 0;
+            fid++;
+        }
+        std::string fidfile = fidname(filename,fid);
+        std::string csrname = fidfile + ".csr";
+        std::string beg_posname = fidfile + ".beg_pos";
+        appendfile(csrname, csr, csrptr);
+        appendfile(beg_posname, beg_pos, beg_posptr);
+
         csrptr = csr;
         beg_posptr = beg_pos;
-        cur_pos = 0;
-        *((eid_t*)beg_posptr) = cur_pos;
-        beg_posptr += sizeof(eid_t);
+        bpbpos = 0;
+        cbpos = 0;
     }
 
-    sid_t convert_by_shardsize(std::string filename, unsigned long long shardsize){
+    bid_t convert_to_csr(std::string filename, uint16_t filesize_GB){
 
-        eid_t max_nedges = shardsize * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
-        vid_t max_nverts = max_nedges / 4;
-        
-        logstream(LOG_INFO) << "Begin convert_by_shardsize, max_nedges = " << max_nedges << ", max_nverts = " << max_nverts << std::endl;
-        
-        // return 0;
         FILE * inf = fopen(filename.c_str(), "r");
         if (inf == NULL) {
             logstream(LOG_FATAL) << "Could not load :" << filename << " error: " << strerror(errno) << std::endl;
@@ -162,24 +190,34 @@
         rm_dir((filename+"_GraphWalker/").c_str());
         mkdir((filename+"_GraphWalker/").c_str(), 0777);
         mkdir((filename+"_GraphWalker/graphinfo/").c_str(), 0777);
+
+        max_nedges = (eid_t)filesize_GB * 1024 * 1024 * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
+        logstream(LOG_INFO) << "Begin convert_to_csr, max_nedges in an csr file = " << max_nedges << std::endl;
+        logstream(LOG_INFO) << "VERT_SIZE in a beg_pos buffer = " << VERT_SIZE << "EDGE_SIZE in an csr buffer = " << EDGE_SIZE << std::endl;
         
-        logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
-        char * csr = (char*) malloc(max_nedges*sizeof(vid_t));
+        char * csr = (char*) malloc(EDGE_SIZE*sizeof(vid_t));
         char * csrptr = csr;
-        char * beg_pos = (char*) malloc(max_nverts*sizeof(eid_t));
+        char * beg_pos = (char*) malloc(VERT_SIZE*sizeof(eid_t));
         char * beg_posptr = beg_pos;
-        
-        char s[1024];
-        invlid = 0;
-        vid_t curvertex = 0;
-        eid_t count = 0;
-        std::vector<vid_t> outv;
-        stv = env = 0;
-        invls.push_back(env);
-        vid_t max_vert = 0;
-        cur_pos = 0;
-        *((eid_t*)beg_posptr) = cur_pos;
+               
+        logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
+
+        fid = 0;
+        fstv = fenv = 0;
+        cfpos = 0;
+        files.push_back(0);
+
+        bpbpos = 0;
+        cbpos = 0;
+        *((eid_t*)beg_posptr) = 0;
         beg_posptr += sizeof(eid_t);
+
+        curvertex = 0;
+        vid_t max_vert = 0;
+        eid_t outd = 0;        
+        std::vector<vid_t> outv;
+
+        char s[1024];
         while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
@@ -201,61 +239,109 @@
             max_vert = max_value(max_vert, to);
             if( from == curvertex ){
                 outv.push_back(to);
-                count++;
+                outd++;
             }else{  //a new vertex
-                if( (csrptr-csr)/sizeof(vid_t)+count >= max_nedges ){
+                if( cbpos + outd >= EDGE_SIZE || bpbpos + 1 >= VERT_SIZE ){
                     // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
                     flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
-                    if( count > max_nedges){
-                        logstream(LOG_ERROR) << "Too small shardsize with max_nedges = " << max_nedges << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << count << std::endl;
+                    if( outd > EDGE_SIZE){
+                        logstream(LOG_ERROR) << "Too small memory capacity with EDGE_SIZE = " << EDGE_SIZE << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << outd << std::endl;
                         assert(false);
                     }
                 }
-                bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename); //write a vertex to buffer
+                bwrite(beg_pos, beg_posptr, csr, csrptr, outd, outv, filename); //write a vertex to buffer
                 if( from - curvertex > 1 ){ //there are verts with zero out-links
                     vid_t remianzero = from-curvertex-1;
-                    vid_t remainsize = max_nedges - ((csrptr-csr)/sizeof(vid_t));
+                    vid_t remainsize = VERT_SIZE - bpbpos;
                     // logstream(LOG_INFO) << "remianzero = " << remianzero << " , remainsize =  " << remainsize << " malloc_size = " << malloc_size << std::endl;
                     while(remianzero > remainsize){
                         bwritezero( beg_pos, beg_posptr, remainsize ); 
                         flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
                         logstream(LOG_DEBUG) << remianzero << " , remainsize =  " << remainsize << std::endl;
                         remianzero -= remainsize;
-                        remainsize = max_nedges;
+                        remainsize = VERT_SIZE;
                     }
                     bwritezero( beg_pos, beg_posptr, remianzero ); 
                 }
                 curvertex = from;
-                count = 1;
+                outd = 1;
                 outv.clear();
                 outv.push_back(to);
             }
         }
-        bwrite(beg_pos, beg_posptr, csr, csrptr, count, outv, filename);//write the last vertex to buffer
         fclose(inf);
+        bwrite(beg_pos, beg_posptr, csr, csrptr, outd, outv, filename);//write the last vertex to buffer
 
         //output beg_pos information
-        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges = " << (csrptr-csr)/sizeof(vid_t) << std::endl;
-        logstream(LOG_INFO) << "env = " << env << ", beg_pos : "<< std::endl;
-        for(vid_t i = env-10; i < env; i++)
+        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges(fnum=1)) = " << cfpos << std::endl;
+        logstream(LOG_INFO) << "beg_pos : "<< std::endl;
+        for(vid_t i = max_vert-10; i <= max_vert; i++)
             logstream(LOG_INFO) << "beg_pos[" << i << "] = " << *((eid_t*)(beg_pos+sizeof(eid_t)*i)) << ", " << *((eid_t*)(beg_pos+sizeof(eid_t)*(i+1))) << std::endl;
 
-        if(max_vert > env-1){
-            logstream(LOG_INFO) << "need bwritezero, as max_vert = " << max_vert << ", env = " << env << std::endl;
-            bwritezero( beg_pos, beg_posptr, max_vert - (env-1) );
+        if(max_vert > curvertex){
+            logstream(LOG_INFO) << "need bwritezero, as max_vert = " << max_vert << ", curvertex = " << curvertex << std::endl;
+            bwritezero( beg_pos, beg_posptr, max_vert - curvertex );
         }       
         
         flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
 
-        invlnum = invlid;
-        logstream(LOG_INFO) << "Partitioned interval number : " << invlnum << std::endl;
+        files.push_back(max_vert+1);
+        fnum = fid+1;
+        logstream(LOG_INFO) << "Partitioned csr file number : " << fnum << std::endl;
 
         if(csr!=NULL) free(csr);
         if(beg_pos!=NULL) free(beg_pos);
 
-        writeIntervals(filename,shardsize);
+        writeFileRange(filename,filesize_GB);
 
-        return invlnum;
+        return fnum;
+    }
+
+    bid_t compute_block(std::string filename, unsigned long long blocksize_kb){
+        eid_t mneb = (eid_t)blocksize_kb * 1024 / sizeof(vid_t); // max number of edges in a block
+        
+        bid_t blockid = 0;
+        std::vector<vid_t> blocks;
+        blocks.push_back(0);
+        eid_t stb = 0;;
+
+        eid_t * beg_pos = (eid_t*) malloc(VERT_SIZE*sizeof(eid_t));
+        std::string beg_posname = fidname(filename,fid) + ".beg_pos";
+        int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        if (beg_posf < 0) {
+            logstream(LOG_FATAL) << "Could not load :" << beg_posname << ", error: " << strerror(errno) << std::endl;
+        }
+        assert(beg_posf > 0);
+        vid_t ttv = lseek(beg_posf, 0, SEEK_END) / sizeof(eid_t); //total vertices number in begpos file
+        vid_t rv = VERT_SIZE; //read vertices number in begpos file
+        vid_t nread = 0;
+        while( nread < ttv ){
+            if(ttv - nread < VERT_SIZE) rv = ttv - nread;
+            preada( beg_posf, beg_pos, (size_t)rv*sizeof(eid_t), (size_t)nread*sizeof(eid_t) );
+            for(vid_t v = 0; v < rv; v++){
+                if(beg_pos[v]-stb > mneb){
+                    blocks.push_back(nread+v-1);
+                    if(beg_pos[v]-beg_pos[v-1] > mneb){
+                        logstream(LOG_ERROR) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
+                        assert(false);
+                    }
+                    blockid++;
+                    stb = beg_pos[v-1];
+                }
+            }
+            nread += rv;
+        }
+        blocks.push_back(ttv-1);
+        blockid++;
+        /*write csr file range*/
+        std::string blockrangefile = blockrangename(filename, blocksize_kb);
+        std::ofstream brf(blockrangefile.c_str());      
+        for( bid_t p = 0; p < blocks.size(); p++ ){
+            brf << blocks[p] << std::endl;
+        }
+        brf.close();
+
+        return blockid;
     }
 
     /**
@@ -263,23 +349,39 @@
      * value for the edges. Self-edges are ignored.
      */
 
-    sid_t convert_if_notexists(std::string basefilename, unsigned long long shardsize) {
-        assert(shardsize > 0);
-        sid_t nshards = find_shards(basefilename, shardsize);
+    bid_t convert_if_notexists(std::string basefilename, unsigned long long blocksize_kb) {
+        bid_t nshards = find_filerange(basefilename, FILE_SIZE);
         /* Check if input file is already sharded */
         if(nshards > 0) {
-            logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << shardsize << "KB, num shards=" << nshards << std::endl;
-            return nshards;
+            logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << FILE_SIZE << "GB, num file=" << nshards << std::endl;
+            //return nshards;
+        }else{
+            logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;
+            // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
+            logstream(LOG_INFO) << "Will try create them now..." << std::endl;
+
+            nshards = convert_to_csr(basefilename, FILE_SIZE);
+
+            logstream(LOG_INFO) << "Successfully finished sharding for " << basefilename << std::endl;
+            logstream(LOG_INFO) << "Created " << nshards << " shards." << std::endl;
         }
-        logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;
-        // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
-        logstream(LOG_INFO) << "Will try create them now..." << std::endl;
 
-        nshards = convert_by_shardsize(basefilename, shardsize);
+        assert(blocksize_kb > 0);
+        bid_t nblocks = find_blockrange(basefilename, blocksize_kb);
+        if(nblocks > 0) {
+            logstream(LOG_INFO) << "Found computed blocks for " << basefilename << ", blocksize = " << blocksize_kb << "KB, num blocks=" << nblocks << std::endl;
+            //return nshards;
+        }else{
+            logstream(LOG_INFO) << "Did not find computed blocks for " << basefilename  << std::endl;
+            // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
+            logstream(LOG_INFO) << "Will try compute the blcok range now..." << std::endl;
 
-        logstream(LOG_INFO) << "Successfully finished sharding for " << basefilename << std::endl;
-        logstream(LOG_INFO) << "Created " << nshards << " shards." << std::endl;
-        return nshards;
+            nblocks = compute_block(basefilename, blocksize_kb);
+
+            logstream(LOG_INFO) << "Successfully finished compute_block for " << basefilename << std::endl;
+            logstream(LOG_INFO) << "computed " << nblocks << " blocks." << std::endl;
+        }
+        return nblocks;
     }
 
 #endif

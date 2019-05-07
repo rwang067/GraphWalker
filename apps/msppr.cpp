@@ -40,28 +40,29 @@ public:
         tid_t execthreads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(execthreads);
         // walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
-        #pragma omp parallel for schedule(static)
+        // #pragma omp parallel for schedule(static)
         for(vid_t s = firstsource; s < firstsource+numsources; s++){
             // logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
-            sid_t p = getInterval(s);
+            bid_t p = getblock(s);
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] += walkspersource;
-            vid_t cur = s - intervals[p];
+            vid_t cur = s - blocks[p];
             WalkDataType walk = walk_manager.encode(s-firstsource, cur, 0);
             for( wid_t j = 0; j < walkspersource; j++ ){
                 walk_manager.pwalks[0][p].push_back(walk);
             }
             // #ifdef KEEPWALKSINDISK
-            //     if(s%50000==0) walk_manager.freshIntervalWalks();
+            //     if(s%50000==0) walk_manager.freshblockWalks();
             // #endif
             if(s%50000==0) logstream(LOG_DEBUG) << s << std::endl;
         }
         #ifdef KEEPWALKSINDISK
-            walk_manager.freshIntervalWalks();
+            walk_manager.freshblockWalks();
         #endif
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
+        // logstream(LOG_INFO) << "updateInfo in msppr." << std::endl;
         #ifdef KEEPWALKSINDISK
             visitfrequencies[s].add(dstId);
         #else
@@ -70,25 +71,25 @@ public:
     }
 
     /**
-     * Called before an execution interval is started.
+     * Called before an execution block is started.
      */
-    void before_exec_interval(sid_t exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    void before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
         #ifdef KEEPWALKSINDISK
-            walk_manager.readIntervalWalks(exec_interval);
+            walk_manager.readblockWalks(exec_block);
         #endif
     }
     
     /**
-     * Called after an execution interval has finished.
+     * Called after an execution block has finished.
      */
-    void after_exec_interval(sid_t exec_interval, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        walk_manager.walknum[exec_interval] = 0;
-		walk_manager.minstep[exec_interval] = 0xffff;
+    void after_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+        walk_manager.walknum[exec_block] = 0;
+		walk_manager.minstep[exec_block] = 0xffff;
         tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
         for(tid_t t = 0; t < nthreads; t++)
-            walk_manager.pwalks[t][exec_interval].clear();
+            walk_manager.pwalks[t][exec_block].clear();
         for( hid_t p = 0; p < nshards; p++){
-            if(p == exec_interval ) continue;
+            if(p == exec_block ) continue;
             #ifndef KEEPWALKSINDISK
                 walk_manager.walknum[p] = 0;
             #endif
@@ -98,7 +99,7 @@ public:
         }
 
         #ifdef KEEPWALKSINDISK
-            walk_manager.writeIntervalWalks(exec_interval);
+            walk_manager.writeblockWalks(exec_block);
         #endif
     }
 };
@@ -115,20 +116,20 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../raid0_mnop/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    vid_t firstsource = get_option_int("firstsource", 1); // vertex id of start source
-    vid_t numsources = get_option_int("numsources", 100000); // Number of sources
+    vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
+    vid_t numsources = get_option_int("numsources", 10); // Number of sources
     wid_t walkspersource = get_option_int("walkspersource", 2000); // Number of steps
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long shardsize = get_option_long("shardsize", 10485760); // Size of shard, represented in KB
+    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 10485760); // Size of block, represented in KB
     
     /* Detect the number of shards or preprocess an input to create them */
-    sid_t nshards = convert_if_notexists(filename, shardsize);
+    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
 
     /* Run */
     MultiSourcePersonalizedPageRank program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
-    graphwalker_engine engine(filename, shardsize, nshards, m);
+    graphwalker_engine engine(filename, blocksize_kb, nblocks, m);
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);

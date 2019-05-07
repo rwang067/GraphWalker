@@ -64,4 +64,15 @@ void writefile(std::string fname, T * buf, T * &bufptr){
     bufptr = buf;
 }
 
+template <typename T>
+void appendfile(std::string fname, T * buf, T * &bufptr){
+    int f = open(fname.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+    if (f < 0) {
+        logstream(LOG_ERROR) << "Could not open " << fname << " error: " << strerror(errno) << std::endl;
+    }
+    assert(f >= 0);
+    pwritea( f, buf, bufptr - buf );
+    close(f);
+}
+
 #endif

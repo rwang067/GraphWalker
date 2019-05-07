@@ -70,7 +70,7 @@ public:
     }
 
     void getTop(unsigned ntop){
-        // logstream(LOG_INFO) << "getTop " << ntop << " from size = " << size << std::endl;
+        logstream(LOG_INFO) << "getTop " << ntop << " from size = " << size << std::endl;
         std::priority_queue<IdCount> topDist;
         IdCount minIC(ids[0],counts[0]);
         for(unsigned i = 0; i < size; i++){

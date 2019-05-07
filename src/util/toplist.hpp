@@ -59,7 +59,7 @@
     }
 
     static VARIABLE_IS_NOT_USED size_t get_num_vertices(std::string basefilename) {
-        std::string numv_filename = filename_nvertices(basefilename);
+        std::string numv_filename = nverticesname(basefilename);
         std::ifstream vfileF(numv_filename.c_str());
         if (!vfileF.good()) {
             logstream(LOG_ERROR) << "Could not find file " << numv_filename << std::endl;
