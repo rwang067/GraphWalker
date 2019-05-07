@@ -139,13 +139,17 @@ public:
         }
         assert(csrf > 0 && beg_posf > 0);
 
+        /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
-        logstream(LOG_INFO) << "*nverts : "<< *nverts << ", blocks[p] : "<< blocks[p] << std::endl;
+        // logstream(LOG_INFO) << "*nverts : "<< *nverts << ", blocks[p] : "<< blocks[p] << std::endl;
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
+        close(beg_posf);
+        /* read csr file */
         *nedges = beg_pos[*nverts] - beg_pos[0];
         csr = (vid_t*) malloc((*nedges)*sizeof(vid_t));
-        preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));        
+        preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
+        close(csrf);       
 
         /*output load graph info*/
         logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;

@@ -331,9 +331,11 @@
             }
             nread += rv;
         }
+        close(beg_posf);
         blocks.push_back(ttv-1);
         blockid++;
-        /*write csr file range*/
+
+        /*write block range*/
         std::string blockrangefile = blockrangename(filename, blocksize_kb);
         std::ofstream brf(blockrangefile.c_str());      
         for( bid_t p = 0; p < blocks.size(); p++ ){
