@@ -26,7 +26,7 @@ public:
     std::string base_filename;
     // unsigned membudget_mb;
     unsigned long long shardsize;  
-    bid_t nshards;  
+    bid_t nblocks;  
     vid_t nvertices;      
     tid_t exec_threads;
     vid_t* blocks;
@@ -43,7 +43,7 @@ public:
         logstream(LOG_INFO) << "Engine configuration: " << std::endl;
         logstream(LOG_INFO) << " exec_threads = " << (int)exec_threads << std::endl;
         logstream(LOG_INFO) << " shardsize = " << shardsize << "kb" << std::endl;
-        logstream(LOG_INFO) << " nshards = " << nshards << std::endl;
+        logstream(LOG_INFO) << " nblocks = " << nblocks << std::endl;
         // logstream(LOG_INFO) << " membudget_mb = " << membudget_mb << std::endl;
         // logstream(LOG_INFO) << " scheduler = " << use_selective_scheduling << std::endl;
     }
@@ -59,20 +59,20 @@ public:
     /**
      * Initialize GraphChi engine
      * @param base_filename prefix of the graph files
-     * @param nshards number of shards
+     * @param nblocks number of shards
      * @param selective_scheduling if true, uses selective scheduling 
      */
-    graphwalker_engine(std::string _base_filename, unsigned long long _shardsize, bid_t _nshards, metrics &_m) : base_filename(_base_filename), shardsize(_shardsize), nshards(_nshards), m(_m) {
+    graphwalker_engine(std::string _base_filename, unsigned long long _shardsize, bid_t _nblocks, metrics &_m) : base_filename(_base_filename), shardsize(_shardsize), nblocks(_nblocks), m(_m) {
         // membudget_mb = get_option_int("membudget_mb", 1024);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
         load_block_range(base_filename, shardsize, blocks);
         nvertices = num_vertices();
-        walk_manager = new WalkManager(m,nshards,exec_threads,base_filename);
+        walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
 
         _m.set("file", _base_filename);
         _m.set("engine", "default");
-        _m.set("nshards", (size_t)nshards);
+        _m.set("nblocks", (size_t)nblocks);
 
         print_config();
     }
@@ -89,14 +89,14 @@ public:
         }
         assert(brf.good());
         
-        blocks = (vid_t*)malloc((nshards+1)*sizeof(vid_t));
+        blocks = (vid_t*)malloc((nblocks+1)*sizeof(vid_t));
         vid_t en;
-        for(bid_t i=0; i < nshards+1; i++) {
+        for(bid_t i=0; i < nblocks+1; i++) {
             assert(!brf.eof());
             brf >> en;
             blocks[i] = en;
         }
-        for(bid_t i=nshards-1; i < nshards; i++) {
+        for(bid_t i=nblocks-1; i < nblocks; i++) {
              logstream(LOG_INFO) << "last shard: " << blocks[i] << " - " << blocks[i+1] << std::endl;
         }
         brf.close();
@@ -153,6 +153,7 @@ public:
 
         /*output load graph info*/
         logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
+        
         // logstream(LOG_INFO) << "beg_pos : "<< std::endl;
         // for(vid_t i = *nverts-10; i < *nverts; i++)
         //     logstream(LOG_INFO) << "beg_pos[" << i << "] = " << beg_pos[i] << ", "<< std::endl;
@@ -163,7 +164,7 @@ public:
     }
 
     virtual size_t num_vertices() {
-        return blocks[nshards];
+        return blocks[nblocks];
     }
 
     void exec_updates(RandomWalk &userprogram, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
@@ -189,7 +190,7 @@ public:
         gettimeofday(&start, NULL);
         // srand((unsigned)time(NULL));
         m.start_time("startWalks");
-        userprogram.startWalks(*walk_manager, nshards, blocks);
+        userprogram.startWalks(*walk_manager, nblocks, blocks);
         m.stop_time("startWalks");
         //initialnizeVertexData();
 

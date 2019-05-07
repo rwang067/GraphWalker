@@ -73,7 +73,7 @@ public:
             if( v < blocks[p+1] )
                 return p;
         }
-        logstream(LOG_DEBUG) << "v = " << v << ", blocks[nshards] = " << blocks[nshards] << std::endl;
+        // logstream(LOG_DEBUG) << "v = " << v << ", blocks[nshards] = " << blocks[nshards] << std::endl;
         // assert(false);
         return nshards;
     }

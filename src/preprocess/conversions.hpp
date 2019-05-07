@@ -28,13 +28,14 @@
     eid_t max_nedges; //max num of edges in an csr file
     bid_t fid, fnum;
     std::vector<vid_t> files;
-    vid_t fstv, fenv;
-    eid_t cfpos; //position in csr file
+    vid_t fstv; //start vertex of current file
+    eid_t fstp; //start position in csr of current file
 
-    vid_t bpbpos; //position in beg_pos buffer
-    eid_t cbpos; //position in csr buffer
+    vid_t bstv; //start vertex of current buffer
+    eid_t bstp; //start position in csr of current buffer
 
     vid_t curvertex;
+    eid_t cpos; //position in the total csr
 
     //for compute_block
 
@@ -141,30 +142,27 @@
 
     void bwritezero( char * beg_pos, char * &beg_posptr, eid_t count ){
         while( count-- ){
-            *((eid_t*)beg_posptr) = cbpos;
+            *((eid_t*)beg_posptr) = cpos;
             beg_posptr += sizeof(eid_t);
-            bpbpos++;
         }
     }
 
     void bwrite(char * beg_pos, char * &beg_posptr, char * csr, char * &csrptr, eid_t outd, std::vector<vid_t> outv, std::string filename ){
-        cbpos += outd;
-        *((eid_t*)beg_posptr) = cbpos;
+        cpos += outd;
+        *((eid_t*)beg_posptr) = cpos;
         beg_posptr += sizeof(eid_t);
         for( eid_t i = 0; i < outd; i++ ){
             *((vid_t*)csrptr) = outv[i];
             csrptr += sizeof(vid_t);
         }
-        bpbpos++;
     }
 
     void flushInvl(std::string filename, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
-        if( cfpos + cbpos >= max_nedges){ //new file needed
-            fenv = curvertex;
-            files.push_back(fenv);
-            logstream(LOG_INFO) << "FILE_" << fid << " : [ " << fstv << " , " << fenv-1 << " ]" << std::endl;
-            fstv = fenv;
-            cfpos = 0;
+        if( cpos - fstp >= max_nedges){ //new file needed
+            logstream(LOG_INFO) << "FILE_" << fid << " : [ " << fstv << " , " << curvertex-1 << " ]" << std::endl;
+            fstv = curvertex;
+            files.push_back(fstv);
+            fstp = cpos;
             fid++;
         }
         std::string fidfile = fidname(filename,fid);
@@ -172,11 +170,12 @@
         std::string beg_posname = fidfile + ".beg_pos";
         appendfile(csrname, csr, csrptr);
         appendfile(beg_posname, beg_pos, beg_posptr);
+        logstream(LOG_INFO) << "Buffer_" << " : [ " << bstv << " , " << curvertex-1 << " ] finished, with csr position : [" << bstp << ", " << cpos << ")" << std::endl;
 
         csrptr = csr;
         beg_posptr = beg_pos;
-        bpbpos = 0;
-        cbpos = 0;
+        bstv = curvertex;
+        bstp = cpos;
     }
 
     bid_t convert_to_csr(std::string filename, uint16_t filesize_GB){
@@ -203,16 +202,17 @@
         logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
 
         fid = 0;
-        fstv = fenv = 0;
-        cfpos = 0;
-        files.push_back(0);
+        fstv = 0;
+        fstp = 0;
+        files.push_back(fstv);
 
-        bpbpos = 0;
-        cbpos = 0;
+        bstv = 0;
+        bstp = 0;
         *((eid_t*)beg_posptr) = 0;
         beg_posptr += sizeof(eid_t);
 
         curvertex = 0;
+        cpos = 0;
         vid_t max_vert = 0;
         eid_t outd = 0;        
         std::vector<vid_t> outv;
@@ -241,7 +241,7 @@
                 outv.push_back(to);
                 outd++;
             }else{  //a new vertex
-                if( cbpos + outd >= EDGE_SIZE || bpbpos + 1 >= VERT_SIZE ){
+                if( cpos - bstp + outd >= EDGE_SIZE || curvertex - bstv + 1 >= VERT_SIZE ){
                     // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
                     flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
                     if( outd > EDGE_SIZE){
@@ -252,7 +252,7 @@
                 bwrite(beg_pos, beg_posptr, csr, csrptr, outd, outv, filename); //write a vertex to buffer
                 if( from - curvertex > 1 ){ //there are verts with zero out-links
                     vid_t remianzero = from-curvertex-1;
-                    vid_t remainsize = VERT_SIZE - bpbpos;
+                    vid_t remainsize = VERT_SIZE - (curvertex - bstv);
                     // logstream(LOG_INFO) << "remianzero = " << remianzero << " , remainsize =  " << remainsize << " malloc_size = " << malloc_size << std::endl;
                     while(remianzero > remainsize){
                         bwritezero( beg_pos, beg_posptr, remainsize ); 
@@ -273,7 +273,7 @@
         bwrite(beg_pos, beg_posptr, csr, csrptr, outd, outv, filename);//write the last vertex to buffer
 
         //output beg_pos information
-        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges(fnum=1)) = " << cfpos << std::endl;
+        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges(fnum=1)) = " << cpos << std::endl;
         logstream(LOG_INFO) << "beg_pos : "<< std::endl;
         for(vid_t i = max_vert-10; i <= max_vert; i++)
             logstream(LOG_INFO) << "beg_pos[" << i << "] = " << *((eid_t*)(beg_pos+sizeof(eid_t)*i)) << ", " << *((eid_t*)(beg_pos+sizeof(eid_t)*(i+1))) << std::endl;
@@ -299,11 +299,13 @@
 
     bid_t compute_block(std::string filename, unsigned long long blocksize_kb){
         eid_t mneb = (eid_t)blocksize_kb * 1024 / sizeof(vid_t); // max number of edges in a block
+        logstream(LOG_INFO) << "Begin compute_block with blocksize = " << blocksize_kb << "KB, max number of edges in a block = " << mneb << std::endl;
         
         bid_t blockid = 0;
         std::vector<vid_t> blocks;
-        blocks.push_back(0);
-        eid_t stb = 0;;
+        vid_t stvb= 0; //start vertex of current block
+        eid_t bgstvb= 0; //beg_pos of the start vertex of current block
+        blocks.push_back(stvb);
 
         eid_t * beg_pos = (eid_t*) malloc(VERT_SIZE*sizeof(eid_t));
         std::string beg_posname = fidname(filename,fid) + ".beg_pos";
@@ -318,15 +320,19 @@
         while( nread < ttv ){
             if(ttv - nread < VERT_SIZE) rv = ttv - nread;
             preada( beg_posf, beg_pos, (size_t)rv*sizeof(eid_t), (size_t)nread*sizeof(eid_t) );
+            logstream(LOG_DEBUG) << "nread = " << nread << ", beg_pos[0] = " << beg_pos[0] << std::endl;
             for(vid_t v = 0; v < rv; v++){
-                if(beg_pos[v]-stb > mneb){
-                    blocks.push_back(nread+v-1);
+                if(beg_pos[v]-bgstvb > mneb){
+                    logstream(LOG_INFO) << "Block_" << blockid << " : [" << stvb << ", " << nread+v-1 << ")" << std::endl;
                     if(beg_pos[v]-beg_pos[v-1] > mneb){
                         logstream(LOG_ERROR) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
+                        logstream(LOG_ERROR) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
                         assert(false);
                     }
                     blockid++;
-                    stb = beg_pos[v-1];
+                    stvb = nread+v-1;
+                    blocks.push_back(stvb);
+                    bgstvb = beg_pos[v-1];
                 }
             }
             nread += rv;
