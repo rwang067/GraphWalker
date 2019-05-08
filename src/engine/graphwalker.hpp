@@ -220,8 +220,8 @@ public:
             
             if(numblocks % 100==1){
                 logstream(LOG_DEBUG) << runtime() << "s : numblocks: " << numblocks << " : " << exec_block << std::endl;
-                logstream(LOG_DEBUG) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
-                logstream(LOG_DEBUG) << "walksum = " << walk_manager->walksum() << ", nwalks[p] = " << nwalks << std::endl;
+                logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
+                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum() << ", nwalks[p] = " << nwalks << std::endl;
             }
             
             exec_updates(userprogram, beg_pos, csr);

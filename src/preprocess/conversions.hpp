@@ -272,18 +272,18 @@
         fclose(inf);
         bwrite(beg_pos, beg_posptr, csr, csrptr, outd, outv, filename);//write the last vertex to buffer
 
-        //output beg_pos information
-        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges(fnum=1)) = " << cpos << std::endl;
-        logstream(LOG_INFO) << "beg_pos : "<< std::endl;
-        for(vid_t i = max_vert-10; i <= max_vert; i++)
-            logstream(LOG_INFO) << "beg_pos[" << i << "] = " << *((eid_t*)(beg_pos+sizeof(eid_t)*i)) << ", " << *((eid_t*)(beg_pos+sizeof(eid_t)*(i+1))) << std::endl;
-
         if(max_vert > curvertex){
             logstream(LOG_INFO) << "need bwritezero, as max_vert = " << max_vert << ", curvertex = " << curvertex << std::endl;
             bwritezero( beg_pos, beg_posptr, max_vert - curvertex );
         }       
         
         flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
+
+        //output beg_pos information
+        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges(fnum=1)) = " << cpos << std::endl;
+        logstream(LOG_INFO) << "beg_pos : "<< std::endl;
+        for(vid_t i = max_vert-10; i <= max_vert; i++)
+            logstream(LOG_INFO) << "beg_pos[" << i << "] = " << *((eid_t*)(beg_pos+sizeof(eid_t)*i)) << ", " << *((eid_t*)(beg_pos+sizeof(eid_t)*(i+1))) << std::endl;
 
         files.push_back(max_vert+1);
         fnum = fid+1;
