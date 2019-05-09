@@ -6,7 +6,7 @@
 #include "logger/logger.hpp"
 
 #define	RAND_MAX	2147483647
-#define	FILE_SIZE	128 // 128GB
+#define	FILE_SIZE	1024 // GB
 #define	VERT_SIZE	64 * 1024 * 1024 // 64M vertices in beg_pos buffer
 #define	EDGE_SIZE	256 * 1024 * 1024 // 256M edges in csr buffer
 
