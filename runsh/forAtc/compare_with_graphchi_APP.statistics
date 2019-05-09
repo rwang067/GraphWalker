@@ -1,0 +1,147 @@
+2018.12.28 Compare with GraphChi
+app = RWD,GraphLet,SR,PPR dataset = Friendster
+HDD shardsize = 1048576, App = RWD, Dataset = LJ		
+1	1	2.17493
+1	1	2.2631
+1	1	3.04412
+1	1	2.4842
+1	1	2.35329
+HDD shardsize = 1048576, App = Graphlet, Dataset = LJ		
+1	1	0.681293
+1	1	0.699489
+1	1	0.663006
+1	1	0.734909
+1	1	0.718157
+HDD shardsize = 65536, App = PPR, Dataset = LJ		
+31	5	5.26207
+28	5	4.73662
+31	5	5.20343
+HDD shardsize = 64M(65536), App = SimRank, Dataset = LJ
+32  	  5  	  2.86225
+36  	  5  	  3.45845
+33  	  5  	  3.07892
+32  	  5  	  3.07129
+33  	  5  	  3.19625
+HDD shardsize = 1048576, App = RWD, Dataset = WP		
+7	2	18.3176
+7	2	10.3799
+7	2	10.365
+7	2	10.4274
+7	2	10.4574
+HDD shardsize = 1048576, App = Graphlet, Dataset = WP		
+5	2	4.78646
+5	2	4.76787
+5	2	4.68181
+5	2	4.74307
+5	2	4.71598
+HDD shardsize = 64M(65536), App = PPR, Dataset = WP
+148  	  24  	  15.7658
+153  	  24  	  10.066
+144  	  24  	  10.826
+150  	  24  	  9.60039
+150  	  24  	  10.0449
+HDD shardsize = 64M(65536), App = SimRank, Dataset = WP
+157  	  24  	  9.86772
+172  	  24  	  11.1426
+167  	  24  	  10.1607
+164  	  24  	  9.98359
+171  	  24  	  10.6204
+HDD shardsize = 1048576, App = RWD, Dataset = TT		
+34	6	302.502
+34	6	251.555
+34	6	233.864
+34	6	241.695
+34	6	232.308
+HDD shardsize = 1048576, App = Graphlet, Dataset = TT		
+22	6	115.026
+22	6	109.619
+23	6	122.07
+22	6	120.504
+22	6	111.946
+HDD shardsize = 64M(65536), App = PPR, Dataset = TT
+613  	  92  	  179.22
+620  	  92  	  82.8727
+607  	  92  	  78.3599
+603  	  92  	  73.5025
+627  	  92  	  79.0546
+HDD shardsize = 64M(65536), App = SimRank, Dataset = TT
+666  	  92  	  56.7515
+676  	  92  	  52.8814
+658  	  92  	  51.9646
+668  	  92  	  52.3122
+665  	  92  	  51.4933
+
+2018.12.28 Compare with GraphChi
+app = RWD,GraphLet,SR,PPR dataset = Friendster
+SSD shardsize = 1048576, App = RWD, Dataset = LJ
+1  	  1  	  1.82753
+1  	  1  	  1.90678
+1  	  1  	  1.8306
+1  	  1  	  1.84988
+1  	  1  	  1.86995
+SSD shardsize = 1048576, App = Graphlet, Dataset = LJ
+1  	  1  	  0.612191
+1  	  1  	  0.608451
+1  	  1  	  0.6316
+1  	  1  	  0.618229
+1  	  1  	  0.623788
+SSD shardsize = 64M(65536), App = PPR, Dataset = LJ
+26  	  5  	  2.6956
+27  	  5  	  2.97912
+26  	  5  	  2.58743
+27  	  5  	  2.70405
+27  	  5  	  2.75908
+SSD shardsize = 65536, App = SimRank, Dataset = LJ
+34  	  5  	  3.38491
+34  	  5  	  3.46734
+35  	  5  	  3.56347
+33  	  5  	  3.36465
+34  	  5  	  3.34436
+SSD shardsize = 1048576, App = RWD, Dataset = WP
+7  	  2  	  13.802
+7  	  2  	  9.79699
+7  	  2  	  9.9647
+7  	  2  	  9.71065
+7  	  2  	  9.3909
+SSD shardsize = 1048576, App = Graphlet, Dataset = WP
+5  	  2  	  4.33026
+5  	  2  	  4.29915
+5  	  2  	  4.36679
+5  	  2  	  4.58793
+5  	  2  	  4.38732
+SSD shardsize = 65536, App = PPR, Dataset = WP
+148  	  24  	  11.0194
+147  	  24  	  10.6521
+148  	  24  	  9.97522
+150  	  24  	  9.99953
+145  	  24  	  9.90842
+SSD shardsize = 65536, App = SimRank, Dataset = WP
+161  	  24  	  11.0753
+162  	  24  	  11.0458
+163  	  24  	  11.0837
+162  	  24  	  10.5145
+159  	  24  	  10.7935
+SSD shardsize = 1048576, App = RWD, Dataset = TT
+34  	  6  	  125.469
+34  	  6  	  109.52
+34  	  6  	  107.044
+34  	  6  	  106.139
+34  	  6  	  108.14
+SSD shardsize = 1048576, App = Graphlet, Dataset = TT
+21  	  6  	  44.9579
+21  	  6  	  45.4092
+23  	  6  	  49.4337
+22  	  6  	  46.4984
+21  	  6  	  42.6008
+SSD shardsize = 65536, App = PPR, Dataset = TT
+620  	  92  	  71.4591
+620  	  92  	  60.7381
+616  	  92  	  61.8414
+616  	  92  	  60.3618
+627  	  92  	  62.2304
+SSD shardsize = 65536, App = SimRank, Dataset = TT
+668  	  92  	  59.1902
+664  	  92  	  57.3797
+686  	  92  	  57.7136
+671  	  92  	  55.9603
+668  	  92  	  56.2734
