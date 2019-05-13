@@ -121,10 +121,16 @@ int main(int argc, const char ** argv) {
     wid_t walkspersource = get_option_int("walkspersource", 2000); // Number of steps
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 10485760); // Size of block, represented in KB
+    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 32768); // Size of block, represented in KB
     
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+
+    // char cmd[256];
+	// // sprintf(cmd,"%s","iostat -x 1 -k > iostat_randomwalks.log&");
+	// sprintf(cmd,"%s","top -b -d 5 -u wang > top_msppr.log&");
+	// std::cout<<cmd<<"\n";
+    // system((const char *)cmd);
 
     /* Run */
     MultiSourcePersonalizedPageRank program;
@@ -134,6 +140,7 @@ int main(int argc, const char ** argv) {
 
     program.visitfrequencies[0].getTop(20);
 
+    system("killall top");
     /* Report execution metrics */
     metrics_report(m);
     return 0;
