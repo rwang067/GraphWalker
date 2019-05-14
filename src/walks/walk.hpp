@@ -105,7 +105,6 @@ public:
 		curwalks = (WalkDataType*)malloc(walknum[p]*sizeof(WalkDataType));
 		if(dwalknum[p] > 0){
 			readWalksfromDisk(p);
-			logstream(LOG_DEBUG) << "getCurrentWalks : " << curwalks[0] << " " << curwalks[1] << std::endl;
 		}
 		wid_t count = dwalknum[p];
 		dwalknum[p] = 0;
@@ -113,7 +112,6 @@ public:
 			if(pwalks[t][p].size_w > 0){
 				for(wid_t w = 0; w < pwalks[t][p].size_w; w++)
 					curwalks[count+w] = pwalks[t][p][w];
-				// memcpy(&curwalks[count], &pwalks[t][p][0], pwalks[t][p].size_w*sizeof(WalkDataType));
 				count += pwalks[t][p].size_w;
 				pwalks[t][p].size_w = 0;
 			}
@@ -205,12 +203,10 @@ public:
      }
 
 	bid_t chooseBlock(float prob){
-		m.start_time("choose-block");
 		float cc = ((float)rand())/RAND_MAX;
 		if( cc < prob ){
 			return blockWithMinStep();
 		}
-		m.stop_time("choose-block");
 		return blockWithMaxWalks();
 	}
 
