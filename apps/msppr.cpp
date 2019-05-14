@@ -122,6 +122,7 @@ int main(int argc, const char ** argv) {
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 32768); // Size of block, represented in KB
+    bid_t nmblocks = get_option_long("nmblocks", 10); // number of in-memory blocks
     
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
@@ -135,7 +136,7 @@ int main(int argc, const char ** argv) {
     /* Run */
     MultiSourcePersonalizedPageRank program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
-    graphwalker_engine engine(filename, blocksize_kb, nblocks, m);
+    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);

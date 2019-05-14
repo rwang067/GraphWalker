@@ -7,8 +7,8 @@
 
 #define	RAND_MAX	2147483647
 #define	FILE_SIZE	1024 // GB
-#define	VERT_SIZE	64 * 1024 * 1024 // 64M vertices in beg_pos buffer
-#define	EDGE_SIZE	256 * 1024 * 1024 // 256M edges in csr buffer
+#define	VERT_SIZE	64 * 1024 * 1024 // 64M vertices in beg_pos buffer in preprocess
+#define	EDGE_SIZE	256 * 1024 * 1024 // 256M edges in csr buffer in preprocess
 
 typedef uint32_t vid_t;
 typedef uint64_t eid_t;

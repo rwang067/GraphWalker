@@ -152,6 +152,14 @@ public:
           	return ranp;
      }
 
+	bid_t chooseBlock(float prob){
+		float cc = ((float)rand())/RAND_MAX;
+		if( cc < prob ){
+			return blockWithMinStep();
+		}
+		return blockWithMaxWalks();
+	}
+
      void printWalksDistribution(bid_t exec_block ){
 		//print walk number decrease trend
 		metrics_entry me = m.start_time();
