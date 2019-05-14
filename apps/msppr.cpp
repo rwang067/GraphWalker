@@ -1,6 +1,3 @@
-
-#define KEEPWALKSINDISK 1
-
 #include <string>
 #include <fstream>
 #include <cmath>
@@ -27,80 +24,52 @@ public:
         walkspersource = _walkspersource;
         maxwalklength = _maxwalklength;
         initializeRW(numsources*walkspersource, maxwalklength);
-        #ifdef KEEPWALKSINDISK
-            visitfrequencies = new DiscreteDistribution[numsources];
-        #else
-            visitfrequencies = new DiscreteDistribution[numsources];
-        #endif
+        visitfrequencies = new DiscreteDistribution[numsources];
         logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
     }
 
-    void startWalksbyApp( WalkManager &walk_manager  ){
+    void startWalksbyApp(WalkManager &walk_manager, std::string base_filename){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
-        tid_t execthreads = get_option_int("execthreads", omp_get_max_threads());
-        omp_set_num_threads(execthreads);
-        // walk_manager.pwalks[0][0].reserve(numsources*walkspersource);
-        // #pragma omp parallel for schedule(static)
-        for(vid_t s = firstsource; s < firstsource+numsources; s++){
-            // logstream(LOG_INFO) << "Start walks from s : " << s << std::endl;
-            bid_t p = getblock(s);
+        bid_t p = getblock(firstsource);
+        vid_t sts = firstsource, ens = blocks[p+1], nums;
+        vid_t count = numsources;
+        walk_manager.walksum = 0;
+        while(count > 0){
+            if(ens > firstsource+numsources) 
+                ens = firstsource+numsources;
+            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ")"<< std::endl;
+            nums = ens - sts;
+            count -= nums;
             walk_manager.minstep[p] = 0;
-            walk_manager.walknum[p] += walkspersource;
-            vid_t cur = s - blocks[p];
-            WalkDataType walk = walk_manager.encode(s-firstsource, cur, 0);
-            for( wid_t j = 0; j < walkspersource; j++ ){
-                walk_manager.pwalks[0][p].push_back(walk);
-            }
-            // #ifdef KEEPWALKSINDISK
-            //     if(s%50000==0) walk_manager.freshblockWalks();
-            // #endif
-            if(s%50000==0) logstream(LOG_DEBUG) << s << std::endl;
+            walk_manager.walknum[p] = nums*walkspersource;
+            logstream(LOG_INFO) << "walk_manager.walknum[p] = " << walk_manager.walknum[p] << std::endl;
+            WalkDataType* curwalks = (WalkDataType*)malloc(walk_manager.walknum[p]*sizeof(WalkDataType));
+            logstream(LOG_INFO) << "walk_manager.walknum[p] = " << walk_manager.walknum[p] << std::endl;
+            #pragma omp parallel for schedule(static)
+                for(vid_t s = 0; s < nums; s++){
+                    vid_t cur = s + sts - blocks[p];
+                    WalkDataType walk = walk_manager.encode(s + sts - firstsource, cur, 0);
+                    for( wid_t j = 0; j < walkspersource; j++ ){
+                        curwalks[s*walkspersource+j] = walk;
+                    }
+                }
+            std::string walksfile = walksname( base_filename, p );
+            int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+            pwritea( f, &curwalks[0], walk_manager.walknum[p]*sizeof(WalkDataType) );
+            close(f);
+            free(curwalks);
+            curwalks = NULL;
+            walk_manager.dwalknum[p] = walk_manager.walknum[p];
+            walk_manager.walksum += walk_manager.walknum[p];
+            p++;
+            sts = ens;
+            ens = blocks[p+1];
         }
-        #ifdef KEEPWALKSINDISK
-            walk_manager.freshblockWalks();
-        #endif
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         // logstream(LOG_INFO) << "updateInfo in msppr." << std::endl;
-        #ifdef KEEPWALKSINDISK
-            visitfrequencies[s].add(dstId);
-        #else
-            visitfrequencies[s].add(dstId);
-        #endif
-    }
-
-    /**
-     * Called before an execution block is started.
-     */
-    wid_t before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        #ifdef KEEPWALKSINDISK
-            return walk_manager.readblockWalks(exec_block);
-        #endif
-    }
-    
-    /**
-     * Called after an execution block has finished.
-     */
-    void after_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
-        walk_manager.walknum[exec_block] = 0;
-		walk_manager.minstep[exec_block] = 0xffff;
-        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-        for(tid_t t = 0; t < nthreads; t++)
-            walk_manager.pwalks[t][exec_block].clear();
-        for( hid_t p = 0; p < nshards; p++){
-            if(p == exec_block ) continue;
-            #ifndef KEEPWALKSINDISK
-                walk_manager.walknum[p] = 0;
-            #endif
-			for(tid_t t=0;t<nthreads;t++){
-				walk_manager.walknum[p] += walk_manager.pwalks[t][p].size();
-            }
-        }
-
-        #ifdef KEEPWALKSINDISK
-            walk_manager.writeblockWalks(exec_block);
-        #endif
+        visitfrequencies[s].add(dstId);
     }
 };
 

@@ -9,6 +9,7 @@
 #define	FILE_SIZE	1024 // GB
 #define	VERT_SIZE	64 * 1024 * 1024 // 64M vertices in beg_pos buffer in preprocess
 #define	EDGE_SIZE	256 * 1024 * 1024 // 256M edges in csr buffer in preprocess
+#define	WALK_BUFFER_SIZE	5120 // most 1024 walks in a in-memory walk buffer
 
 typedef uint32_t vid_t;
 typedef uint64_t eid_t;

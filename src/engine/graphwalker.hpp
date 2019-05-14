@@ -93,13 +93,14 @@ public:
         
     virtual ~graphwalker_engine() {
         delete walk_manager;
-        for(bid_t b = 0; b < nmblocks; b++){
+        for(bid_t b = 0; b < cmblocks; b++){
             if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
             if(csrbuf[b] != NULL)   free(csrbuf[b]);
         }
         free(beg_posbuf);
         free(csrbuf);
         free(inMemIndex);
+        free(blocks);
     }
 
     void load_block_range(std::string base_filename, unsigned long long blocksize_kb, vid_t * &blocks, bool allowfail=false) {
@@ -138,13 +139,11 @@ public:
 
         /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
-        // logstream(LOG_INFO) << "*nverts : "<< *nverts << ", blocks[p] : "<< blocks[p] << std::endl;
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
         close(beg_posf);
         /* read csr file */
         *nedges = beg_pos[*nverts] - beg_pos[0];
-        //csr = (vid_t*) malloc((*nedges)*sizeof(vid_t));
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
         close(csrf);       
 
@@ -181,7 +180,7 @@ public:
     }
 
     bid_t swapOut(){
-        wid_t minmw = walk_manager->walksum();
+        wid_t minmw = 0xffffffff;
         bid_t minmwb = 0;
         for(bid_t b = 0; b < nblocks; b++){
             if(inMemIndex[b]<nmblocks && walk_manager->walknum[b] < minmw){
@@ -199,20 +198,15 @@ public:
         return blocks[nblocks];
     }
 
-    void exec_updates(RandomWalk &userprogram, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
+    void exec_updates(RandomWalk &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
         // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("exec_updates");
-        // logstream(LOG_INFO) << "exec_updates.." << std::endl;
-        omp_set_num_threads(exec_threads);
-        for(tid_t t = 0; t < exec_threads; t++){
-            wid_t walkcount = walk_manager->pwalks[t][exec_block].size();
-            #pragma omp parallel for schedule(static)
-                for(wid_t i = 0; i < walkcount; i++ ){
-                    // logstream(LOG_INFO) << "exec_block : " << exec_block << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
-                    WalkDataType walk = walk_manager->pwalks[t][exec_block][i];
-                    userprogram.updateByWalk(walk, i, exec_block, beg_pos, csr, *walk_manager );//, vertex_value);
-                }
-        }
+        #pragma omp parallel for schedule(static)
+            for(wid_t i = 0; i < nwalks; i++ ){
+                // logstream(LOG_INFO) << "exec_block : " << exec_block << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
+                WalkDataType walk = walk_manager->curwalks[i];
+                userprogram.updateByWalk(walk, i, exec_block, beg_pos, csr, *walk_manager );//, vertex_value);
+            }
         // logstream(LOG_INFO) << "exec_updates end. Processsed walks with exec_threads = " << (int)exec_threads << std::endl;
         m.stop_time("exec_updates");
         // walk_manager->writeblockWalks(exec_block);
@@ -220,18 +214,17 @@ public:
 
     void run(RandomWalk &userprogram, float prob) {
         gettimeofday(&start, NULL);
+        m.start_time("runtime");
         // srand((unsigned)time(NULL));
         m.start_time("startWalks");
-        userprogram.startWalks(*walk_manager, nblocks, blocks);
+        userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
         m.stop_time("startWalks");
 
-        m.start_time("runtime");
         vid_t nverts, *csr;
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
-            m.start_time("in_run_block");
             blockcount++;
             exec_block = walk_manager->chooseBlock(prob);
             findSubGraph(exec_block, beg_pos, csr, &nverts, &nedges);
@@ -239,20 +232,17 @@ public:
             /*load walks info*/
             // walk_manager->loadWalkPool(exec_block);
             wid_t nwalks; 
-            nwalks = userprogram.before_exec_block(exec_block, blocks[exec_block], blocks[exec_block+1], *walk_manager);
+            nwalks = walk_manager->getCurrentWalks(exec_block);
             
-            if(blockcount % 100==1){
+            // if(blockcount % 100==1){
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
                 logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
-                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum() << ", nwalks[p] = " << nwalks << std::endl;
-            }
+                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
+            // }
             
-            exec_updates(userprogram, beg_pos, csr);
-            userprogram.after_exec_block(exec_block, blocks[exec_block], blocks[exec_block+1], *walk_manager);
-            // walk_manager->walknum[exec_block] = 0;
-            // walk_manager->writeWalkPools();
+            exec_updates(userprogram, nwalks, beg_pos, csr);
+            walk_manager->updateWalkNum(exec_block);
 
-            m.stop_time("in_run_block");
         } // For block loop
         m.stop_time("runtime");
     }

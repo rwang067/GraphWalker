@@ -16,14 +16,14 @@
 class RandomWalk {
 
 public:
-    bid_t nshards;
+    bid_t nblocks;
     vid_t *blocks;
     wid_t nwalks;
 
 public:
 
     //for SimRank
-    virtual void startWalksbyApp( WalkManager &walk_manager){
+    virtual void startWalksbyApp( WalkManager &walk_manager, std::string base_filename){
         logstream(LOG_ERROR) << "No definition of function : startWalksbyApp!" << std::endl;
     }  
 
@@ -59,31 +59,27 @@ public:
         logstream(LOG_DEBUG) << "No definition of function : after_exec_block!" << std::endl;
     }
 
-    virtual void startWalks( WalkManager &walk_manager , bid_t _nshards, vid_t* _blocks ){
-        nshards = _nshards;
+    virtual void startWalks(WalkManager &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){
+        nblocks = _nblocks;
         blocks = _blocks;
-        for( bid_t i = 0; i < nshards; i++ ){
-            walk_manager.walknum[i] = 0;
-            walk_manager.minstep[i] = 0xffff;
-        }
-        startWalksbyApp(walk_manager);
+        startWalksbyApp(walk_manager, base_filename);
     }
 
     virtual unsigned getblock( vid_t v ){
-        for( unsigned p = 0; p < nshards; p++ ){
+        for( unsigned p = 0; p < nblocks; p++ ){
             if( v < blocks[p+1] )
                 return p;
         }
-        // logstream(LOG_DEBUG) << "v = " << v << ", blocks[nshards] = " << blocks[nshards] << std::endl;
+        // logstream(LOG_DEBUG) << "v = " << v << ", blocks[nblocks] = " << blocks[nblocks] << std::endl;
         // assert(false);
-        return nshards;
+        return nblocks;
     }
     
     /**
      * check if it has finished all walks
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
-        unsigned remaining_walknum = walk_manager.walksum();
+        wid_t remaining_walknum = walk_manager.walksum;
         // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << std::endl;
         return ( remaining_walknum > 0 ); 
     }
