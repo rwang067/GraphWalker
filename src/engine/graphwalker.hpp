@@ -234,11 +234,11 @@ public:
             wid_t nwalks; 
             nwalks = walk_manager->getCurrentWalks(exec_block);
             
-            // if(blockcount % 100==1){
+            if(blockcount % 100==1){
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
                 logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
                 logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
-            // }
+            }
             
             exec_updates(userprogram, nwalks, beg_pos, csr);
             walk_manager->updateWalkNum(exec_block);
