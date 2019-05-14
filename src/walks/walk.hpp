@@ -141,6 +141,7 @@ public:
 	}
 
 	void updateWalkNum(bid_t p){
+		m.start_time("updateWalkNum");
 		walknum[p] = 0;
 		minstep[p] = 0xffff;
 		walksum = 0;
@@ -153,6 +154,7 @@ public:
         }
 		free(curwalks);
 		curwalks = NULL;
+		m.stop_time("updateWalkNum");
 	}
 
      void setMinStep(bid_t p, hid_t hop ){

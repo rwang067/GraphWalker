@@ -42,9 +42,7 @@ public:
             count -= nums;
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] = nums*walkspersource;
-            logstream(LOG_INFO) << "walk_manager.walknum[p] = " << walk_manager.walknum[p] << std::endl;
             WalkDataType* curwalks = (WalkDataType*)malloc(walk_manager.walknum[p]*sizeof(WalkDataType));
-            logstream(LOG_INFO) << "walk_manager.walknum[p] = " << walk_manager.walknum[p] << std::endl;
             #pragma omp parallel for schedule(static)
                 for(vid_t s = 0; s < nums; s++){
                     vid_t cur = s + sts - blocks[p];

@@ -228,7 +228,9 @@ public:
         int blockcount = 0;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
             blockcount++;
+            m.start_time("chooseBlock");
             exec_block = walk_manager->chooseBlock(prob);
+            m.stop_time("chooseBlock");
             findSubGraph(exec_block, beg_pos, csr, &nverts, &nedges);
 
             /*load walks info*/
