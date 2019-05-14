@@ -83,25 +83,26 @@ public:
 	void moveWalk( WalkDataType walk, bid_t p, tid_t t, vid_t toVertex ){
 		if(pwalks[t][p].size_w == WALK_BUFFER_SIZE){
             // logstream(LOG_DEBUG) << "Walk buffer : pwalks["<< (int)t <<"]["<< p <<"] is ful with size_w = " << pwalks[t][p].size_w << " , WALK_BUFFER_SIZE = " << WALK_BUFFER_SIZE << std::endl;
-			flushWalks2Disk(t,p);
+			writeWalks2Disk(t,p);
         }
         assert(pwalks[t][p].size_w < WALK_BUFFER_SIZE);
 		walk = reencode( walk, toVertex );
 		pwalks[t][p].push_back( walk );
 	}
 
-	void flushWalks2Disk(tid_t t, bid_t p){
-		m.start_time("flushWalks2Disk");
+	void writeWalks2Disk(tid_t t, bid_t p){
+		m.start_time("w_writeWalks2Disk");
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		pwritea( f, &pwalks[t][p][0], pwalks[t][p].size_w*sizeof(WalkDataType) );
 		dwalknum[p] += pwalks[t][p].size_w;
 		pwalks[t][p].size_w = 0;
 		close(f);
-		m.stop_time("flushWalks2Disk");
+		m.stop_time("w_writeWalks2Disk");
 	}
 
 	wid_t getCurrentWalks(bid_t p){
+		m.start_time("w_getCurrentWalks");
 		curwalks = (WalkDataType*)malloc(walknum[p]*sizeof(WalkDataType));
 		if(dwalknum[p] > 0){
 			readWalksfromDisk(p);
@@ -117,11 +118,12 @@ public:
 			}
 		}
 		assert(count == walknum[p]);
+		m.stop_time("w_getCurrentWalks");
 		return count;
 	}
 
 	void readWalksfromDisk(bid_t p){
-		m.start_time("readWalksfromDisk");
+		m.start_time("w_readWalksfromDisk");
 
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(),O_RDWR, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -135,7 +137,7 @@ public:
 		/* remove the walk file*/
 		unlink(walksfile.c_str()); 
 
-		m.stop_time("readWalksfromDisk");
+		m.stop_time("w_readWalksfromDisk");
 	}
 
 	void updateWalkNum(bid_t p){

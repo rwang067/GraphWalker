@@ -126,7 +126,7 @@ public:
     }
 
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-        m.start_time("loadSubGraph");
+        m.start_time("g_loadSubGraph");
         std::string invlname = fidname( base_filename, 0 ); //only 1 file
         std::string beg_posname = invlname + ".beg_pos";
         std::string csrname = invlname + ".csr";
@@ -156,10 +156,11 @@ public:
         // logstream(LOG_INFO) << "csr : "<< std::endl;
         // for(eid_t i = *nedges-10; i < *nedges; i++)
         //     logstream(LOG_INFO) << "csr[" << i << "] = " << csr[i] << ", "<< std::endl;
-        m.stop_time("loadSubGraph");
+        m.stop_time("g_loadSubGraph");
     }
 
     void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
+        m.start_time("g_findSubGraph");
         if(inMemIndex[p] == nmblocks){//the block is not in memory
             // logstream(LOG_INFO) << "Load block " << p << " from disk" << std::endl;
             bid_t swapin;
@@ -177,6 +178,7 @@ public:
         }
         beg_pos = beg_posbuf[ inMemIndex[p] ];
         csr = csrbuf[ inMemIndex[p] ];
+        m.stop_time("g_findSubGraph");
     }
 
     bid_t swapOut(){
@@ -214,11 +216,11 @@ public:
 
     void run(RandomWalk &userprogram, float prob) {
         gettimeofday(&start, NULL);
-        m.start_time("runtime");
+        m.start_time("__runtime__");
         // srand((unsigned)time(NULL));
-        m.start_time("startWalks");
+        m.start_time("_startWalks");
         userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
-        m.stop_time("startWalks");
+        m.stop_time("_startWalks");
 
         vid_t nverts, *csr;
         eid_t nedges, *beg_pos;
@@ -244,7 +246,7 @@ public:
             walk_manager->updateWalkNum(exec_block);
 
         } // For block loop
-        m.stop_time("runtime");
+        m.stop_time("__runtime__");
     }
 };
 
