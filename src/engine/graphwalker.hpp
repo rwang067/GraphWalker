@@ -13,6 +13,8 @@
 #include <vector>
 #include <map>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <asm/mman.h>
 
 #include "api/filename.hpp"
 #include "api/io.hpp"
@@ -77,8 +79,18 @@ public:
         walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
 
         csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
-        for(bid_t b = 0; b < nmblocks; b++)
+        for(bid_t b = 0; b < nmblocks; b++){
             csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
+            // csrbuf[b] = (vid_t *)mmap(NULL, blocksize_kb*1024,
+            //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS 
+            //         //| MAP_HUGETLB | MAP_HUGE_2MB
+            //         , 0, 0);
+            // if(csrbuf[b] == MAP_FAILED){
+            //     printf("%lld\n",b*blocksize_kb*1024);
+            //     perror("csrbuf alloc mmap");
+            //     exit(-1);
+            // }
+        }
         beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
         inMemIndex = (bid_t*)malloc(nblocks*sizeof(bid_t));
         for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
@@ -96,6 +108,7 @@ public:
         for(bid_t b = 0; b < cmblocks; b++){
             if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
             if(csrbuf[b] != NULL)   free(csrbuf[b]);
+                // munmap(csrbuf[b], blocksize_kb*1024);
         }
         free(beg_posbuf);
         free(csrbuf);
@@ -140,6 +153,14 @@ public:
         /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
+        // beg_pos=(eid_t *)mmap(NULL,(size_t)(*nverts+1)*sizeof(eid_t),
+        //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+        // if(beg_pos == MAP_FAILED)
+        // {
+        //     printf("%ld\n",(size_t)(*nverts+1)*sizeof(eid_t));
+        //     perror("beg_pos alloc mmap");
+        //     exit(-1);
+        // }
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
         close(beg_posf);
         /* read csr file */
@@ -167,9 +188,12 @@ public:
             if(cmblocks < nmblocks){
                 swapin = cmblocks++;
             }else{
-                swapin = swapOut();
+                bid_t minmwb = swapOut();
+                swapin = inMemIndex[minmwb];
+                inMemIndex[minmwb] = nmblocks;
                 assert(swapin < nmblocks);
                 if(beg_posbuf[swapin] != NULL) free(beg_posbuf[swapin]);
+                    // munmap(beg_posbuf[swapin], sizeof(eid_t)*(blocks[minmwb+1] - blocks[minmwb] + 1));
             }
             loadSubGraph(p, beg_posbuf[swapin], csrbuf[swapin], nverts, nedges);
             inMemIndex[p] = swapin;
@@ -191,9 +215,9 @@ public:
             }
         }
         // logstream(LOG_DEBUG) << "block " << minmwb << " is chosen to swap out!" << std::endl;
-        bid_t res = inMemIndex[minmwb];
-        inMemIndex[minmwb] = nmblocks;
-        return res;
+        // bid_t res = inMemIndex[minmwb];
+        // inMemIndex[minmwb] = nmblocks;
+        return minmwb;
     }
 
     virtual size_t num_vertices() {
