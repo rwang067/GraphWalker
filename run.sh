@@ -1,59 +1,26 @@
 
 
-echo "2019.5.9 " >> graphwalker_metrics.txt.statistics
-echo "observe the impact of blocksize, app = msppr, dataset = Crawl" >> graphwalker_metrics.txt.statistics
+echo "2019.5.15 " >> graphwalker_metrics.txt.statistics
+echo "observe the impact of nmblocks in 8GB PC, app = msppr, dataset = Twitter" >> graphwalker_metrics.txt.statistics
 
-### SSD, Crawl
+### 8GB PC, SSD, Twitter
 ################################################################################################
-# shardsize = 1048576, RWD, Crawl
-for(( numsources = 1; numsources <= 100000; numsources*=10))
+for(( numsources = 1; numsources <= 10000; numsources*=10))
 do
     echo "numsources = " $numsources >> graphwalker_metrics.txt.statistics
-    for(( blocksize_kb = 2048; blocksize_kb <= 1048576*4; blocksize_kb*=2))
-    do
-        echo "blocksize_kb = " $blocksize_kb >> graphwalker_metrics.txt.statistics
+        echo "nmblocks = 1" >> graphwalker_metrics.txt.statistics
         for(( times = 0; times < 5; times++))
         do
             echo "times = " $times " from echo"
-            ./bin/apps/msppr file ../../raid0_mnop/Crawl/crawl.txt firstsource 0 numsources $numsources blocksize_kb $blocksize_kb
+            ./bin/apps/msppr file ../dataset/Twitter/twitter_rv.net firstsource 12 numsources $numsources nmblocks 1
+        done
+    for(( nmblocks = 20; nmblocks <= 120; nmblocks+=20))
+    do
+        echo "nmblocks = " $nmblocks >> graphwalker_metrics.txt.statistics
+        for(( times = 0; times < 5; times++))
+        do
+            echo "times = " $times " from echo"
+            ./bin/apps/msppr file ../dataset/Twitter/twitter_rv.net firstsource 12 numsources $numsources nmblocks $nmblocks
         done
     done
 done
-
-# # 2019.5.7
-# echo "2019.5.7" >> graphwalker_metrics.txt.statistics
-# echo "observe the impact of blocksize, app = msppr, dataset = Yahoo" >> graphwalker_metrics.txt.statistics
-
-# ### SSD, Yahoo
-# ################################################################################################
-# # shardsize = 1048576, RWD, Yahoo
-# for(( numsources = 1; numsources <= 100000; numsources*=10))
-# do
-#     echo "numsources = " $numsources >> graphwalker_metrics.txt.statistics
-#     for(( blocksize_kb = 2048; blocksize_kb <= 1048576*4; blocksize_kb*=2))
-#     do
-#         echo "blocksize_kb = " $blocksize_kb >> graphwalker_metrics.txt.statistics
-#         for(( times = 0; times < 5; times++))
-#         do
-#             echo "times = " $times " from echo"
-#             ./bin/apps/msppr file ../../raid0_mnop/Yahoo/yahoo-webmap.txt firstsource 4 numsources $numsources blocksize_kb $blocksize_kb
-#         done
-#     done
-# done
-
-# ### SSD, Friendster
-# ################################################################################################
-# # shardsize = 1048576, RWD, Friendster
-# for(( numsources = 1; numsources <= 100000; numsources*=10))
-# do
-#     echo "numsources = " $numsources >> graphwalker_metrics.txt.statistics
-#     for(( blocksize_kb = 1024; blocksize_kb <= 1048576*32; blocksize_kb*=2))
-#     do
-#         echo "blocksize_kb = " $blocksize_kb >> graphwalker_metrics.txt.statistics
-#         for(( times = 0; times < 5; times++))
-#         do
-#             echo "times = " $times " from echo"
-#             ./bin/apps/msppr file ../../raid0_mnop/Friendster/out.friendster-reorder firstsource 12 numsources $numsources blocksize_kb $blocksize_kb
-#         done
-#     done
-# done

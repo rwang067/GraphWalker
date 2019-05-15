@@ -67,11 +67,15 @@
               std::string statistic_filename = filename + ".statistics";
               std::ofstream ofs;
               ofs.open(statistic_filename.c_str(), std::ofstream::out | std::ofstream::app );
-              if( it->first == "nshards")
+              if( it->first == "__runtime__")
                   ofs << ent.value << "  \t  " ;
               else if( it->first == "exec_updates")
                   ofs << ent.count << "  \t  " ;
-              else if( it->first == "runtime" )
+              else if( it->first == "g_loadSubGraph"){
+                  ofs << ent.count << "  \t  " ;
+                  ofs << ent.value << "  \t  " ;
+              }
+              else if( it->first == "nblocks" )
                   ofs << ent.value << std::endl;
               // Rui end
               switch(ent.valtype) {
