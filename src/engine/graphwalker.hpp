@@ -40,6 +40,7 @@ public:
     eid_t **beg_posbuf;
     bid_t cmblocks; //current number of in memory blocks
     bid_t *inMemIndex;
+    int beg_posf, csrf;
 
     /* State */
     bid_t exec_block;
@@ -96,6 +97,24 @@ public:
         for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
         cmblocks = 0;
 
+        m.start_time("g_loadSubGraph_filename");
+        std::string invlname = fidname( base_filename, 0 ); //only 1 file
+        std::string beg_posname = invlname + ".beg_pos";
+        std::string csrname = invlname + ".csr";
+        m.stop_time("g_loadSubGraph_filename");
+        m.start_time("g_loadSubGraph_open_begpos");
+        beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        m.stop_time("g_loadSubGraph_open_begpos");
+        m.start_time("g_loadSubGraph_open_csr");
+        csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        m.stop_time("g_loadSubGraph_open_csr");
+        m.start_time("g_loadSubGraph_if_open_success");
+        if (csrf < 0 || beg_posf < 0) {
+            logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
+        }
+        assert(csrf > 0 && beg_posf > 0);
+        m.stop_time("g_loadSubGraph_if_open_success");
+
         _m.set("file", _base_filename);
         _m.set("engine", "default");
         _m.set("nblocks", (size_t)nblocks);
@@ -114,6 +133,9 @@ public:
         free(csrbuf);
         free(inMemIndex);
         free(blocks);
+
+        close(beg_posf);  
+        close(csrf);  
     }
 
     void load_block_range(std::string base_filename, unsigned long long blocksize_kb, vid_t * &blocks, bool allowfail=false) {
@@ -140,20 +162,13 @@ public:
 
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
         m.start_time("g_loadSubGraph");
-        std::string invlname = fidname( base_filename, 0 ); //only 1 file
-        std::string beg_posname = invlname + ".beg_pos";
-        std::string csrname = invlname + ".csr";
-        int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        int csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        if (csrf < 0 || beg_posf < 0) {
-            logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
-        }
-        assert(csrf > 0 && beg_posf > 0);
+        
 
         m.start_time("g_loadSubGraph_malloc_begpos");
         /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
+        m.stop_time("g_loadSubGraph_malloc_begpos");
         // beg_pos=(eid_t *)mmap(NULL,(size_t)(*nverts+1)*sizeof(eid_t),
         //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
         // if(beg_pos == MAP_FAILED)
@@ -162,16 +177,13 @@ public:
         //     perror("beg_pos alloc mmap");
         //     exit(-1);
         // }
-        m.stop_time("g_loadSubGraph_malloc_begpos");
         m.start_time("g_loadSubGraph_read_begpos");
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
-        close(beg_posf);
         m.stop_time("g_loadSubGraph_read_begpos");
         /* read csr file */
         m.start_time("g_loadSubGraph_read_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
-        close(csrf);  
         m.stop_time("g_loadSubGraph_read_csr");     
 
         /*output load graph info*/
