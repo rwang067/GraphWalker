@@ -150,6 +150,7 @@ public:
         }
         assert(csrf > 0 && beg_posf > 0);
 
+        m.start_time("g_loadSubGraph_malloc_begpos");
         /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
@@ -161,12 +162,17 @@ public:
         //     perror("beg_pos alloc mmap");
         //     exit(-1);
         // }
+        m.stop_time("g_loadSubGraph_malloc_begpos");
+        m.start_time("g_loadSubGraph_read_begpos");
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
         close(beg_posf);
+        m.stop_time("g_loadSubGraph_read_begpos");
         /* read csr file */
+        m.start_time("g_loadSubGraph_read_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
-        close(csrf);       
+        close(csrf);  
+        m.stop_time("g_loadSubGraph_read_csr");     
 
         /*output load graph info*/
         // logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
