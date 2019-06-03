@@ -1,15 +1,22 @@
-echo "2019.5.19 " >> graphwalker_metrics.txt.statistics
-echo "observe the impact of nmblocks without pagecache in 64GB R730, app = msppr, dataset = Crawl" >> graphwalker_metrics.txt.statistics
+echo "2019.5.21 " >> graphwalker_metrics.txt.statistics
+echo "observe the impact of with and without pagecache in 64GB R730, app = msppr, dataset = Crawl" >> graphwalker_metrics.txt.statistics
 
 ### 64GB R730, SSD, Crawl
 ################################################################################################
-for(( numsources = 100; numsources <= 1000; numsources*=10))
+for(( numsources = 100; numsources <= 10000; numsources*=10))
 do
     echo "numsources = " $numsources >> graphwalker_metrics.txt.statistics
-    for(( nmblocks = 400; nmblocks <= 2400; nmblocks+=400))
+    echo "Turn on Page Cache, nmblocks = 1" >> graphwalker_metrics.txt.statistics
+    for(( times = 0; times < 2; times++))
     do
-        echo "nmblocks = " $nmblocks >> graphwalker_metrics.txt.statistics
-        for(( times = 0; times < 1; times++))
+        echo "times = " $times " from echo"
+        ./bin/apps/msppr file ../../raid0_mnop/Crawl/crawl.txt firstsource 0 numsources $numsources nmblocks 1
+    done
+    echo "Turn off Page Cache!" >> graphwalker_metrics.txt.statistics
+    for(( nmblocks = 200; nmblocks <= 2400; nmblocks+=200))
+    do
+        echo "Turn off Page Cache, nmblocks = " $nmblocks >> graphwalker_metrics.txt.statistics
+        for(( times = 0; times < 5; times++))
         do
             echo "times = " $times " from echo"
             $HOME/nocache/nocache ./bin/apps/msppr file ../../raid0_mnop/Crawl/crawl.txt firstsource 0 numsources $numsources nmblocks $nmblocks
