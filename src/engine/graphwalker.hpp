@@ -35,10 +35,9 @@ public:
     timeval start;
     
     /* Ｉn memory blocks */
-    bid_t nmblocks; //number of in memory blocks
-    vid_t **csrbuf;
-    eid_t **beg_posbuf;
-    bid_t cmblocks; //current number of in memory blocks
+    bid_t ngblocks; //number of in memory blocks
+    vid_t **csrbuf, *nverts;
+    eid_t **beg_posbuf, *nedges;
     bid_t *inMemIndex;
     int beg_posf, csrf;
 
@@ -54,7 +53,7 @@ public:
         logstream(LOG_INFO) << " exec_threads = " << (int)exec_threads << std::endl;
         logstream(LOG_INFO) << " blocksize_kb = " << blocksize_kb << "kb" << std::endl;
         logstream(LOG_INFO) << " number of total blocks = " << nblocks << std::endl;
-        logstream(LOG_INFO) << " number of in-memory blocks = " << nmblocks << std::endl;
+        logstream(LOG_INFO) << " number of in-memory blocks = " << ngblocks << std::endl;
     }
 
     double runtime() {
@@ -71,16 +70,19 @@ public:
      * @param nblocks number of shards
      * @param selective_scheduling if true, uses selective scheduling 
      */
-    graphwalker_engine(std::string _base_filename, unsigned long long _blocksize_kb, bid_t _nblocks, bid_t _nmblocks, metrics &_m) : base_filename(_base_filename), blocksize_kb(_blocksize_kb), nblocks(_nblocks), nmblocks(_nmblocks), m(_m) {
+    graphwalker_engine(std::string _base_filename, unsigned long long _blocksize_kb, bid_t _nblocks, bid_t _ngblocks, metrics &_m) : base_filename(_base_filename), blocksize_kb(_blocksize_kb), nblocks(_nblocks), ngblocks(_ngblocks), m(_m) {
         // membudget_mb = get_option_int("membudget_mb", 1024);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
         load_block_range(base_filename, blocksize_kb, blocks);
         nvertices = num_vertices();
         walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
-
-        csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
-        for(bid_t b = 0; b < nmblocks; b++){
+        
+        nverts = (vid_t*)malloc(ngblocks*sizeof(vid_t));
+        nedges = (eid_t*)malloc(ngblocks*sizeof(eid_t));
+        beg_posbuf = (eid_t**)malloc(ngblocks*sizeof(eid_t*));
+        csrbuf = (vid_t**)malloc(ngblocks*sizeof(vid_t*));
+        for(bid_t b = 0; b < ngblocks; b++){
             csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
             // csrbuf[b] = (vid_t *)mmap(NULL, blocksize_kb*1024,
             //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS 
@@ -92,10 +94,6 @@ public:
             //     exit(-1);
             // }
         }
-        beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
-        inMemIndex = (bid_t*)malloc(nblocks*sizeof(bid_t));
-        for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
-        cmblocks = 0;
 
         m.start_time("g_loadSubGraph_filename");
         std::string invlname = fidname( base_filename, 0 ); //only 1 file
@@ -124,14 +122,15 @@ public:
         
     virtual ~graphwalker_engine() {
         delete walk_manager;
-        for(bid_t b = 0; b < cmblocks; b++){
+        for(bid_t b = 0; b < ngblocks; b++){
             if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
             if(csrbuf[b] != NULL)   free(csrbuf[b]);
                 // munmap(csrbuf[b], blocksize_kb*1024);
         }
+        free(nverts);
+        free(nedges);
         free(beg_posbuf);
         free(csrbuf);
-        free(inMemIndex);
         free(blocks);
 
         close(beg_posf);  
@@ -198,43 +197,18 @@ public:
         m.stop_time("g_loadSubGraph");
     }
 
-    void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-        m.start_time("g_findSubGraph");
-        if(inMemIndex[p] == nmblocks){//the block is not in memory
-            // logstream(LOG_INFO) << "Load block " << p << " from disk" << std::endl;
-            bid_t swapin;
-            if(cmblocks < nmblocks){
-                swapin = cmblocks++;
-            }else{
-                bid_t minmwb = swapOut();
-                swapin = inMemIndex[minmwb];
-                inMemIndex[minmwb] = nmblocks;
-                assert(swapin < nmblocks);
-                if(beg_posbuf[swapin] != NULL) free(beg_posbuf[swapin]);
-                    // munmap(beg_posbuf[swapin], sizeof(eid_t)*(blocks[minmwb+1] - blocks[minmwb] + 1));
-            }
-            loadSubGraph(p, beg_posbuf[swapin], csrbuf[swapin], nverts, nedges);
-            inMemIndex[p] = swapin;
-        }else{
-            // logstream(LOG_INFO) << "Oh yeah! Block " << p << " is in memory!" << std::endl;
-        }
-        beg_pos = beg_posbuf[ inMemIndex[p] ];
-        csr = csrbuf[ inMemIndex[p] ];
-        m.stop_time("g_findSubGraph");
-    }
-
     bid_t swapOut(){
         wid_t minmw = 0xffffffff;
         bid_t minmwb = 0;
         for(bid_t b = 0; b < nblocks; b++){
-            if(inMemIndex[b]<nmblocks && walk_manager->walknum[b] < minmw){
+            if(inMemIndex[b]<ngblocks && walk_manager->walknum[b] < minmw){
                 minmw = walk_manager->walknum[b];
                 minmwb = b;
             }
         }
         // logstream(LOG_DEBUG) << "block " << minmwb << " is chosen to swap out!" << std::endl;
         // bid_t res = inMemIndex[minmwb];
-        // inMemIndex[minmwb] = nmblocks;
+        // inMemIndex[minmwb] = ngblocks;
         return minmwb;
     }
 
@@ -264,30 +238,43 @@ public:
         userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
         m.stop_time("_startWalks");
 
-        vid_t nverts, *csr;
-        eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
             blockcount++;
             m.start_time("chooseBlock");
-            exec_block = walk_manager->chooseBlock(prob);
+            // exec_block = walk_manager->chooseBlock(prob);
+            bid_t* blocksgroup;
+            bid_t nbbg = walk_manager->blocksgroupWithMaxWalks(ngblocks, blocksgroup);
             m.stop_time("chooseBlock");
-            findSubGraph(exec_block, beg_pos, csr, &nverts, &nedges);
+            for(bid_t p = 0; p < nbbg; p++){
+                loadSubGraph(blocksgroup[p], beg_posbuf[p], csrbuf[p], &nverts[p], &nedges[p]);
+            }
 
             /*load walks info*/
             // walk_manager->loadWalkPool(exec_block);
-            wid_t nwalks; 
-            nwalks = walk_manager->getCurrentWalks(exec_block);
-            
-            if(blockcount % 100==1){
-                logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
-                logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
-                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
+            bool finishedGroup = false;
+            while(!finishedGroup){
+                finishedGroup = true;
+                for(bid_t p = 0; p < nbbg; p++){
+                    wid_t nwalks; 
+                    exec_block = blocksgroup[p];
+                    nwalks = walk_manager->getCurrentWalks(blocksgroup[p]);
+                    
+                    if(nwalks > 0){
+                        
+                    // if(blockcount % 100==1){
+                        logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
+                        logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
+                        logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
+                    // }
+                    
+                        finishedGroup = false;
+                        exec_updates(userprogram, nwalks, beg_posbuf[p], csrbuf[p]);
+                        walk_manager->updateWalkNum(blocksgroup[p]);
+                    }
+                }
             }
-            
-            exec_updates(userprogram, nwalks, beg_pos, csr);
-            walk_manager->updateWalkNum(exec_block);
 
         } // For block loop
         m.stop_time("__runtime__");

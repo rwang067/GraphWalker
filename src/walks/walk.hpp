@@ -144,6 +144,8 @@ public:
 		m.start_time("updateWalkNum");
 		walknum[p] = 0;
 		minstep[p] = 0xffff;
+		for(tid_t t = 0; t < nthreads; t++)
+			pwalks[t][p].size_w = 0;
 		walksum = 0;
 		for(p = 0; p < nblocks; p++){
             walknum[p] = dwalknum[p];
@@ -212,6 +214,32 @@ public:
 			return blockWithMinStep();
 		}
 		return blockWithMaxWalks();
+	}
+
+	bid_t blocksgroupWithMaxWalks(bid_t k, bid_t * &blocksgroup){
+		blocksgroup = (bid_t*)malloc(k*sizeof(bid_t));
+		bid_t b = 0;
+		if(nblocks <= k){
+			for(bid_t p = 0; p < nblocks && b < k; p++) {
+				if( walknum[p] > 0 ){
+					blocksgroup[b++] = p;
+				}
+	   		}
+		}else{
+			std::priority_queue<wid_t> topk;
+			for(bid_t p = 0; p < nblocks; p++) {
+				topk.push(walknum[p]);
+			}
+			for(bid_t p = 1; p < k; p++) {
+				topk.pop();
+			}
+			for(bid_t p = 0; p < nblocks && b < k; p++) {
+				if( topk.top() <= walknum[p] && walknum[p] > 0){
+					blocksgroup[b++] = p;
+				}
+			}
+		}
+		return b;
 	}
 
      void printWalksDistribution(bid_t exec_block ){
