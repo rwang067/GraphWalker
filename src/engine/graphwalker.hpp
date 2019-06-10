@@ -262,12 +262,12 @@ public:
                     nwalks = walk_manager->getCurrentWalks(blocksgroup[p]);
                     
                     if(nwalks > 0){
-                        
-                    // if(blockcount % 100==1){
-                        logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
-                        logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
-                        logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
-                    // }
+
+                        if(blockcount % 100==1){
+                            logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
+                            logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
+                            logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
+                        }
                     
                         finishedGroup = false;
                         exec_updates(userprogram, nwalks, beg_posbuf[p], csrbuf[p]);
