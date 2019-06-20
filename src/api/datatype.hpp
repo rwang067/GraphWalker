@@ -14,7 +14,7 @@
 typedef uint32_t vid_t;
 typedef uint64_t eid_t;
 typedef uint64_t wid_t; //type of id of walks
-typedef uint16_t bid_t; //type of id of blocks
+typedef uint32_t bid_t; //type of id of blocks
 typedef uint16_t hid_t; //type of id of hops
 typedef uint8_t tid_t; //type of id of threads
 typedef unsigned VertexDataType;

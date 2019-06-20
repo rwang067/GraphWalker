@@ -2,6 +2,6 @@
 bin/*
 graphwalker_metrics.txt
 graphwalker_metrics.txt.statistics
-run.sh
+./run.sh
 ./monitor/*.csv
 .vscode/
