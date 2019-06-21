@@ -96,18 +96,18 @@ public:
 	}
 
 	void writeWalks2Disk(tid_t t, bid_t p){
-		m.start_time("w_writeWalks2Disk");
+		m.start_time("4_writeWalks2Disk");
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		pwritea( f, &pwalks[t][p][0], pwalks[t][p].size_w*sizeof(WalkDataType) );
 		dwalknum[p] += pwalks[t][p].size_w;
 		pwalks[t][p].size_w = 0;
 		close(f);
-		m.stop_time("w_writeWalks2Disk");
+		m.stop_time("4_writeWalks2Disk");
 	}
 
 	wid_t getCurrentWalks(bid_t p){
-		m.start_time("w_getCurrentWalks");
+		m.start_time("3_getCurrentWalks");
 		curwalks = (WalkDataType*)malloc(walknum[p]*sizeof(WalkDataType));
 		if(dwalknum[p] > 0){
 			readWalksfromDisk(p);
@@ -123,12 +123,12 @@ public:
 			}
 		}
 		assert(count == walknum[p]);
-		m.stop_time("w_getCurrentWalks");
+		m.stop_time("3_getCurrentWalks");
 		return count;
 	}
 
 	void readWalksfromDisk(bid_t p){
-		m.start_time("w_readWalksfromDisk");
+		m.start_time("z_w_readWalksfromDisk");
 
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(),O_RDWR, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -142,12 +142,12 @@ public:
 		/* remove the walk file*/
 		unlink(walksfile.c_str()); 
 
-		m.stop_time("w_readWalksfromDisk");
+		m.stop_time("z_w_readWalksfromDisk");
 	}
 
 	void updateWalkNum(bid_t p){
 
-		m.start_time("updateWalkNum");
+		m.start_time("6_updateWalkNum");
 		wid_t forwardWalks = 0;
 		for(bid_t b = 0; b < nblocks; b++){
 			if(ismodified[b]){
@@ -162,19 +162,19 @@ public:
 				walknum[b] = newwalknum;
 			}
 		}
-		m.stop_time("updateWalkNum");
 
 		// logstream(LOG_DEBUG) <<"Total " << walksum << " walks, Updated " << walknum[p] << " walks, and forward " << forwardWalks << " walks. " << std::endl;
 		
-		m.start_time("clear curwalks");
+		m.start_time("z_w_clear_curwalks");
 		walksum += forwardWalks;
 		walksum -= walknum[p];
 		walknum[p] = 0;
 		minstep[p] = 0xffff;
 		free(curwalks);
 		curwalks = NULL;
-		m.stop_time("clear curwalks");
+		m.stop_time("z_w_clear_curwalks");
 
+		m.stop_time("6_updateWalkNum");
 	}
 
      void setMinStep(bid_t p, hid_t hop ){

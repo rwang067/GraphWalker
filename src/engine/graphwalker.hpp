@@ -97,23 +97,23 @@ public:
         for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
         cmblocks = 0;
 
-        m.start_time("__g_loadSubGraph_filename");
+        // m.start_time("__g_loadSubGraph_filename");
         std::string invlname = fidname( base_filename, 0 ); //only 1 file
         std::string beg_posname = invlname + ".beg_pos";
         std::string csrname = invlname + ".csr";
-        m.stop_time("__g_loadSubGraph_filename");
-        m.start_time("__g_loadSubGraph_open_begpos");
+        // m.stop_time("__g_loadSubGraph_filename");
+        // m.start_time("__g_loadSubGraph_open_begpos");
         beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        m.stop_time("__g_loadSubGraph_open_begpos");
-        m.start_time("__g_loadSubGraph_open_csr");
+        // m.stop_time("__g_loadSubGraph_open_begpos");
+        // m.start_time("__g_loadSubGraph_open_csr");
         csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        m.stop_time("__g_loadSubGraph_open_csr");
-        m.start_time("__g_loadSubGraph_if_open_success");
+        // m.stop_time("__g_loadSubGraph_open_csr");
+        // m.start_time("__g_loadSubGraph_if_open_success");
         if (csrf < 0 || beg_posf < 0) {
             logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
         }
         assert(csrf > 0 && beg_posf > 0);
-        m.stop_time("__g_loadSubGraph_if_open_success");
+        // m.stop_time("__g_loadSubGraph_if_open_success");
 
         _m.set("file", _base_filename);
         _m.set("engine", "default");
@@ -161,14 +161,14 @@ public:
     }
 
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-        m.start_time("_g_loadSubGraph");
+        m.start_time("z_g_loadSubGraph");
         
 
-        m.start_time("__g_loadSubGraph_malloc_begpos");
+        // m.start_time("__g_loadSubGraph_malloc_begpos");
         /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
-        m.stop_time("__g_loadSubGraph_malloc_begpos");
+        // m.stop_time("__g_loadSubGraph_malloc_begpos");
         // beg_pos=(eid_t *)mmap(NULL,(size_t)(*nverts+1)*sizeof(eid_t),
         //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
         // if(beg_pos == MAP_FAILED)
@@ -177,14 +177,14 @@ public:
         //     perror("beg_pos alloc mmap");
         //     exit(-1);
         // }
-        m.start_time("__g_loadSubGraph_read_begpos");
+        m.start_time("z__g_loadSubGraph_read_begpos");
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
-        m.stop_time("__g_loadSubGraph_read_begpos");
+        m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
-        m.start_time("__g_loadSubGraph_read_csr");
+        m.start_time("z__g_loadSubGraph_read_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
-        m.stop_time("__g_loadSubGraph_read_csr");     
+        m.stop_time("z__g_loadSubGraph_read_csr");     
 
         /*output load graph info*/
         // logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
@@ -195,11 +195,11 @@ public:
         // logstream(LOG_INFO) << "csr : "<< std::endl;
         // for(eid_t i = *nedges-10; i < *nedges; i++)
         //     logstream(LOG_INFO) << "csr[" << i << "] = " << csr[i] << ", "<< std::endl;
-        m.stop_time("_g_loadSubGraph");
+        m.stop_time("z_g_loadSubGraph");
     }
 
     void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-        m.start_time("g_findSubGraph");
+        m.start_time("2_findSubGraph");
         if(inMemIndex[p] == nmblocks){//the block is not in memory
             // logstream(LOG_INFO) << "Load block " << p << " from disk" << std::endl;
             bid_t swapin;
@@ -220,10 +220,11 @@ public:
         }
         beg_pos = beg_posbuf[ inMemIndex[p] ];
         csr = csrbuf[ inMemIndex[p] ];
-        m.stop_time("g_findSubGraph");
+        m.stop_time("2_findSubGraph");
     }
 
     bid_t swapOut(){
+        m.start_time("z_g_swapOut");
         wid_t minmw = 0xffffffff;
         bid_t minmwb = 0;
         for(bid_t b = 0; b < nblocks; b++){
@@ -235,6 +236,7 @@ public:
         // logstream(LOG_DEBUG) << "block " << minmwb << " is chosen to swap out!" << std::endl;
         // bid_t res = inMemIndex[minmwb];
         // inMemIndex[minmwb] = nmblocks;
+        m.start_time("z_g_swapOut");
         return minmwb;
     }
 
@@ -244,7 +246,7 @@ public:
 
     void exec_updates(RandomWalk &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
         // unsigned count = walk_manager->readblockWalks(exec_block);
-        m.start_time("exec_updates");
+        m.start_time("5_exec_updates");
         #pragma omp parallel for schedule(static)
             for(wid_t i = 0; i < nwalks; i++ ){
                 // logstream(LOG_INFO) << "exec_block : " << exec_block << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
@@ -252,17 +254,17 @@ public:
                 userprogram.updateByWalk(walk, i, exec_block, beg_pos, csr, *walk_manager );//, vertex_value);
             }
         // logstream(LOG_INFO) << "exec_updates end. Processsed walks with exec_threads = " << (int)exec_threads << std::endl;
-        m.stop_time("exec_updates");
+        m.stop_time("5_exec_updates");
         // walk_manager->writeblockWalks(exec_block);
     }
 
     void run(RandomWalk &userprogram, float prob) {
         gettimeofday(&start, NULL);
-        m.start_time("__runtime__");
+        m.start_time("00_runtime");
         // srand((unsigned)time(NULL));
-        m.start_time("_startWalks");
+        m.start_time("0_startWalks");
         userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
-        m.stop_time("_startWalks");
+        m.stop_time("0_startWalks");
 
         vid_t nverts, *csr;
         eid_t nedges, *beg_pos;
@@ -270,9 +272,9 @@ public:
         int blockcount = 0;
         while( userprogram.hasFinishedWalk(*walk_manager) ){
             blockcount++;
-            m.start_time("chooseBlock");
+            m.start_time("1_chooseBlock");
             exec_block = walk_manager->chooseBlock(prob);
-            m.stop_time("chooseBlock");
+            m.stop_time("1_chooseBlock");
             findSubGraph(exec_block, beg_pos, csr, &nverts, &nedges);
 
             /*load walks info*/
@@ -290,7 +292,7 @@ public:
             walk_manager->updateWalkNum(exec_block);
 
         } // For block loop
-        m.stop_time("__runtime__");
+        m.stop_time("00_runtime");
     }
 };
 

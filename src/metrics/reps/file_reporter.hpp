@@ -67,13 +67,24 @@
               std::string statistic_filename = filename + ".statistics";
               std::ofstream ofs;
               ofs.open(statistic_filename.c_str(), std::ofstream::out | std::ofstream::app );
-              if( it->first == "__runtime__")
+              if( it->first == "00_runtime")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "exec_updates")
-                  ofs << ent.count << "  \t  " ;
-              else if( it->first == "_g_loadSubGraph"){
-                  ofs << ent.count << "  \t  " ;
+              else if( it->first == "1_chooseBlock")
                   ofs << ent.value << "  \t  " ;
+              else if( it->first == "2_findSubGraph")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "3_getCurrentWalks")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "4_writeWalks2Disk")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "5_exec_updates")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "6_updateWalkNum"){
+                  ofs << ent.value << "  \t  " ;
+                  ofs << ent.count << "  \t  " ; 
+              }
+              else if( it->first == "z_g_loadSubGraph"){
+                  ofs << ent.count << "  \t  " ;
               }
               else if( it->first == "nblocks" )
                   ofs << ent.value << std::endl;
