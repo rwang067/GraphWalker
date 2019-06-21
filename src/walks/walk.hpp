@@ -31,7 +31,7 @@ public:
 	WalkDataType *curwalks; // all walks of current block
 	wid_t walksum;
 
-	bid_t updateWalkNumCount;
+	bool* ismodified;
 
 public:
 	WalkManager(metrics &_m,bid_t _nblocks, tid_t _nthreads, std::string _base_filename):base_filename(_base_filename), nblocks(_nblocks), nthreads(_nthreads), m(_m){
@@ -48,7 +48,8 @@ public:
 
 		mkdir((base_filename+"_GraphWalker/walks/").c_str(), 0777);	
 
-		updateWalkNumCount = 0;
+		ismodified = (bool*)malloc(nblocks*sizeof(bool));
+		memset(ismodified, false, nblocks*sizeof(bool));
 	}
 
 	~WalkManager(){
@@ -148,24 +149,25 @@ public:
 		m.start_time("clear curwalks");
 		free(curwalks);
 		curwalks = NULL;
+		walksum -= walknum[p];
 		walknum[p] = 0;
 		minstep[p] = 0xffff;
 		m.stop_time("clear curwalks");
-		updateWalkNumCount++;
-		// if(updateWalkNumCount >= 10){
-			m.start_time("updateWalkNum");
-			updateWalkNumCount = 0;
-			walksum = 0;
-			#pragma omp parallel for schedule(static)
-				for(p = 0; p < nblocks; p++){
+
+		m.start_time("updateWalkNum");
+		#pragma omp parallel for schedule(static)
+			for(p = 0; p < nblocks; p++){
+				if(ismodified[p]){
+					ismodified[p] = false;
+					walksum -= walknum[p];
 					walknum[p] = dwalknum[p];
 					for(tid_t t = 0; t < nthreads; t++){
 						walknum[p] += pwalks[t][p].size_w;
 					}
 					walksum += walknum[p];
 				}
-			m.stop_time("updateWalkNum");
-		// }
+			}
+		m.stop_time("updateWalkNum");
 	}
 
      void setMinStep(bid_t p, hid_t hop ){

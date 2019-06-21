@@ -56,6 +56,7 @@ public:
             if(p>=nblocks) return;
             walk_manager.moveWalk(nowWalk, p, threadid, dstId - blocks[p]);
             walk_manager.setMinStep( p, hop );
+            walk_manager.ismodified[p] = true;
         }
     }
 

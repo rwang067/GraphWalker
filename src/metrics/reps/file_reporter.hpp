@@ -71,7 +71,7 @@
                   ofs << ent.value << "  \t  " ;
               else if( it->first == "exec_updates")
                   ofs << ent.count << "  \t  " ;
-              else if( it->first == "g_loadSubGraph"){
+              else if( it->first == "_g_loadSubGraph"){
                   ofs << ent.count << "  \t  " ;
                   ofs << ent.value << "  \t  " ;
               }
