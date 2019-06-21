@@ -146,28 +146,35 @@ public:
 	}
 
 	void updateWalkNum(bid_t p){
+
+		m.start_time("updateWalkNum");
+		wid_t forwardWalks = 0;
+		for(bid_t b = 0; b < nblocks; b++){
+			if(ismodified[b]){
+				ismodified[b] = false;
+				wid_t newwalknum = 0;
+				newwalknum = dwalknum[b];
+				for(tid_t t = 0; t < nthreads; t++){
+					newwalknum += pwalks[t][b].size_w;
+				}
+				assert(newwalknum > walknum[b]);
+				forwardWalks += newwalknum - walknum[b];
+				walknum[b] = newwalknum;
+			}
+		}
+		m.stop_time("updateWalkNum");
+
+		// logstream(LOG_DEBUG) <<"Total " << walksum << " walks, Updated " << walknum[p] << " walks, and forward " << forwardWalks << " walks. " << std::endl;
+		
 		m.start_time("clear curwalks");
-		free(curwalks);
-		curwalks = NULL;
+		walksum += forwardWalks;
 		walksum -= walknum[p];
 		walknum[p] = 0;
 		minstep[p] = 0xffff;
+		free(curwalks);
+		curwalks = NULL;
 		m.stop_time("clear curwalks");
 
-		m.start_time("updateWalkNum");
-		#pragma omp parallel for schedule(static)
-			for(p = 0; p < nblocks; p++){
-				if(ismodified[p]){
-					ismodified[p] = false;
-					walksum -= walknum[p];
-					walknum[p] = dwalknum[p];
-					for(tid_t t = 0; t < nthreads; t++){
-						walknum[p] += pwalks[t][p].size_w;
-					}
-					walksum += walknum[p];
-				}
-			}
-		m.stop_time("updateWalkNum");
 	}
 
      void setMinStep(bid_t p, hid_t hop ){
@@ -220,6 +227,7 @@ public:
      }
 
 	bid_t chooseBlock(float prob){
+		return blockWithMaxWalks();//////////////
 		float cc = ((float)rand())/RAND_MAX;
 		if( cc < prob ){
 			return blockWithMinStep();
