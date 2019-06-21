@@ -161,7 +161,7 @@ public:
     }
 
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-        m.start_time("z_g_loadSubGraph");
+        m.start_time("g_loadSubGraph");
         
 
         // m.start_time("__g_loadSubGraph_malloc_begpos");
@@ -195,7 +195,7 @@ public:
         // logstream(LOG_INFO) << "csr : "<< std::endl;
         // for(eid_t i = *nedges-10; i < *nedges; i++)
         //     logstream(LOG_INFO) << "csr[" << i << "] = " << csr[i] << ", "<< std::endl;
-        m.stop_time("z_g_loadSubGraph");
+        m.stop_time("g_loadSubGraph");
     }
 
     void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){

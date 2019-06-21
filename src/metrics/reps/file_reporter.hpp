@@ -83,7 +83,7 @@
                   ofs << ent.value << "  \t  " ;
                   ofs << ent.count << "  \t  " ; 
               }
-              else if( it->first == "z_g_loadSubGraph"){
+              else if( it->first == "g_loadSubGraph"){
                   ofs << ent.count << "  \t  " ;
               }
               else if( it->first == "nblocks" )
