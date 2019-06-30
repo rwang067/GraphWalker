@@ -16,6 +16,9 @@ public:
     hid_t maxwalklength;
     DiscreteDistribution *visitfrequencies;
 
+    int exec_threads;
+    unsigned *used_edges;
+
 public:
 
     void initializeApp(vid_t _firstsource, vid_t _numsources, wid_t _walkspersource, hid_t _maxwalklength){
@@ -26,6 +29,12 @@ public:
         initializeRW(numsources*walkspersource, maxwalklength);
         visitfrequencies = new DiscreteDistribution[numsources];
         logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
+
+        exec_threads = get_option_int("execthreads", omp_get_max_threads());
+        used_edges = new unsigned[exec_threads];
+        for(int i=0; i<exec_threads; i++){
+            used_edges[i] = 0;
+        }
     }
 
     void startWalksbyApp(WalkManager &walk_manager, std::string base_filename){
@@ -68,6 +77,25 @@ public:
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         // logstream(LOG_INFO) << "updateInfo in msppr." << std::endl;
         visitfrequencies[s].add(dstId);
+        used_edges[threadid]++;
+    }
+
+    void compUtilization(eid_t total_edges){
+        for(int i = 1; i < exec_threads; i++){
+            used_edges[0] += used_edges[i];
+        }
+
+        float utilization = (float)used_edges[0] / (float)total_edges;
+        // logstream(LOG_INFO) << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
+        std::string utilization_filename = "graphwalker_utilization.csv";
+        std::ofstream utilizationfile;
+        utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);
+        utilizationfile << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
+        utilizationfile.close();
+
+        for(int i=0; i<exec_threads; i++){
+            used_edges[i] = 0;
+        }
     }
 };
 

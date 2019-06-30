@@ -59,6 +59,10 @@ public:
         logstream(LOG_DEBUG) << "No definition of function : after_exec_block!" << std::endl;
     }
 
+    virtual void compUtilization(eid_t total_edges){
+        logstream(LOG_DEBUG) << "No definition of function : compUtilization!" << std::endl;
+    }
+
     virtual void startWalks(WalkManager &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){
         nblocks = _nblocks;
         blocks = _blocks;
