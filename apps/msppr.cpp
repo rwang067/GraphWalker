@@ -16,8 +16,8 @@ public:
     hid_t maxwalklength;
     DiscreteDistribution *visitfrequencies;
 
-    int exec_threads;
-    unsigned *used_edges;
+    tid_t exec_threads;
+    eid_t *used_edges;
 
 public:
 
@@ -37,7 +37,7 @@ public:
         }
     }
 
-    void startWalksbyApp(WalkManager &walk_manager, std::string base_filename){
+    void startWalksbyApp(WalkManager &walk_manager){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
         bid_t p = getblock(firstsource);
         vid_t sts = firstsource, ens = blocks[p+1], nums;
@@ -51,22 +51,23 @@ public:
             count -= nums;
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] = nums*walkspersource;
-            WalkDataType* curwalks = (WalkDataType*)malloc(walk_manager.walknum[p]*sizeof(WalkDataType));
+            // WalkDataType* curwalks = (WalkDataType*)malloc(walk_manager.walknum[p]*sizeof(WalkDataType));
             #pragma omp parallel for schedule(static)
                 for(vid_t s = 0; s < nums; s++){
                     vid_t cur = s + sts - blocks[p];
                     WalkDataType walk = walk_manager.encode(s + sts - firstsource, cur, 0);
                     for( wid_t j = 0; j < walkspersource; j++ ){
-                        curwalks[s*walkspersource+j] = walk;
+                        walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
+                        // curwalks[s*walkspersource+j] = walk;
                     }
                 }
-            std::string walksfile = walksname( base_filename, p );
-            int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-            pwritea( f, &curwalks[0], walk_manager.walknum[p]*sizeof(WalkDataType) );
-            close(f);
-            free(curwalks);
-            curwalks = NULL;
-            walk_manager.dwalknum[p] = walk_manager.walknum[p];
+            // std::string walksfile = walksname( base_filename, p );
+            // int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+            // pwritea( f, &curwalks[0], walk_manager.walknum[p]*sizeof(WalkDataType) );
+            // close(f);
+            // free(curwalks);
+            // curwalks = NULL;
+            // walk_manager.dwalknum[p] = walk_manager.walknum[p];
             walk_manager.walksum += walk_manager.walknum[p];
             p++;
             sts = ens;
@@ -81,7 +82,7 @@ public:
     }
 
     void compUtilization(eid_t total_edges){
-        for(int i = 1; i < exec_threads; i++){
+        for(tid_t i = 1; i < exec_threads; i++){
             used_edges[0] += used_edges[i];
         }
 
@@ -93,7 +94,7 @@ public:
         utilizationfile << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
         utilizationfile.close();
 
-        for(int i=0; i<exec_threads; i++){
+        for(tid_t i=0; i<exec_threads; i++){
             used_edges[i] = 0;
         }
     }
@@ -113,11 +114,11 @@ int main(int argc, const char ** argv) {
     std::string filename = get_option_string("file", "../../raid0_mnop/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
     vid_t numsources = get_option_int("numsources", 10); // Number of sources
-    wid_t walkspersource = get_option_int("walkspersource", 2000); // Number of steps
+    wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 32768); // Size of block, represented in KB
-    bid_t nmblocks = get_option_long("nmblocks", 10); // number of in-memory blocks
+    bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
     
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
