@@ -17,41 +17,52 @@
 class RandomWalkwithJump : public RandomWalk{
 
 public:
-    unsigned used_edges[4], total_edges[4];
+        vid_t N;
+        wid_t R;
+        hid_t L;
 
-    /**
-     *  Walk update function.
-     */
-    void updateByWalk(WalkDataType walk, unsigned walkid, unsigned exec_interval, Vertex *&vertices, WalkManager &walk_manager){
-            //get current time in microsecond as seed to compute rand_r
-            unsigned threadid = omp_get_thread_num();
-            WalkDataType nowwalk = walk;
-            vid_t curId = walk_manager.getCurrentId(nowwalk) + intervals[exec_interval].first;
-            vid_t dstId = curId;
-            unsigned hop = walk_manager.getHop(nowwalk);
-            // unsigned seed = (unsigned)std::chrono::high_resolution_clock::now().time_since_epoch().count();
-            unsigned seed = walk+curId+hop+(unsigned)time(NULL);
-            while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < nsteps ){
-                // updateInfo(walk_manager, nowwalk, dstId);
-                updateInfo(dstId, threadid, hop);
-                Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
-                if (nowVertex.outd > 0 && ((float)rand_r(&seed))/RAND_MAX > 0.15){
-                    dstId = random_outneighbor(nowVertex, seed);
-                }else{
-                    dstId = rand_r(&seed) % nvertices;
-                }
-                hop++;
-                nowwalk++;
-            }
-            if( hop < nsteps ){
-                unsigned p = getInterval( dstId );
-                walk_manager.moveWalk(nowwalk, p, threadid, dstId - intervals[p].first);
-                walk_manager.setMinStep( p, hop );
-            }
-            // else if(dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second){
-            //     updateInfo(dstId, vertices[dstId - intervals[exec_interval].first].outd);
-            // }
+public:
+
+    void initializeRW(vid_t _N, wid_t _R, hid_t _L){
+        N = _N;
+        R = _R;
+        L = _L;
     }
+
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+        // logstream(LOG_INFO) << "updateByWalk in randomwalkwithstop." << std::endl;
+        tid_t threadid = omp_get_thread_num();
+        WalkDataType nowWalk = walk;
+        vid_t sourId = walk_manager.getSourceId(nowWalk);
+        vid_t dstId = walk_manager.getCurrentId(nowWalk) + blocks[exec_block];
+        hid_t hop = walk_manager.getHop(nowWalk);
+        unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
+        // logstream(LOG_DEBUG) << "dstId = " << dstId << ",  exec_block = " << exec_block << ", range = [" << blocks[exec_block] << "," << blocks[exec_block+1] << ")"<< std::endl;
+        // logstream(LOG_DEBUG) << "hop = " << hop << ",  maxwalklength = " << maxwalklength << std::endl;
+        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] && hop < L ){
+            // std::cout  << " -> " << dstId ;//<< " " << walk_manager.getSourceId(walk) << std::endl;
+            updateInfo(sourId, dstId, threadid, hop);
+            vid_t dstIdp = dstId - blocks[exec_block];
+            eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
+            if (outd > 0 && (float)rand_r(&seed)/RAND_MAX > 0.15 ){
+                eid_t pos = beg_pos[dstIdp] - beg_pos[0] + ((eid_t)rand_r(&seed))%outd;
+                // logstream(LOG_DEBUG) << "dstId = " << dstId << ",  pos = " << pos << ", csr[pos] = " << csr[pos] << std::endl;
+                dstId = csr[pos];
+            }else{
+                dstId = rand_r(&seed) % N;
+            }
+            hop++;
+            nowWalk++;
+        }
+        if( hop < L ){
+            bid_t p = getblock( dstId );
+            if(p>=nblocks) return;
+            walk_manager.moveWalk(nowWalk, p, threadid, dstId - blocks[p]);
+            walk_manager.setMinStep( p, hop );
+            walk_manager.ismodified[p] = true;
+        }
+    }
+
 };
 
 #endif

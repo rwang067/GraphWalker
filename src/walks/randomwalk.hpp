@@ -23,7 +23,7 @@ public:
 public:
 
     //for SimRank
-    virtual void startWalksbyApp( WalkManager &walk_manager, std::string base_filename){
+    virtual void startWalksbyApp( WalkManager &walk_manager){
         logstream(LOG_ERROR) << "No definition of function : startWalksbyApp!" << std::endl;
     }  
 
@@ -66,7 +66,7 @@ public:
     virtual void startWalks(WalkManager &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){
         nblocks = _nblocks;
         blocks = _blocks;
-        startWalksbyApp(walk_manager, base_filename);
+        startWalksbyApp(walk_manager);
     }
 
     virtual unsigned getblock( vid_t v ){
