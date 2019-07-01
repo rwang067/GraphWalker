@@ -206,7 +206,9 @@ public:
 				minp = p;
 			}
 	   	}
-		return minp;
+		if(walknum[minp] > 0)
+			return minp;
+		return blockWithMaxWalks();
      }
 
      bid_t blockWithMaxWeight(){
@@ -227,7 +229,7 @@ public:
      }
 
 	bid_t chooseBlock(float prob){
-		return blockWithMaxWalks();//////////////
+		return blockWithMaxWeight();//////////////
 		float cc = ((float)rand())/RAND_MAX;
 		if( cc < prob ){
 			return blockWithMinStep();
