@@ -45,6 +45,7 @@ public:
 		memset(walknum, 0, nblocks*sizeof(wid_t));
 		memset(dwalknum, 0, nblocks*sizeof(wid_t));
 		memset(minstep, 0xffff, nblocks*sizeof(hid_t));
+		walksum = 0;
 
 		mkdir((base_filename+"_GraphWalker/walks/").c_str(), 0777);	
 
