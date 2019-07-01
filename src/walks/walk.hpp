@@ -230,7 +230,7 @@ public:
      }
 
 	bid_t chooseBlock(float prob){
-		return blockWithMaxWeight();//////////////
+		// return blockWithMaxWeight();//////////////
 		float cc = ((float)rand())/RAND_MAX;
 		if( cc < prob ){
 			return blockWithMinStep();
