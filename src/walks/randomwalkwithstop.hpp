@@ -15,19 +15,10 @@
  
 class RandomWalkwithStop : public RandomWalk {
 
-    vid_t firstsource, numsources;
-    wid_t walkspersource;
-    hid_t maxwalklength;
-
-public:
-    void initializeRW(wid_t _nwalks, hid_t _maxwalklength) {
-        nwalks = _nwalks;
-        maxwalklength = _maxwalklength;
-        std::cout << "initializeRW -- nwalks, maxwalklength : "  << nwalks << " " << maxwalklength << std::endl;
-    }   
+public:  
 
     void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
-        // logstream(LOG_INFO) << "updateByWalk in randomwalkwithstop." << std::endl;
+        logstream(LOG_INFO) << "updateByWalk in randomwalkwithstop." << std::endl;
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
         vid_t sourId = walk_manager.getSourceId(nowWalk);
@@ -36,8 +27,8 @@ public:
         unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
         // logstream(LOG_DEBUG) << "dstId = " << dstId << ",  exec_block = " << exec_block << ", range = [" << blocks[exec_block] << "," << blocks[exec_block+1] << ")"<< std::endl;
         // logstream(LOG_DEBUG) << "hop = " << hop << ",  maxwalklength = " << maxwalklength << std::endl;
-        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] && hop < maxwalklength ){
-            // std::cout  << " -> " << dstId ;//<< " " << walk_manager.getSourceId(walk) << std::endl;
+        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] && hop < L ){
+            std::cout  << " -> " << dstId ;//<< " " << walk_manager.getSourceId(walk) << std::endl;
             updateInfo(sourId, dstId, threadid, hop);
             vid_t dstIdp = dstId - blocks[exec_block];
             eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
@@ -51,7 +42,7 @@ public:
             hop++;
             nowWalk++;
         }
-        if( hop < maxwalklength ){
+        if( hop < L ){
             bid_t p = getblock( dstId );
             if(p>=nblocks) return;
             walk_manager.moveWalk(nowWalk, p, threadid, dstId - blocks[p]);

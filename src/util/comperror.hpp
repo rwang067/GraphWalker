@@ -5,10 +5,10 @@
 #include "api/filename.hpp"
 
     template <typename VertexDataType>
-    void initialVertexValue(unsigned N, std::string basefilename){
-        unsigned maxwindow = 256*1024*1024;
+    void initialVertexValue(vid_t N, std::string basefilename){
+        vid_t maxwindow = 256*1024*1024;
         logstream(LOG_INFO) << " N , maxwindow : " << N << " " << maxwindow << std::endl;
-        unsigned st = 0, len = 0;
+        vid_t st = 0, len = 0;
         while( st < N ){
             len = N-st < maxwindow ? N-st : maxwindow;
             logstream(LOG_INFO) << " s , len : " << st << " " << len << std::endl;

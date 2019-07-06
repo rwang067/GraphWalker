@@ -31,7 +31,7 @@ public:
         logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
 
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
-        used_edges = new unsigned[exec_threads];
+        used_edges = new eid_t[exec_threads];
         for(int i=0; i<exec_threads; i++){
             used_edges[i] = 0;
         }
@@ -58,16 +58,8 @@ public:
                     WalkDataType walk = walk_manager.encode(s + sts - firstsource, cur, 0);
                     for( wid_t j = 0; j < walkspersource; j++ ){
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
-                        // curwalks[s*walkspersource+j] = walk;
                     }
                 }
-            // std::string walksfile = walksname( base_filename, p );
-            // int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-            // pwritea( f, &curwalks[0], walk_manager.walknum[p]*sizeof(WalkDataType) );
-            // close(f);
-            // free(curwalks);
-            // curwalks = NULL;
-            // walk_manager.dwalknum[p] = walk_manager.walknum[p];
             walk_manager.walksum += walk_manager.walknum[p];
             p++;
             sts = ens;
@@ -113,11 +105,11 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../raid0_mnop/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
-    vid_t numsources = get_option_int("numsources", 10); // Number of sources
+    vid_t numsources = get_option_int("numsources", 1); // Number of sources
     wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 32768); // Size of block, represented in KB
+    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
     bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
     
     /* Detect the number of shards or preprocess an input to create them */

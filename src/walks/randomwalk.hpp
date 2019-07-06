@@ -18,7 +18,8 @@ class RandomWalk {
 public:
     bid_t nblocks;
     vid_t *blocks;
-    wid_t nwalks;
+    wid_t R;
+    hid_t L;
 
 public:
 
@@ -27,7 +28,7 @@ public:
         logstream(LOG_ERROR) << "No definition of function : startWalksbyApp!" << std::endl;
     }  
 
-    //for msppr
+    //for all
     virtual void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         logstream(LOG_ERROR) << "No definition of function : updateInfo!" << std::endl;
     }
@@ -37,10 +38,6 @@ public:
      */
     virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
         logstream(LOG_ERROR) << "No definition of function : updateByWalk!" << std::endl;
-    }
-
-    virtual void initializeRW( wid_t _nwalks, hid_t _nsteps) {
-        logstream(LOG_DEBUG) << "No definition of function : initializeRW!" << std::endl;
     }
     
     /**
@@ -61,6 +58,11 @@ public:
 
     virtual void compUtilization(eid_t total_edges){
         logstream(LOG_DEBUG) << "No definition of function : compUtilization!" << std::endl;
+    }
+
+    virtual void initializeRW( wid_t _R, hid_t _L) {
+        R = _R;
+        L = _L;
     }
 
     virtual void startWalks(WalkManager &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){

@@ -18,8 +18,6 @@ class RandomWalkwithJump : public RandomWalk{
 
 public:
         vid_t N;
-        wid_t R;
-        hid_t L;
 
 public:
 
