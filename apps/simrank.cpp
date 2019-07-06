@@ -24,7 +24,7 @@ public:
 		walksfromb.resize(R*L);
 		memset(walksfroma.data(), 0xff, walksfroma.size()*sizeof(vid_t));
 		memset(walksfromb.data(), 0xff, walksfromb.size()*sizeof(vid_t));
-		initializeRW( 2*R, L);
+		initializeRW( R, L);
 	}
 
 	void startWalksbyApp(WalkManager &walk_manager){
