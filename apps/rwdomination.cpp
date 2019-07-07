@@ -41,9 +41,9 @@ public:
     void startWalksbyApp( WalkManager &walk_manager  ){
         //muti threads to start walks
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
-        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-        omp_set_num_threads(nthreads);
-        #pragma omp parallel for schedule(static)
+        // tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
+        // omp_set_num_threads(nthreads);
+        // #pragma omp parallel for schedule(static)
             for( bid_t p = 0; p < nblocks; p++ ){
                 walk_manager.minstep[p] = 0;
                 walk_manager.walknum[p] = (blocks[p+1]-blocks[p])*R;
@@ -52,7 +52,7 @@ public:
                     vid_t s = v;
                     vid_t cur = s - blocks[p];
                     WalkDataType walk = walk_manager.encode(s, cur, 0);
-                    for( unsigned j = 0; j < R; j++ ){
+                    for( wid_t j = 0; j < R; j++ ){
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     }
                 }
