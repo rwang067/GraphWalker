@@ -12,7 +12,7 @@ typedef unsigned VertexDataType;
 
 class RandomWalkDomination : public RandomWalkwithJump{
 public:
-    VertexDataType **vertex_value;
+    VertexDataType *vertex_value;
     std::string basefilename;
     vid_t cur_window_st;
 
@@ -30,12 +30,9 @@ public:
         R = _R; //walks per source
         L = _L;
         basefilename = _basefilename;
-        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-        vertex_value = new VertexDataType*[nthreads];
-        for(tid_t t = 0; t < nthreads; t++){
-            vertex_value[t] = new VertexDataType[N];
-            for(vid_t i = 0; i < N; i++)
-                vertex_value[t][i] = 0;
+        vertex_value = new VertexDataType[N];
+        for(vid_t i = 0; i < N; i++){
+            vertex_value[i] = 0;
         }
         // initialVertexValue<VertexDataType>(N, basefilename);
         initializeRW( N, R, L);
@@ -65,7 +62,7 @@ public:
 
 	void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         assert(dstId < N);
-        vertex_value[threadid][dstId]++; // #pragma omp critical
+        vertex_value[dstId]++; // #pragma omp critical
     }
 
 };
