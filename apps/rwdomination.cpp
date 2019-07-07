@@ -42,12 +42,12 @@ public:
         //muti threads to start walks
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
         tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-        for( bid_t p = 0; p < nblocks; p++ ){
-            walk_manager.minstep[p] = 0;
-            walk_manager.walknum[p] = (blocks[p+1]-blocks[p])*R;
-            
-            omp_set_num_threads(nthreads);
-            #pragma omp parallel for schedule(static)
+        omp_set_num_threads(nthreads);
+        #pragma omp parallel for schedule(static)
+            for( bid_t p = 0; p < nblocks; p++ ){
+                walk_manager.minstep[p] = 0;
+                walk_manager.walknum[p] = (blocks[p+1]-blocks[p])*R;
+                
                 for( vid_t v = blocks[p]; v < blocks[p+1]; v++ ){
                     vid_t s = v;
                     vid_t cur = s - blocks[p];
@@ -56,7 +56,7 @@ public:
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     }
                 }
-        }
+            }
         walk_manager.walksum = R*N;
     }
 
