@@ -25,7 +25,7 @@ class graphLet : public RandomWalkwithStop{
             srand((unsigned)time(NULL));
             tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
             omp_set_num_threads(nthreads);
-            #pragma omp parallel for schedule(static)
+            // #pragma omp parallel for schedule(static)
                 for (wid_t i = 0; i < R; i++){
                     vid_t s = rand()%N;
                     bid_t p = getblock(s);
@@ -44,7 +44,7 @@ class graphLet : public RandomWalkwithStop{
         }
 
 		void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-            logstream(LOG_DEBUG) << dstId << " " << s << std::endl;
+            // logstream(LOG_DEBUG) << dstId << " " << s << std::endl;
             if(hop < L-1) return;
             if (dstId == s){
                 cnt_ok[threadid]++;
