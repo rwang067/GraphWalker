@@ -78,20 +78,24 @@ int main(int argc, const char ** argv) {
     metrics m("RWDomination");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     unsigned N = get_option_int("N", 4847571); // Number of vertices
     unsigned R = get_option_int("R", 1); // Number of steps
     unsigned L = get_option_int("L", 6); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
+    // unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
+    // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
     
-    /* Detect the number of shards or preprocess an input to create them */
-    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
-
     /* Run */
     RandomWalkDomination program;
     program.initializeApp( N, R, L, filename );
+
+    unsigned long long blocksize_kb = program.compBlockSize(N*R);
+    /* Detect the number of shards or preprocess an input to create them */
+    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    bid_t nmblocks = program.compNmblocks(blocksize_kb);
+    if(nmblocks > nblocks) nmblocks = nblocks;
+
     graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 

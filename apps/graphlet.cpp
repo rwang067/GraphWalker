@@ -69,21 +69,25 @@ int main(int argc, const char ** argv){
     set_argc(argc,argv);
     metrics m("graphlet");
     
-    std::string filename = get_option_string("file", "../DataSet/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     unsigned N = get_option_int("N", 4847571); // Number of vertices
     unsigned R = get_option_int("R", 100000); // Number of steps
     unsigned L = get_option_int("L", 4); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
-    
-    /* Detect the number of shards or preprocess an input to create them */
-    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    // unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
+    // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
     
     // run
     graphLet program;
     program.initializeApp(N,R,L);
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+
+    unsigned long long blocksize_kb = program.compBlockSize(R);
+    /* Detect the number of shards or preprocess an input to create them */
+    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    bid_t nmblocks = program.compNmblocks(blocksize_kb);
+    if(nmblocks > nblocks) nmblocks = nblocks;
+
+    graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);
 
     float triangle_ratio = program.computeResult();

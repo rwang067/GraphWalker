@@ -89,6 +89,29 @@ public:
         // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << std::endl;
         return ( remaining_walknum > 0 ); 
     }
+
+    /**
+     * determine the block size according to the number of walks
+     */
+    virtual unsigned long long compBlockSize(wid_t nwalks){
+        int dom = 0;
+        while(nwalks){
+            dom++;
+            nwalks /= 10;
+        }
+        unsigned long long blocksize_kb = pow(2, 11 + dom);
+        logstream(LOG_DEBUG) << "Determined blocksize_kb = " << blocksize_kb << std::endl;
+        return blocksize_kb; 
+    }
+
+    /**
+     * determine the number of in-memory blocks
+     */
+    virtual bid_t compNmblocks(unsigned long long blocksize_kb){
+        bid_t nmblocks = MEM_BUDGET / blocksize_kb;
+        logstream(LOG_DEBUG) << "Computed nmblocks = " << nmblocks << std::endl;
+        return nmblocks; 
+    }
     
 };
 

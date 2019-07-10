@@ -109,11 +109,9 @@ int main(int argc, const char ** argv) {
     wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
-    
-    /* Detect the number of shards or preprocess an input to create them */
-    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+
+    // unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
+    // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
 
     // char cmd[256];
 	// // sprintf(cmd,"%s","iostat -x 1 -k > iostat_randomwalks.log&");
@@ -124,7 +122,13 @@ int main(int argc, const char ** argv) {
     /* Run */
     MultiSourcePersonalizedPageRank program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+
+    unsigned long long blocksize_kb = program.compBlockSize(numsources*walkspersource);
+    bid_t nmblocks = program.compNmblocks(blocksize_kb);
+    
+    /* Detect the number of shards or preprocess an input to create them */
+    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);
