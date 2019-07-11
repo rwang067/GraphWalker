@@ -11,17 +11,17 @@ class RawRandomWalks : public RandomWalkwithJump{
 
 public:
 
-    // tid_t exec_threads;
-    // eid_t *used_edges;
+    tid_t exec_threads;
+    eid_t *used_edges;
 
     void initializeApp(vid_t N, wid_t R, hid_t L){
         initializeRW(N,R,L);
-        // exec_threads = get_option_int("execthreads", omp_get_max_threads());
-        // used_edges = new eid_t[exec_threads];
-        // for(int i=0; i<exec_threads; i++){
-        //     used_edges[i] = 0;
-        // }
-        // unlink("graphwalker_utilization.csv"); 
+        exec_threads = get_option_int("execthreads", omp_get_max_threads());
+        used_edges = new eid_t[exec_threads];
+        for(int i=0; i<exec_threads; i++){
+            used_edges[i] = 0;
+        }
+        unlink("graphwalker_utilization.csv"); 
     }
 
     void startWalksbyApp(WalkManager &walk_manager){
@@ -50,10 +50,10 @@ public:
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-        // used_edges[threadid]++;
+        used_edges[threadid]++;
     }
 
-    /*
+    
     void compUtilization(eid_t total_edges){
         for(tid_t i = 1; i < exec_threads; i++){
             used_edges[0] += used_edges[i];
@@ -70,7 +70,7 @@ public:
         for(tid_t i=0; i<exec_threads; i++){
             used_edges[i] = 0;
         }
-    }*/
+    }
 
 };
 
