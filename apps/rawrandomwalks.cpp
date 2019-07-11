@@ -24,29 +24,52 @@ public:
         unlink("graphwalker_utilization.csv"); 
     }
 
-    void startWalksbyApp(WalkManager &walk_manager){
-        std::cout << "Random walks:\tStart " << R << " walks randomly ..." << std::endl;
-        srand((unsigned)time(NULL));
-        tid_t exec_threads = get_option_int("execthreads", omp_get_max_threads());
-        omp_set_num_threads(exec_threads);
+    // void startWalksbyApp(WalkManager &walk_manager){
+    //     std::cout << "Random walks:\tStart " << R << " walks randomly ..." << std::endl;
+    //     srand((unsigned)time(NULL));
+    //     tid_t exec_threads = get_option_int("execthreads", omp_get_max_threads());
+    //     omp_set_num_threads(exec_threads);
+    //     #pragma omp parallel for schedule(static)
+    //         for (wid_t i = 0; i < R; i++){
+    //             vid_t s = rand()%N;
+    //             bid_t p = getblock(s);
+    //             vid_t cur = s - blocks[p];
+    //             // std::cout << "startWalksbyApp:\t" << "source " << i <<" = " << s << "\tp=" << p << "\tcur=" << cur << std::endl;
+    //             WalkDataType walk = walk_manager.encode(s,cur,0);
+    //             walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
+    //             // walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
+    //         }
+    //     for( bid_t p = 0; p < nblocks; p++){
+    //         walk_manager.walknum[p] = walk_manager.dwalknum[p];
+    //         for(tid_t t = 0; t < exec_threads; t++)
+    //             walk_manager.walknum[p] +=  walk_manager.pwalks[t][p].size_w;
+    //         if(walk_manager.walknum[p] )
+    //             walk_manager.minstep[p] = 0;
+    //         walk_manager.walksum += walk_manager.walknum[p];
+    //     }
+    // }
+    
+    /* Random Walk Domination*/
+    void startWalksbyApp( WalkManager &walk_manager  ){
+        //muti threads to start walks
+        logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
+        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
+        omp_set_num_threads(nthreads);
         #pragma omp parallel for schedule(static)
-            for (wid_t i = 0; i < R; i++){
-                vid_t s = rand()%N;
-                bid_t p = getblock(s);
-                vid_t cur = s - blocks[p];
-                // std::cout << "startWalksbyApp:\t" << "source " << i <<" = " << s << "\tp=" << p << "\tcur=" << cur << std::endl;
-                WalkDataType walk = walk_manager.encode(s,cur,0);
-                walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
-                // walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
-            }
-        for( bid_t p = 0; p < nblocks; p++){
-            walk_manager.walknum[p] = walk_manager.dwalknum[p];
-            for(tid_t t = 0; t < exec_threads; t++)
-                walk_manager.walknum[p] +=  walk_manager.pwalks[t][p].size_w;
-            if(walk_manager.walknum[p] )
+            for( bid_t p = 0; p < nblocks; p++ ){
                 walk_manager.minstep[p] = 0;
-            walk_manager.walksum += walk_manager.walknum[p];
-        }
+                walk_manager.walknum[p] = (blocks[p+1]-blocks[p])*R;
+                
+                for( vid_t v = blocks[p]; v < blocks[p+1]; v++ ){
+                    vid_t s = v;
+                    vid_t cur = s - blocks[p];
+                    WalkDataType walk = walk_manager.encode(s, cur, 0);
+                    for( wid_t j = 0; j < R; j++ ){
+                        walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
+                    }
+                }
+            }
+        walk_manager.walksum = R*N;
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
