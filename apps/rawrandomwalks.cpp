@@ -11,88 +11,65 @@ class RawRandomWalks : public RandomWalkwithJump{
 
 public:
 
-    tid_t exec_threads;
-    eid_t *used_edges;
+    // tid_t exec_threads;
+    // eid_t *used_edges;
 
     void initializeApp(vid_t N, wid_t R, hid_t L){
         initializeRW(N,R,L);
-        exec_threads = get_option_int("execthreads", omp_get_max_threads());
-        used_edges = new eid_t[exec_threads];
-        for(int i=0; i<exec_threads; i++){
-            used_edges[i] = 0;
-        }
-        unlink("graphwalker_utilization.csv"); 
+        // exec_threads = get_option_int("execthreads", omp_get_max_threads());
+        // used_edges = new eid_t[exec_threads];
+        // for(int i=0; i<exec_threads; i++){
+        //     used_edges[i] = 0;
+        // }
+        // unlink("graphwalker_utilization.csv"); 
     }
 
-    // void startWalksbyApp(WalkManager &walk_manager){
-    //     std::cout << "Random walks:\tStart " << R << " walks randomly ..." << std::endl;
-    //     srand((unsigned)time(NULL));
-    //     tid_t exec_threads = get_option_int("execthreads", omp_get_max_threads());
-    //     omp_set_num_threads(exec_threads);
-    //     #pragma omp parallel for schedule(static)
-    //         for (wid_t i = 0; i < R; i++){
-    //             vid_t s = rand()%N;
-    //             bid_t p = getblock(s);
-    //             vid_t cur = s - blocks[p];
-    //             // std::cout << "startWalksbyApp:\t" << "source " << i <<" = " << s << "\tp=" << p << "\tcur=" << cur << std::endl;
-    //             WalkDataType walk = walk_manager.encode(s,cur,0);
-    //             walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
-    //             // walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
-    //         }
-    //     for( bid_t p = 0; p < nblocks; p++){
-    //         walk_manager.walknum[p] = walk_manager.dwalknum[p];
-    //         for(tid_t t = 0; t < exec_threads; t++)
-    //             walk_manager.walknum[p] +=  walk_manager.pwalks[t][p].size_w;
-    //         if(walk_manager.walknum[p] )
-    //             walk_manager.minstep[p] = 0;
-    //         walk_manager.walksum += walk_manager.walknum[p];
-    //     }
-    // }
-    
-    /* Random Walk Domination*/
-    void startWalksbyApp( WalkManager &walk_manager  ){
-        //muti threads to start walks
-        logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
-        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-        omp_set_num_threads(nthreads);
+    void startWalksbyApp(WalkManager &walk_manager){
+        std::cout << "Random walks:\tStart " << R << " walks randomly ..." << std::endl;
+        srand((unsigned)time(NULL));
+        tid_t exec_threads = get_option_int("execthreads", omp_get_max_threads());
+        omp_set_num_threads(exec_threads);
         #pragma omp parallel for schedule(static)
-            for( bid_t p = 0; p < nblocks; p++ ){
-                walk_manager.minstep[p] = 0;
-                walk_manager.walknum[p] = (blocks[p+1]-blocks[p])*R;
-                
-                for( vid_t v = blocks[p]; v < blocks[p+1]; v++ ){
-                    vid_t s = v;
-                    vid_t cur = s - blocks[p];
-                    WalkDataType walk = walk_manager.encode(s, cur, 0);
-                    for( wid_t j = 0; j < R; j++ ){
-                        walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
-                    }
-                }
+            for (wid_t i = 0; i < R; i++){
+                vid_t s = rand()%N;
+                bid_t p = getblock(s);
+                vid_t cur = s - blocks[p];
+                // std::cout << "startWalksbyApp:\t" << "source " << i <<" = " << s << "\tp=" << p << "\tcur=" << cur << std::endl;
+                WalkDataType walk = walk_manager.encode(s,cur,0);
+                walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
+                // walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
             }
-        walk_manager.walksum = R*N;
+        for( bid_t p = 0; p < nblocks; p++){
+            walk_manager.walknum[p] = walk_manager.dwalknum[p];
+            for(tid_t t = 0; t < exec_threads; t++)
+                walk_manager.walknum[p] +=  walk_manager.pwalks[t][p].size_w;
+            if(walk_manager.walknum[p] )
+                walk_manager.minstep[p] = 0;
+        }
+        walk_manager.walksum = R;
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-        used_edges[threadid]++;
+        // used_edges[threadid]++;
     }
 
     
     void compUtilization(eid_t total_edges){
-        for(tid_t i = 1; i < exec_threads; i++){
-            used_edges[0] += used_edges[i];
-        }
+        // for(tid_t i = 1; i < exec_threads; i++){
+        //     used_edges[0] += used_edges[i];
+        // }
 
-        float utilization = (float)used_edges[0] / (float)total_edges;
-        // logstream(LOG_INFO) << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
-        std::string utilization_filename = "graphwalker_utilization.csv";
-        std::ofstream utilizationfile;
-        utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);
-        utilizationfile << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
-        utilizationfile.close();
+        // float utilization = (float)used_edges[0] / (float)total_edges;
+        // // logstream(LOG_INFO) << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
+        // std::string utilization_filename = "graphwalker_utilization.csv";
+        // std::ofstream utilizationfile;
+        // utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);
+        // utilizationfile << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
+        // utilizationfile.close();
 
-        for(tid_t i=0; i<exec_threads; i++){
-            used_edges[i] = 0;
-        }
+        // for(tid_t i=0; i<exec_threads; i++){
+        //     used_edges[i] = 0;
+        // }
     }
 
 };
@@ -106,16 +83,20 @@ int main(int argc, const char ** argv){
     wid_t R = get_option_long("R", 10000); // Number of steps
     hid_t L = get_option_int("L", 4); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 32768); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
+    // unsigned long long blocksize_kb = get_option_long("blocksize_kb", 32768); // Size of block, represented in KB
+    // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
     
-    /* Detect the number of shards or preprocess an input to create them */
-    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
-
     logstream(LOG_DEBUG) << "N R L : " << N << " " << R << " " << L << std::endl;
     // run
     RawRandomWalks program;
     program.initializeApp(N,R,L);
+
+    unsigned long long blocksize_kb = program.compBlockSize(R);
+    /* Detect the number of shards or preprocess an input to create them */
+    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    bid_t nmblocks = program.compNmblocks(blocksize_kb);
+    if(nmblocks > nblocks) nmblocks = nblocks;
+
     graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 
