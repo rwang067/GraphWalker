@@ -124,10 +124,11 @@ int main(int argc, const char ** argv) {
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
 
     unsigned long long blocksize_kb = program.compBlockSize(numsources*walkspersource);
-    bid_t nmblocks = program.compNmblocks(blocksize_kb);
-    
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    bid_t nmblocks = program.compNmblocks(blocksize_kb);
+    if(nmblocks > nblocks) nmblocks = nblocks;
+
     graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);
 
