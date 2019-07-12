@@ -290,7 +290,7 @@ public:
             
             exec_updates(userprogram, nwalks, beg_pos, csr);
             walk_manager->updateWalkNum(exec_block);
-            userprogram.compUtilization(beg_pos[nverts] - beg_pos[0]);
+            // userprogram.compUtilization(beg_pos[nverts] - beg_pos[0]);
 
         } // For block loop
         m.stop_time("00_runtime");
