@@ -11,7 +11,7 @@
 #define	EDGE_SIZE	256 * 1024 * 1024 // 256M edges in csr buffer in preprocess
 #define	WALK_BUFFER_SIZE	20480 // most 1024 walks in a in-memory walk buffer
 #define	MEM_BUDGET	56 * 1024 * 1024 // for 64GB memory machine
-// #define	MEM_BUDGET	6 * 1024 * 1024 // for 8GB memory machine
+// #define	MEM_BUDGET	4 * 1024 * 1024 // for 8GB memory machine
 
 typedef uint32_t vid_t;
 typedef uint64_t eid_t;
