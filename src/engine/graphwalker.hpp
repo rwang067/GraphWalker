@@ -259,12 +259,13 @@ public:
     }
 
     void run(RandomWalk &userprogram, float prob) {
-        gettimeofday(&start, NULL);
-        m.start_time("00_runtime");
         // srand((unsigned)time(NULL));
         m.start_time("0_startWalks");
         userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
         m.stop_time("0_startWalks");
+        
+        gettimeofday(&start, NULL);
+        m.start_time("00_runtime");
 
         vid_t nverts, *csr;
         eid_t nedges, *beg_pos;
