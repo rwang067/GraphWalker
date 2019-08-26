@@ -324,15 +324,26 @@
             for(vid_t v = 0; v < rv; v++){
                 if(beg_pos[v]-bgstvb > mneb){
                     logstream(LOG_INFO) << "Block_" << blockid << " : [" << stvb << ", " << nread+v-1 << ")" << std::endl;
+                    // if(beg_pos[v]-beg_pos[v-1] > mneb){
+                    //     logstream(LOG_ERROR) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
+                    //     logstream(LOG_ERROR) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
+                    //     assert(false);
+                    // }
                     if(beg_pos[v]-beg_pos[v-1] > mneb){
-                        logstream(LOG_ERROR) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
-                        logstream(LOG_ERROR) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
-                        assert(false);
+                        logstream(LOG_WARNING) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
+                        logstream(LOG_WARNING) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
+                        blockid+=2;
+                        stvb = nread+v-1;
+                        blocks.push_back(stvb);
+                        stvb = nread+v;
+                        blocks.push_back(stvb);
+                        bgstvb = beg_pos[v];
+                    }else{
+                        blockid++;
+                        stvb = nread+v-1;
+                        blocks.push_back(stvb);
+                        bgstvb = beg_pos[v-1];
                     }
-                    blockid++;
-                    stvb = nread+v-1;
-                    blocks.push_back(stvb);
-                    bgstvb = beg_pos[v-1];
                 }
             }
             nread += rv;

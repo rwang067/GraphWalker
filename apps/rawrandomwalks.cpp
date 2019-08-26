@@ -101,6 +101,8 @@ int main(int argc, const char ** argv){
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
+    logstream(LOG_DEBUG) << "nblocks nmblocks : " << nblocks << " " << nmblocks << std::endl;
+
     graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 
