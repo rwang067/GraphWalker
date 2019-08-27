@@ -110,7 +110,7 @@ int main(int argc, const char ** argv) {
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
 
-    // unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
+    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
     // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
 
     // char cmd[256];
@@ -123,7 +123,8 @@ int main(int argc, const char ** argv) {
     MultiSourcePersonalizedPageRank program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
 
-    unsigned long long blocksize_kb = program.compBlockSize(numsources*walkspersource);
+    if(blocksize_kb == 0)
+        blocksize_kb = program.compBlockSize(numsources*walkspersource);
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
     bid_t nmblocks = program.compNmblocks(blocksize_kb);

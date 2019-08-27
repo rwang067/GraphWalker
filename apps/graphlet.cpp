@@ -74,14 +74,15 @@ int main(int argc, const char ** argv){
     unsigned R = get_option_int("R", 100000); // Number of steps
     unsigned L = get_option_int("L", 4); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    // unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
+    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
     // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
     
     // run
     graphLet program;
     program.initializeApp(N,R,L);
 
-    unsigned long long blocksize_kb = program.compBlockSize(R);
+    if(blocksize_kb == 0)
+        blocksize_kb = program.compBlockSize(R);
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
     bid_t nmblocks = program.compNmblocks(blocksize_kb);
