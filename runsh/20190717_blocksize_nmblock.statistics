@@ -1,0 +1,433 @@
+2019.7.17 
+Impact of nmblocks in raw random walks (clear pagecache each time) in 64GB R730, dataset = Yahoo
+Turn on Page Cache, clear pagecache each time, R 100000 L 10
+Turn on Page Cache, nmblocks = 1
+Turn on Page Cache, nmblocks = 1
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+95.0701  	  0.003446  	  94.5262  	  0.021722  	  0.45825  	  0.047347  	  1839  	  1839  	  198
+94.9172  	  0.003383  	  94.4523  	  0.021232  	  0.380828  	  0.046121  	  1829  	  1829  	  198
+92.6012  	  0.003333  	  92.121  	  0.022666  	  0.394175  	  0.046776  	  1824  	  1824  	  198
+94.4658  	  0.003355  	  93.9992  	  0.020399  	  0.383086  	  0.04663  	  1849  	  1849  	  198
+93.9467  	  0.003444  	  93.4837  	  0.02134  	  0.379509  	  0.045496  	  1840  	  1840  	  198
+Turn on Page Cache, nmblocks =  50
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+63.7367  	  0.003151  	  63.3242  	  0.020863  	  0.332667  	  0.043372  	  1835  	  1320  	  198
+65.7111  	  0.003181  	  65.2659  	  0.020856  	  0.365543  	  0.043075  	  1837  	  1320  	  198
+64.4897  	  0.003165  	  64.0882  	  0.021  	  0.321587  	  0.042892  	  1834  	  1305  	  198
+65.1004  	  0.003157  	  64.7064  	  0.020606  	  0.315778  	  0.042118  	  1823  	  1311  	  198
+63.6099  	  0.003128  	  63.2085  	  0.020854  	  0.322738  	  0.042466  	  1826  	  1296  	  198
+Turn on Page Cache, nmblocks =  100
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+40.8008  	  0.002859  	  40.4943  	  0.020443  	  0.23066  	  0.040007  	  1845  	  842  	  198
+40.3183  	  0.002951  	  39.9819  	  0.020273  	  0.262122  	  0.039271  	  1855  	  848  	  198
+40.4644  	  0.00284  	  40.1074  	  0.020073  	  0.283219  	  0.039329  	  1822  	  841  	  198
+42.7346  	  0.002793  	  42.4087  	  0.020941  	  0.249911  	  0.040671  	  1822  	  858  	  198
+40.9289  	  0.002922  	  40.587  	  0.020393  	  0.265958  	  0.040408  	  1839  	  841  	  198
+Turn on Page Cache, nmblocks =  150
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+29.5583  	  0.002698  	  29.0972  	  0.019771  	  0.389494  	  0.038097  	  1831  	  502  	  198
+26.8941  	  0.002638  	  26.6182  	  0.020054  	  0.204805  	  0.037447  	  1836  	  485  	  198
+28.7531  	  0.002674  	  28.4115  	  0.019855  	  0.269868  	  0.038127  	  1838  	  505  	  198
+28.4968  	  0.00264  	  28.114  	  0.020041  	  0.311272  	  0.037671  	  1840  	  505  	  198
+28.2778  	  0.002662  	  27.8508  	  0.019933  	  0.355325  	  0.037705  	  1844  	  498  	  198
+Turn on Page Cache, nmblocks =  200
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+16.0925  	  0.002498  	  15.8119  	  0.016767  	  0.217752  	  0.033845  	  1840  	  198  	  198
+16.215  	  0.002427  	  15.9473  	  0.016703  	  0.205072  	  0.033761  	  1856  	  198  	  198
+16.1633  	  0.002453  	  15.94  	  0.01673  	  0.160747  	  0.033717  	  1840  	  198  	  198
+16.1159  	  0.002521  	  15.8794  	  0.017054  	  0.172528  	  0.034423  	  1838  	  198  	  198
+15.8662  	  0.002581  	  15.599  	  0.016838  	  0.203817  	  0.034295  	  1855  	  198  	  198
+Turn on Page Cache, nmblocks =  250
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+16.1105  	  0.002513  	  15.8755  	  0.01685  	  0.172516  	  0.033572  	  1833  	  198  	  198
+16.2231  	  0.00254  	  15.9392  	  0.01711  	  0.219702  	  0.034569  	  1859  	  198  	  198
+16.1333  	  0.002533  	  15.8366  	  0.016977  	  0.233056  	  0.0344  	  1860  	  198  	  198
+15.7699  	  0.002545  	  15.5232  	  0.016909  	  0.180185  	  0.03444  	  1849  	  198  	  198
+16.0467  	  0.002512  	  15.7961  	  0.016812  	  0.187556  	  0.034015  	  1833  	  198  	  198
+Turn on Page Cache, nmblocks =  300
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+16.0061  	  0.002395  	  15.7915  	  0.016752  	  0.15225  	  0.033555  	  1812  	  198  	  198
+16.023  	  0.002404  	  15.7952  	  0.016504  	  0.16588  	  0.033344  	  1821  	  198  	  198
+15.8107  	  0.002577  	  15.5497  	  0.017004  	  0.197344  	  0.034028  	  1851  	  198  	  198
+15.8136  	  0.002479  	  15.5929  	  0.01715  	  0.15706  	  0.034097  	  1845  	  198  	  198
+15.8014  	  0.002444  	  15.5592  	  0.016821  	  0.17733  	  0.036102  	  1842  	  198  	  198
+Turn on Page Cache, nmblocks =  350
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+16.3079  	  0.002419  	  16.0381  	  0.016913  	  0.206259  	  0.034263  	  1847  	  198  	  198
+16.0996  	  0.002479  	  15.8649  	  0.016724  	  0.171517  	  0.034158  	  1842  	  198  	  198
+16.0158  	  0.002532  	  15.7307  	  0.016926  	  0.221389  	  0.03444  	  1854  	  198  	  198
+16.0347  	  0.002423  	  15.8212  	  0.017008  	  0.150688  	  0.033722  	  1824  	  198  	  198
+15.8899  	  0.002439  	  15.6415  	  0.016535  	  0.187091  	  0.032877  	  1807  	  198  	  198
+Turn on Page Cache, nmblocks =  400
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+16.0903  	  0.002515  	  15.8394  	  0.01697  	  0.187887  	  0.033854  	  1843  	  198  	  198
+16.079  	  0.002584  	  15.8303  	  0.016801  	  0.184669  	  0.034238  	  1845  	  198  	  198
+15.8005  	  0.00252  	  15.5601  	  0.016876  	  0.176251  	  0.034848  	  1868  	  198  	  198
+15.8121  	  0.002379  	  15.5757  	  0.016539  	  0.174571  	  0.033481  	  1796  	  198  	  198
+15.8418  	  0.002532  	  15.5748  	  0.017446  	  0.202934  	  0.034442  	  1843  	  198  	  198
+Turn on Page Cache, nmblocks =  450
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+15.8225  	  0.002454  	  15.5591  	  0.016854  	  0.200957  	  0.033538  	  1831  	  198  	  198
+16.0296  	  0.002526  	  15.7731  	  0.016883  	  0.19397  	  0.033561  	  1830  	  198  	  198
+15.8856  	  0.002486  	  15.6031  	  0.016957  	  0.219442  	  0.034064  	  1823  	  198  	  198
+16.0312  	  0.002473  	  15.7542  	  0.016982  	  0.214028  	  0.033854  	  1856  	  198  	  198
+16.1692  	  0.002538  	  15.9039  	  0.0169  	  0.201513  	  0.03476  	  1855  	  198  	  198
+Turn on Page Cache, nmblocks =  500
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+16.0918  	  0.002429  	  15.7859  	  0.017373  	  0.241566  	  0.034867  	  1846  	  198  	  198
+16.048  	  0.002471  	  15.7641  	  0.017042  	  0.220656  	  0.033776  	  1867  	  198  	  198
+16.2273  	  0.002481  	  15.9738  	  0.016779  	  0.190945  	  0.033574  	  1850  	  198  	  198
+15.7852  	  0.002534  	  15.556  	  0.017213  	  0.165382  	  0.034246  	  1865  	  198  	  198
+16.1046  	  0.002522  	  15.8424  	  0.016639  	  0.199751  	  0.033777  	  1806  	  198  	  198
+2019.7.17 
+Impact of nmblocks in raw random walks (clear pagecache each time) in 64GB R730, dataset = Crawl
+Turn on Page Cache, clear pagecache each time, R 100000 L 10 
+Turn on Page Cache, nmblocks = 1
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1017.91  	  0.269146  	  1003.27  	  0.106801  	  13.5959  	  0.516048  	  17741  	  17741  	  3797
+1023.49  	  0.269566  	  1009.56  	  0.107987  	  12.8884  	  0.521328  	  17711  	  17711  	  3797
+1036.16  	  0.273456  	  1022.3  	  0.109543  	  12.8039  	  0.52084  	  17693  	  17693  	  3797
+1033.76  	  0.269692  	  1020.03  	  0.111735  	  12.6726  	  0.519818  	  17679  	  17679  	  3797
+1025.1  	  0.268874  	  1011.29  	  0.108035  	  12.7538  	  0.523198  	  17757  	  17757  	  3797
+Turn on Page Cache, nmblocks =  50
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1010.03  	  0.268322  	  995.915  	  0.108217  	  13.0688  	  0.519917  	  17687  	  17411  	  3797
+1009.92  	  0.267637  	  995.863  	  0.107485  	  13.02  	  0.516184  	  17706  	  17418  	  3797
+1012.85  	  0.266999  	  998.647  	  0.106395  	  13.1595  	  0.51721  	  17716  	  17432  	  3797
+1012.02  	  0.267902  	  997.544  	  0.111231  	  13.4248  	  0.517811  	  17683  	  17406  	  3797
+1015.15  	  0.27319  	  1000.44  	  0.110253  	  13.6508  	  0.518933  	  17751  	  17465  	  3797
+Turn on Page Cache, nmblocks =  100
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+998.958  	  0.272981  	  983.852  	  0.109734  	  14.049  	  0.521662  	  17661  	  17116  	  3797
+1004.51  	  0.374522  	  989.401  	  0.111053  	  13.9356  	  0.531499  	  17776  	  17241  	  3797
+1001.77  	  0.267713  	  986.759  	  0.112284  	  13.9635  	  0.517221  	  17671  	  17154  	  3797
+993.43  	  0.266247  	  978.528  	  0.112564  	  13.856  	  0.518461  	  17561  	  17022  	  3797
+1000.03  	  0.268738  	  984.973  	  0.110855  	  14.0088  	  0.519043  	  17662  	  17136  	  3797
+Turn on Page Cache, nmblocks =  150
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+Turn on Page Cache, nmblocks =  150
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+997.521  	  0.268403  	  982.405  	  0.112984  	  14.0567  	  0.52218  	  17781  	  17027  	  3797
+990.869  	  0.267639  	  976.005  	  0.11049  	  13.8152  	  0.519032  	  17649  	  16916  	  3797
+994.317  	  0.271716  	  979.334  	  0.110742  	  13.9282  	  0.521751  	  17727  	  16985  	  3797
+987.947  	  0.267475  	  973.009  	  0.109548  	  13.8939  	  0.51756  	  17609  	  16876  	  3797
+993.172  	  0.267599  	  978.14  	  0.113028  	  13.9726  	  0.524207  	  17685  	  16953  	  3797
+Turn on Page Cache, nmblocks =  200
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+981.698  	  0.267483  	  966.215  	  0.112105  	  14.4391  	  0.514664  	  17630  	  16691  	  3797
+985.179  	  0.268089  	  969.599  	  0.112317  	  14.533  	  0.516249  	  17728  	  16777  	  3797
+983.95  	  0.269445  	  968.513  	  0.11017  	  14.3865  	  0.517721  	  17673  	  16735  	  3797
+986.165  	  0.267354  	  970.375  	  0.11322  	  14.7324  	  0.520427  	  17699  	  16764  	  3797
+982.115  	  0.267723  	  966.577  	  0.112126  	  14.487  	  0.52059  	  17644  	  16709  	  3797
+Turn on Page Cache, nmblocks =  250
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+975.14  	  0.271541  	  958.832  	  0.112199  	  15.2539  	  0.517441  	  17685  	  16554  	  3797
+977.745  	  0.267695  	  961.062  	  0.111596  	  15.6315  	  0.520071  	  17713  	  16577  	  3797
+980.8  	  0.268652  	  964.732  	  0.11411  	  15.0122  	  0.519303  	  17806  	  16648  	  3797
+982.186  	  0.274325  	  965.556  	  0.11181  	  15.5669  	  0.521423  	  17809  	  16669  	  3797
+973.704  	  0.270488  	  957.528  	  0.111647  	  15.1212  	  0.519612  	  17661  	  16511  	  3797
+Turn on Page Cache, nmblocks =  300
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+973.238  	  0.268301  	  956.172  	  0.114015  	  16.0071  	  0.5203  	  17692  	  16329  	  3797
+977.868  	  0.268427  	  960.565  	  0.114989  	  16.2453  	  0.519291  	  17749  	  16397  	  3797
+971.98  	  0.268622  	  954.744  	  0.113009  	  16.1819  	  0.517003  	  17655  	  16314  	  3797
+975.964  	  0.26721  	  958.215  	  0.112599  	  16.6946  	  0.517725  	  17720  	  16374  	  3797
+975.491  	  0.269712  	  958.082  	  0.110151  	  16.3576  	  0.51818  	  17738  	  16380  	  3797
+Turn on Page Cache, nmblocks =  350
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+967.43  	  0.268164  	  950.526  	  0.112167  	  15.8587  	  0.516226  	  17702  	  16162  	  3797
+966.525  	  0.267333  	  949.813  	  0.111932  	  15.6629  	  0.518077  	  17694  	  16164  	  3797
+964.573  	  0.267178  	  947.533  	  0.112572  	  15.9905  	  0.517413  	  17670  	  16125  	  3797
+963.669  	  0.267185  	  946.553  	  0.113735  	  16.0655  	  0.51782  	  17664  	  16114  	  3797
+965.248  	  0.267891  	  948.155  	  0.113615  	  16.0432  	  0.517786  	  17676  	  16127  	  3797
+Turn on Page Cache, nmblocks =  400
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+982.59  	  0.265842  	  965.339  	  0.117794  	  16.1967  	  0.520386  	  17701  	  15963  	  3797
+983.401  	  0.265501  	  965.979  	  0.114081  	  16.3778  	  0.512651  	  17632  	  15931  	  3797
+987.379  	  0.266791  	  970.095  	  0.115567  	  16.2385  	  0.514134  	  17728  	  16006  	  3797
+985.417  	  0.265251  	  967.929  	  0.134866  	  16.4172  	  0.513772  	  17674  	  15948  	  3797
+990.03  	  0.266651  	  972.674  	  0.115829  	  16.3061  	  0.513354  	  17739  	  15993  	  3797
+Turn on Page Cache, nmblocks =  450
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1025.86  	  0.261401  	  1008.62  	  0.115487  	  15.8231  	  0.508788  	  17609  	  15703  	  3797
+1025.71  	  0.262695  	  1008.86  	  0.132829  	  15.5046  	  0.512699  	  17669  	  15774  	  3797
+1030.82  	  0.263428  	  1014.11  	  0.119529  	  15.3455  	  0.511966  	  17775  	  15865  	  3797
+1029.42  	  0.264244  	  1011.42  	  0.116055  	  15.9536  	  0.509898  	  17790  	  15846  	  3797
+1012.57  	  0.262565  	  995.302  	  0.114779  	  15.711  	  0.50967  	  17701  	  15788  	  3797
+Turn on Page Cache, nmblocks =  500
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1568  	  0.266143  	  1539.59  	  5.98374  	  20.8889  	  0.51691  	  17639  	  15569  	  3797
+1594.76  	  0.269763  	  1565.5  	  6.75081  	  20.9556  	  0.517248  	  17626  	  15522  	  3797
+2019.7.17 
+Impact of blocksize_kb in raw random walks (clear pagecache each time) in 64GB R730, dataset = Yahoo
+Turn on Page Cache, clear pagecache each time, R 100000 L 10
+blocksize_kb =  2048
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+81.4416  	  2.88645  	  69.9992  	  0.255244  	  4.13042  	  3.45476  	  73192  	  73192  	  12660
+84.1392  	  4.25911  	  70.1739  	  0.258598  	  5.23495  	  3.48877  	  73314  	  73314  	  12660
+82.0263  	  2.91249  	  70.4662  	  0.25769  	  4.20203  	  3.47019  	  73233  	  73233  	  12660
+81.5325  	  2.88391  	  70.031  	  0.251598  	  4.22639  	  3.44998  	  73033  	  73033  	  12660
+102.058  	  2.8884  	  89.1846  	  0.259909  	  5.60382  	  3.46945  	  73215  	  73215  	  12660
+blocksize_kb =  4096
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+71.1462  	  0.840954  	  66.06  	  0.184807  	  2.35426  	  1.39954  	  41738  	  41738  	  6330
+95.8612  	  0.845161  	  89.8451  	  0.175353  	  3.35048  	  1.39881  	  41843  	  41843  	  6330
+91.1892  	  0.844568  	  85.1398  	  0.178104  	  3.37965  	  1.39667  	  41708  	  41708  	  6330
+75.8146  	  0.842398  	  70.1881  	  0.185456  	  2.9043  	  1.39147  	  41677  	  41677  	  6330
+75.5572  	  0.841132  	  70.4328  	  0.18387  	  2.39913  	  1.39678  	  41676  	  41676  	  6330
+blocksize_kb =  8192
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+72.6459  	  0.252773  	  69.5041  	  0.128579  	  1.87656  	  0.755387  	  23035  	  23035  	  3165
+76.389  	  0.255519  	  73.2309  	  0.126867  	  1.89821  	  0.749783  	  23079  	  23079  	  3165
+76.3047  	  0.255936  	  73.1305  	  0.128662  	  1.91056  	  0.749083  	  23017  	  23017  	  3165
+75.7422  	  0.255253  	  72.5604  	  0.126378  	  1.91719  	  0.75416  	  23109  	  23109  	  3165
+76.468  	  0.256108  	  73.2828  	  0.128167  	  1.91885  	  0.751755  	  23101  	  23101  	  3165
+blocksize_kb =  16384
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+77.2693  	  0.079891  	  74.4986  	  0.084789  	  2.08981  	  0.442688  	  12525  	  12525  	  1583
+79.9166  	  0.079234  	  77.5447  	  0.083521  	  1.68669  	  0.44841  	  12547  	  12547  	  1583
+79.3052  	  0.079389  	  76.9094  	  0.083753  	  1.71608  	  0.442549  	  12475  	  12475  	  1583
+79.9278  	  0.079161  	  77.5411  	  0.083961  	  1.70672  	  0.442813  	  12480  	  12480  	  1583
+80.2462  	  0.080943  	  77.8371  	  0.08424  	  1.72459  	  0.443456  	  12506  	  12506  	  1583
+blocksize_kb =  32768
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+90.1484  	  0.025501  	  88.6153  	  0.054558  	  1.12865  	  0.278769  	  6677  	  6677  	  792
+89.6446  	  0.025614  	  88.0385  	  0.054846  	  1.1959  	  0.284407  	  6688  	  6688  	  792
+93.0248  	  0.025817  	  91.2398  	  0.054588  	  1.37532  	  0.282833  	  6737  	  6737  	  792
+85.1934  	  0.02524  	  83.6419  	  0.054075  	  1.14685  	  0.280053  	  6687  	  6687  	  792
+85.6006  	  0.025512  	  84.0555  	  0.054891  	  1.13319  	  0.285093  	  6741  	  6741  	  792
+blocksize_kb =  65536
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+92.2385  	  0.009073  	  91.3591  	  0.032869  	  0.684306  	  0.128203  	  3534  	  3534  	  396
+91.8499  	  0.009074  	  90.9377  	  0.03281  	  0.715874  	  0.129098  	  3516  	  3516  	  396
+91.5419  	  0.008979  	  90.6612  	  0.032926  	  0.685252  	  0.128032  	  3522  	  3522  	  396
+92.9722  	  0.009093  	  92.0456  	  0.032734  	  0.731578  	  0.128637  	  3505  	  3505  	  396
+93.1205  	  0.009286  	  92.2  	  0.033228  	  0.724946  	  0.127736  	  3529  	  3529  	  396
+blocksize_kb =  131072
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+94.8092  	  0.003538  	  94.3529  	  0.020942  	  0.373003  	  0.045561  	  1863  	  1863  	  198
+93.1512  	  0.003495  	  92.7055  	  0.020755  	  0.36196  	  0.046274  	  1821  	  1821  	  198
+94.8872  	  0.003466  	  94.434  	  0.021439  	  0.367857  	  0.047089  	  1831  	  1831  	  198
+95.1039  	  0.003608  	  94.638  	  0.020937  	  0.38107  	  0.046446  	  1856  	  1856  	  198
+94.1278  	  0.003462  	  93.66  	  0.020858  	  0.384326  	  0.045806  	  1848  	  1848  	  198
+blocksize_kb =  262144
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+97.6267  	  0.00151  	  97.378  	  0.013466  	  0.212249  	  0.014502  	  946  	  946  	  99
+93.3589  	  0.001533  	  93.1284  	  0.013521  	  0.193889  	  0.014457  	  934  	  934  	  99
+97.7324  	  0.001458  	  97.4941  	  0.013283  	  0.202081  	  0.014415  	  944  	  944  	  99
+92.539  	  0.001469  	  92.31  	  0.013633  	  0.192428  	  0.014341  	  930  	  930  	  99
+98.2525  	  0.001416  	  98.0094  	  0.013506  	  0.206507  	  0.014449  	  944  	  944  	  99
+blocksize_kb =  524288
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+96.284  	  0.000696  	  96.1256  	  0.009185  	  0.139815  	  0.005104  	  479  	  479  	  50
+97.8145  	  0.000686  	  97.6641  	  0.009312  	  0.131565  	  0.005102  	  478  	  478  	  50
+94.4909  	  0.000683  	  94.3494  	  0.009237  	  0.122779  	  0.005076  	  465  	  465  	  50
+95.1287  	  0.00067  	  94.9929  	  0.00925  	  0.117292  	  0.005013  	  476  	  476  	  50
+97.1995  	  0.000656  	  97.0587  	  0.009659  	  0.121416  	  0.005277  	  490  	  490  	  50
+blocksize_kb =  1048576
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+97.7884  	  0.000316  	  97.7013  	  0.007455  	  0.075664  	  0.001814  	  245  	  245  	  25
+96.3774  	  0.000316  	  96.2953  	  0.007382  	  0.070718  	  0.001757  	  246  	  246  	  25
+99.2446  	  0.000317  	  99.1466  	  0.007623  	  0.086341  	  0.001781  	  245  	  245  	  25
+98.3283  	  0.000317  	  98.2443  	  0.00741  	  0.072499  	  0.001786  	  249  	  249  	  25
+93.9283  	  0.00032  	  93.8437  	  0.007454  	  0.073079  	  0.001753  	  241  	  241  	  25
+blocksize_kb =  2097152
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+92.4029  	  0.000154  	  92.3151  	  0.006489  	  0.079269  	  0.000801  	  124  	  124  	  13
+85.5265  	  0.000161  	  85.4385  	  0.006321  	  0.079792  	  0.000727  	  117  	  117  	  13
+86.8363  	  0.000148  	  86.7402  	  0.006397  	  0.087932  	  0.000723  	  115  	  115  	  13
+92.3587  	  0.000166  	  92.2583  	  0.00624  	  0.092273  	  0.000752  	  123  	  123  	  13
+90.1297  	  0.00015  	  90.0372  	  0.006316  	  0.08427  	  0.000722  	  120  	  120  	  13
+blocksize_kb =  4194304
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+91.8816  	  7.8e-05  	  91.8314  	  0.005467  	  0.043672  	  0.000417  	  65  	  65  	  7
+92.473  	  7.7e-05  	  92.4301  	  0.005569  	  0.036328  	  0.000396  	  64  	  64  	  7
+91.4387  	  8.3e-05  	  91.3932  	  0.005362  	  0.039103  	  0.00042  	  64  	  64  	  7
+92.1476  	  7.5e-05  	  92.1068  	  0.005431  	  0.034402  	  0.000379  	  62  	  62  	  7
+88.4183  	  7.1e-05  	  88.3777  	  0.005455  	  0.034115  	  0.000396  	  62  	  62  	  7
+2019.7.17 
+Impact of blocksize_kb in raw random walks (clear pagecache each time) in 64GB R730, dataset = Crawl
+Turn on Page Cache, clear pagecache each time, R 100000 L 10
+blocksize_kb =  2048
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1790.23  	  283.73  	  869.699  	  0.480957  	  137.836  	  235.532  	  329559  	  329559  	  243047
+1547.78  	  285.419  	  884.397  	  0.503675  	  138.823  	  236.632  	  331457  	  331457  	  243047
+1542.33  	  285.67  	  877.693  	  0.485289  	  139.536  	  236.911  	  331736  	  331736  	  243047
+1534.1  	  284.48  	  872.554  	  0.482817  	  138.422  	  236.13  	  330339  	  330339  	  243047
+1539.99  	  285.596  	  875.74  	  0.493154  	  139.195  	  236.966  	  331524  	  331524  	  243047
+blocksize_kb =  4096
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1136.68  	  100.354  	  855.649  	  0.405128  	  93.1604  	  85.6316  	  236564  	  236564  	  121503
+1140.9  	  100.608  	  859.293  	  0.404228  	  93.3379  	  85.7913  	  237170  	  237170  	  121503
+1139  	  100.478  	  857.831  	  0.403733  	  93.0812  	  85.7064  	  236787  	  236787  	  121503
+1139.46  	  100.482  	  858.381  	  0.401937  	  92.9999  	  85.7093  	  237010  	  237010  	  121503
+1134.83  	  100.398  	  853.702  	  0.405281  	  93.3108  	  85.5429  	  236459  	  236459  	  121503
+blocksize_kb =  8192
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1232.5  	  30.5177  	  1060.8  	  0.347663  	  110.325  	  29.4745  	  151709  	  151709  	  60747
+1238.42  	  30.5989  	  1066.52  	  0.342623  	  110.391  	  29.5175  	  151936  	  151936  	  60747
+1240.51  	  30.6036  	  1068.15  	  0.346247  	  110.849  	  29.5279  	  152100  	  152100  	  60747
+1239.45  	  30.6085  	  1067.12  	  0.349777  	  110.78  	  29.5454  	  152028  	  152028  	  60747
+1234.18  	  30.5727  	  1062.74  	  0.343699  	  109.97  	  29.5308  	  151762  	  151762  	  60747
+blocksize_kb =  16384
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1090.52  	  10.0451  	  994.074  	  0.318748  	  75.3268  	  10.0673  	  94171  	  94171  	  30372
+1085.54  	  10.0235  	  989.693  	  0.309301  	  74.7392  	  10.073  	  94054  	  94054  	  30372
+1087.77  	  10.0015  	  991.198  	  0.319668  	  75.4895  	  10.0654  	  94031  	  94031  	  30372
+1090.28  	  10.1656  	  993.588  	  0.310881  	  75.4601  	  10.0563  	  94443  	  94443  	  30372
+1089.85  	  10.0966  	  993.155  	  0.313029  	  75.5176  	  10.0576  	  94432  	  94432  	  30372
+blocksize_kb =  32768
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+994.23  	  3.07749  	  940.624  	  0.261606  	  46.5278  	  3.28649  	  55638  	  55638  	  15186
+994.649  	  3.10028  	  940.092  	  0.261624  	  47.447  	  3.29311  	  55670  	  55670  	  15186
+996.98  	  3.09342  	  942.885  	  0.260498  	  46.991  	  3.29769  	  55822  	  55822  	  15186
+989.938  	  3.06709  	  935.88  	  0.254612  	  46.9926  	  3.28487  	  55541  	  55541  	  15186
+992.675  	  3.06345  	  938.944  	  0.274179  	  46.6657  	  3.26868  	  55397  	  55397  	  15186
+blocksize_kb =  65536
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+989.304  	  0.943903  	  961.957  	  0.164011  	  24.7589  	  1.20842  	  31807  	  31807  	  7593
+1000.34  	  0.929285  	  972.324  	  0.16668  	  25.4399  	  1.21266  	  31898  	  31898  	  7593
+988.581  	  0.928274  	  961.041  	  0.170606  	  24.9682  	  1.20357  	  31775  	  31775  	  7593
+986.192  	  0.921462  	  958.833  	  0.167456  	  24.797  	  1.20473  	  31703  	  31703  	  7593
+992.422  	  0.922403  	  964.796  	  0.170751  	  25.0588  	  1.20225  	  31696  	  31696  	  7593
+blocksize_kb =  131072
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1019.65  	  0.271511  	  1005.75  	  0.106105  	  12.8527  	  0.520833  	  17751  	  17751  	  3797
+1015.06  	  0.270544  	  1000.92  	  0.10611  	  13.0947  	  0.520797  	  17704  	  17704  	  3797
+1015.3  	  0.269834  	  1001.32  	  0.107047  	  12.9387  	  0.520002  	  17660  	  17660  	  3797
+1013.8  	  0.268858  	  999.728  	  0.106145  	  13.0284  	  0.516571  	  17678  	  17678  	  3797
+1032.31  	  0.270723  	  1018.1  	  0.109339  	  13.1514  	  0.521838  	  17773  	  17773  	  3797
+blocksize_kb =  262144
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1057.65  	  0.082997  	  1050.26  	  0.066916  	  6.87661  	  0.286154  	  9694  	  9694  	  1899
+1061.27  	  0.083763  	  1054.03  	  0.065648  	  6.72662  	  0.289048  	  9713  	  9713  	  1899
+1064.56  	  0.082756  	  1057.22  	  0.066211  	  6.81508  	  0.287927  	  9767  	  9767  	  1899
+1060.9  	  0.082228  	  1053.45  	  0.065476  	  6.9257  	  0.288293  	  9746  	  9746  	  1899
+1061.15  	  0.082784  	  1053.72  	  0.065209  	  6.91857  	  0.28694  	  9729  	  9729  	  1899
+blocksize_kb =  524288
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1115.17  	  0.026005  	  1111.26  	  0.039693  	  3.62237  	  0.17378  	  5255  	  5255  	  950
+1119.64  	  0.025463  	  1115.84  	  0.039511  	  3.51968  	  0.169254  	  5264  	  5264  	  950
+1126.27  	  0.02581  	  1122.45  	  0.039535  	  3.54304  	  0.169937  	  5313  	  5313  	  950
+1128.53  	  0.025921  	  1124.68  	  0.039586  	  3.56558  	  0.171245  	  5318  	  5318  	  950
+1120.27  	  0.025668  	  1116.58  	  0.039732  	  3.40629  	  0.170035  	  5289  	  5289  	  950
+blocksize_kb =  1048576
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1206.44  	  0.008938  	  1204.34  	  0.023376  	  1.96479  	  0.078592  	  2843  	  2843  	  475
+1209.31  	  0.00901  	  1207.1  	  0.023095  	  2.07579  	  0.079222  	  2844  	  2844  	  475
+1197.29  	  0.008903  	  1195.14  	  0.023002  	  2.00652  	  0.078927  	  2828  	  2828  	  475
+1197.77  	  0.008763  	  1195.65  	  0.023112  	  1.979  	  0.079871  	  2835  	  2835  	  475
+1208.4  	  0.008931  	  1206.27  	  0.023422  	  1.99718  	  0.078463  	  2858  	  2858  	  475
+blocksize_kb =  2097152
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1250.6  	  0.003324  	  1249.46  	  0.014373  	  1.07888  	  0.036031  	  1494  	  1494  	  238
+1277.18  	  0.003397  	  1276.04  	  0.014315  	  1.06875  	  0.03716  	  1524  	  1524  	  238
+1284.57  	  0.003368  	  1283.41  	  0.01456  	  1.09296  	  0.036033  	  1537  	  1537  	  238
+1273.31  	  0.003485  	  1272.16  	  0.014264  	  1.08159  	  0.036338  	  1507  	  1507  	  238
+1276.29  	  0.003359  	  1275.12  	  0.014254  	  1.10515  	  0.035709  	  1515  	  1515  	  238
+blocksize_kb =  4194304
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+1352.41  	  0.001395  	  1351.78  	  0.009039  	  0.598149  	  0.012739  	  806  	  806  	  119
+1354.05  	  0.001459  	  1353.39  	  0.009128  	  0.629003  	  0.012874  	  801  	  801  	  119
+1370.56  	  0.00144  	  1369.95  	  0.009097  	  0.58528  	  0.012618  	  811  	  811  	  119
+1339.91  	  0.00146  	  1339.3  	  0.009082  	  0.578556  	  0.012721  	  803  	  803  	  119
+1346.88  	  0.001404  	  1346.26  	  0.009265  	  0.585012  	  0.013013  	  799  	  799  	  119
+
+/////////////////////////////////////////////////////////////////////////////////
+
+2019.7.17 
+Impact of blocksize_kb in raw random walks (clear pagecache each time) in 64GB R730, dataset = Crawl
+Turn on Page Cache, clear pagecache each time, R 100000000 L 10
+blocksize_kb =  2048
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+18331.6  	  2092.53  	  5277.15  	  15.5351  	  9032.29  	  1384.49  	  1717596  	  1717596  	  243047
+////////////
+2019.7.17 
+Impact of blocksize_kb in raw random walks (clear pagecache each time) in 64GB R730, dataset = Crawl
+Turn on Page Cache, clear pagecache each time, R 1000 L 10
+blocksize_kb =  1024
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+38.0872  	  9.41029  	  18.0434  	  0.009962  	  2.77951  	  7.8023  	  5512  	  5512  	  486262
+37.8123  	  9.2137  	  17.8112  	  0.010218  	  3.04973  	  7.68719  	  5434  	  5434  	  486262
+blocksize_kb =  2048
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+25.9198  	  4.51504  	  16.1483  	  0.007467  	  1.47754  	  3.73762  	  5258  	  5258  	  243047
+26.2982  	  4.54462  	  16.484  	  0.007775  	  1.44152  	  3.78558  	  5324  	  5324  	  243047
+blocksize_kb =  4096
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+24.422  	  1.98709  	  19.7765  	  0.007561  	  0.846433  	  1.77187  	  4934  	  4934  	  121503
+25.3285  	  2.03193  	  19.87  	  0.00766  	  0.882419  	  2.50525  	  5036  	  5036  	  121503
+blocksize_kb =  8192
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+37.7605  	  0.940871  	  34.2581  	  0.008327  	  1.6083  	  0.912872  	  4667  	  4667  	  60747
+38.3731  	  0.949584  	  34.8844  	  0.008617  	  1.57591  	  0.921929  	  4723  	  4723  	  60747
+blocksize_kb =  16384
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+49.4816  	  0.48496  	  46.2936  	  0.012318  	  2.18051  	  0.476582  	  4592  	  4592  	  30372
+48.8605  	  0.475281  	  45.6785  	  0.01148  	  2.19321  	  0.468773  	  4506  	  4506  	  30372
+blocksize_kb =  32768
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+71.6388  	  0.233834  	  68.2884  	  0.014009  	  2.84297  	  0.225001  	  4250  	  4250  	  15186
+68.2602  	  0.232033  	  65.1934  	  0.013602  	  2.56474  	  0.222278  	  4201  	  4201  	  15186
+
+2019.7.17 
+Impact of blocksize_kb in raw random walks (clear pagecache each time) in 64GB R730, dataset = Crawl
+Turn on Page Cache, clear pagecache each time, R 10000 L 10
+blocksize_kb =  1024
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+360.362  	  90.2849  	  165.273  	  0.093805  	  29.115  	  75.2258  	  53212  	  53212  	  486262
+362.002  	  90.4961  	  166.731  	  0.093579  	  28.8063  	  75.5067  	  53409  	  53409  	  486262
+blocksize_kb =  2048
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+237.06  	  42.4995  	  140.97  	  0.070342  	  17.7178  	  35.4881  	  49843  	  49843  	  243047
+238.293  	  42.5219  	  142.833  	  0.070787  	  16.9696  	  35.5829  	  49943  	  49943  	  243047
+blocksize_kb =  4096
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+212.724  	  18.5138  	  163.527  	  0.071513  	  13.8721  	  16.445  	  45690  	  45690  	  121503
+212.71  	  18.5431  	  163.97  	  0.07262  	  13.3671  	  16.4573  	  45757  	  45757  	  121503
+blocksize_kb =  8192
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+309.116  	  7.99094  	  267.235  	  0.080241  	  25.8063  	  7.73153  	  40205  	  40205  	  60747
+307.948  	  7.99411  	  265.892  	  0.075532  	  26.0019  	  7.71047  	  40107  	  40107  	  60747
+blocksize_kb =  16384
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+355.653  	  3.45613  	  324.863  	  0.086489  	  23.6702  	  3.34108  	  32619  	  32619  	  30372
+356.091  	  3.46473  	  325.098  	  0.083355  	  23.8225  	  3.38276  	  32865  	  32865  	  30372
+blocksize_kb =  32768
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+421.911  	  1.36504  	  399.208  	  0.084818  	  19.715  	  1.33583  	  24740  	  24740  	  15186
+423.029  	  1.37145  	  400.12  	  0.086813  	  19.8986  	  1.34041  	  24849  	  24849  	  15186
+blocksize_kb =  65536
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+519.478  	  0.49849  	  505.75  	  0.058098  	  12.5022  	  0.524021  	  17157  	  17157  	  7593
+515.934  	  0.496233  	  502.308  	  0.059222  	  12.3991  	  0.521919  	  17014  	  17014  	  7593
+blocksize_kb =  131072
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+620.08  	  0.169264  	  611.703  	  0.037677  	  7.86951  	  0.205207  	  10952  	  10952  	  3797
+615.666  	  0.166424  	  607.39  	  0.037286  	  7.77413  	  0.204399  	  10887  	  10887  	  3797
+blocksize_kb =  262144
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+716.033  	  0.056597  	  711.398  	  0.022021  	  4.40895  	  0.090257  	  6620  	  6620  	  1899
+714.402  	  0.056686  	  709.605  	  0.023922  	  4.56833  	  0.090428  	  6611  	  6611  	  1899
+blocksize_kb =  524288
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+801.373  	  0.018627  	  798.888  	  0.014574  	  2.3717  	  0.048442  	  3774  	  3774  	  950
+809.888  	  0.018768  	  807.347  	  0.01624  	  2.42547  	  0.048376  	  3830  	  3830  	  950
+blocksize_kb =  1048576
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks_loading  #blocks
+919.388  	  0.007208  	  917.888  	  0.00969  	  1.43373  	  0.030141  	  2169  	  2169  	  475
+933.06  	  0.00723  	  931.521  	  0.009858  	  1.47332  	  0.029963  	  2206  	  2206  	  475
+28.1585  	  0.000407  	  23.6646  	  1.86212  	  2.6055  	  0.003883  	  293  	  78  	  78
+25.341  	  0.000326  	  21.5091  	  2.3315  	  1.39956  	  0.007642  	  252  	  78  	  78
+39.0424  	  0.222274  	  17.2732  	  7.87877  	  12.833  	  0.305176  	  12528  	  4889  	  4935
+13.0982  	  0.201733  	  12.0319  	  0.035881  	  0.44272  	  0.28161  	  12566  	  4892  	  4935
+3.26539  	  0.000258  	  3.23677  	  0.002633  	  0.022089  	  0.002156  	  252  	  78  	  78
+13.05  	  0.201758  	  11.945  	  0.036188  	  0.481198  	  0.281814  	  12560  	  4890  	  4935
+3.94254  	  0.089874  	  3.62347  	  0.011958  	  0.059419  	  0.107261  	  5756  	  2697  	  4935
+33.4555  	  0.21505  	  17.077  	  4.48913  	  10.9186  	  0.302954  	  12481  	  4875  	  4935
+12.9282  	  0.203442  	  11.8783  	  0.036564  	  0.429997  	  0.283789  	  12646  	  4888  	  4935
+3.2507  	  0.000308  	  3.21518  	  0.004529  	  0.026334  	  0.002682  	  300  	  78  	  78
+2.83995  	  0.000308  	  2.80936  	  0.004359  	  0.021638  	  0.002702  	  291  	  78  	  78
+2.8434  	  0.00014  	  2.82005  	  0.003596  	  0.017718  	  0.001028  	  147  	  39  	  39
+2.82173  	  0.000311  	  2.79117  	  0.004392  	  0.021633  	  0.002591  	  294  	  78  	  78
+4.28833  	  0.000311  	  4.2551  	  0.004724  	  0.023651  	  0.002815  	  294  	  78  	  78
