@@ -76,8 +76,10 @@ public:
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
         load_block_range(base_filename, blocksize_kb, blocks);
+        logstream(LOG_INFO) << "block_range loaded!" << std::endl;
         nvertices = num_vertices();
         walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
+        logstream(LOG_INFO) << "walk_manager created!" << std::endl;
 
         csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
         for(bid_t b = 0; b < nmblocks; b++){
@@ -92,6 +94,7 @@ public:
             //     exit(-1);
             // }
         }
+        logstream(LOG_INFO) << "csrbuf malloced!" << std::endl;
         beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
         inMemIndex = (bid_t*)malloc(nblocks*sizeof(bid_t));
         for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
@@ -183,6 +186,9 @@ public:
         /* read csr file */
         m.start_time("z__g_loadSubGraph_read_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
+        if(*nedges*sizeof(vid_t) > blocksize_kb*1024){
+            csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
+        }
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
         m.stop_time("z__g_loadSubGraph_read_csr");     
 
@@ -283,7 +289,8 @@ public:
             wid_t nwalks; 
             nwalks = walk_manager->getCurrentWalks(exec_block);
             
-            if(blockcount % 100==1){
+            // if(blockcount % 100==1)
+            {
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
                 logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
                 logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;

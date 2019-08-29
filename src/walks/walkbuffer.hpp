@@ -14,10 +14,11 @@ public:
 public:
 	WalkBuffer(){
 		size_w = 0;
-		walks = (WalkDataType*)malloc(WALK_BUFFER_SIZE*sizeof(WalkDataType));
+		// walks = (WalkDataType*)malloc(WALK_BUFFER_SIZE*sizeof(WalkDataType));
 	}
 
 	~WalkBuffer(){
+		if(walks != NULL)
 		free(walks);
 	}
 
@@ -26,6 +27,8 @@ public:
     }
 
 	void push_back(WalkDataType w){
+		if(size_w == 0)
+			walks = (WalkDataType*)malloc(WALK_BUFFER_SIZE*sizeof(WalkDataType));
         walks[size_w++] = w;
 	}
 };
