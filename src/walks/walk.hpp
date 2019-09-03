@@ -224,6 +224,14 @@ public:
 		return maxp;
      }
 
+	 bid_t blockWithNext(bid_t cur){
+		bid_t p = ( cur + 1 ) % nblocks;
+		while(walknum[p]==0){
+			p = ( p + 1 ) % nblocks;
+		}
+		return p;
+     }
+
      bid_t blockWithRandom(){
 		bid_t ranp = rand() % nblocks;
 		return ranp;
