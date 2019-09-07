@@ -54,12 +54,15 @@ public:
 	}
 
 	~WalkManager(){
-		for(bid_t p = 0; p < nthreads; p++)
-			delete [] pwalks[p];
-		delete [] pwalks;
-		free(walknum);
-		free(dwalknum);
-		free(minstep);
+		for(bid_t p = 0; p < nthreads; p++){
+			if(pwalks[p] != NULL){
+				delete [] pwalks[p];
+			}
+		}
+		if(pwalks != NULL) delete [] pwalks;
+		if(walknum != NULL) free(walknum);
+		if(dwalknum != NULL) free(dwalknum);
+		if(minstep != NULL) free(minstep);
 	}
 
 	WalkDataType encode( vid_t sourceId, vid_t currentId, hid_t hop ){

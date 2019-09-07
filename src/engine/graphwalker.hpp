@@ -127,15 +127,17 @@ public:
         
     virtual ~graphwalker_engine() {
         delete walk_manager;
+        
+        if(beg_posbuf != NULL) free(beg_posbuf);
+        if(inMemIndex != NULL) free(inMemIndex);
+        if(blocks != NULL) free(blocks);
+
         for(bid_t b = 0; b < cmblocks; b++){
             if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
             if(csrbuf[b] != NULL)   free(csrbuf[b]);
                 // munmap(csrbuf[b], blocksize_kb*1024);
         }
-        free(beg_posbuf);
-        free(csrbuf);
-        free(inMemIndex);
-        free(blocks);
+        if(csrbuf != NULL) free(csrbuf);
 
         close(beg_posf);  
         close(csrf);  
