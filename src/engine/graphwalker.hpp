@@ -291,7 +291,8 @@ public:
             wid_t nwalks; 
             nwalks = walk_manager->getCurrentWalks(exec_block);
             
-            if(blockcount % (nblocks/100+1)==1)
+            // if(blockcount % (nblocks/100+1)==1)
+            if(blockcount % (128*1024*1024/nedges+1) == 1)
             {
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
                 logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
