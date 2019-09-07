@@ -47,6 +47,7 @@ public:
 		memset(minstep, 0xffff, nblocks*sizeof(hid_t));
 		walksum = 0;
 
+		rm_dir((base_filename+"_GraphWalker/walks/").c_str());
 		mkdir((base_filename+"_GraphWalker/walks/").c_str(), 0777);	
 
 		ismodified = (bool*)malloc(nblocks*sizeof(bool));
