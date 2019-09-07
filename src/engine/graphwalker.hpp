@@ -186,11 +186,13 @@ public:
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
         m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
-        m.start_time("z__g_loadSubGraph_read_csr");
+        m.start_time("z__g_loadSubGraph_realloc_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
         if(*nedges*sizeof(vid_t) > blocksize_kb*1024){
             csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
         }
+        m.stop_time("z__g_loadSubGraph_realloc_csr");     
+        m.start_time("z__g_loadSubGraph_read_csr");
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
         m.stop_time("z__g_loadSubGraph_read_csr");     
 
@@ -292,11 +294,11 @@ public:
             nwalks = walk_manager->getCurrentWalks(exec_block);
             
             // if(blockcount % (nblocks/100+1)==1)
-            if(blockcount % (128*1024*1024/nedges+1) == 1)
+            if(blockcount % (1024*1024*1024/nedges+1) == 1)
             {
-                logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << " : " << exec_block << std::endl;
+                logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << std::endl;
                 logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
-                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[p] = " << nwalks << std::endl;
+                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks[" << exec_block << "] = " << nwalks << std::endl;
             }
             
             exec_updates(userprogram, nwalks, beg_pos, csr);
