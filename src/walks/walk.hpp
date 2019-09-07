@@ -118,18 +118,20 @@ public:
 			readWalksfromDisk(p);
 		}
 		wid_t count = dwalknum[p];
-		dwalknum[p] = 0;
+		// logstream(LOG_INFO) << "read walks count = " << count << ", disk walknum[p] = " << dwalknum[p] << std::endl;
 		for(tid_t t = 0; t < nthreads; t++){
 			if(pwalks[t][p].size_w > 0){
 				for(wid_t w = 0; w < pwalks[t][p].size_w; w++)
 					curwalks[count+w] = pwalks[t][p][w];
 				count += pwalks[t][p].size_w;
+				// logstream(LOG_INFO) << "read walks count = " << count << ", pwalks["<<(int)t<<"]["<<p<<"].size_w = " << pwalks[t][p].size_w << std::endl;
 				pwalks[t][p].size_w = 0;
 			}
 		}
-		if (count == walknum[p]) {
-			logstream(LOG_FATAL) << "read walks count = " << count << ", recorded walknum[p] = " << walknum[p] << std::endl;
+		if (count != walknum[p]) {
+			logstream(LOG_DEBUG) << "read walks count = " << count << ", recorded walknum[p] = " << walknum[p] << ", disk walknum[p]" << dwalknum[p] << std::endl;
 		}
+		dwalknum[p] = 0;
 		m.stop_time("3_getCurrentWalks");
 		return count;
 	}
