@@ -18,8 +18,9 @@ public:
 	}
 
 	~WalkBuffer(){
-		if(walks != NULL)
-		free(walks);
+		if(size_w > 0 && walks != NULL){
+			free(walks);
+		}
 	}
 
     WalkDataType& operator[] (int i){

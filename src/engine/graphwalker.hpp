@@ -128,7 +128,6 @@ public:
     virtual ~graphwalker_engine() {
         delete walk_manager;
         
-        if(beg_posbuf != NULL) free(beg_posbuf);
         if(inMemIndex != NULL) free(inMemIndex);
         if(blocks != NULL) free(blocks);
 
@@ -137,6 +136,7 @@ public:
             if(csrbuf[b] != NULL)   free(csrbuf[b]);
                 // munmap(csrbuf[b], blocksize_kb*1024);
         }
+        if(beg_posbuf != NULL) free(beg_posbuf);
         if(csrbuf != NULL) free(csrbuf);
 
         close(beg_posf);  
