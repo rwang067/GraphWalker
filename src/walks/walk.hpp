@@ -127,7 +127,9 @@ public:
 				pwalks[t][p].size_w = 0;
 			}
 		}
-		assert(count == walknum[p]);
+		if (count == walknum[p]) {
+			logstream(LOG_FATAL) << "read walks count = " << count << ", recorded walknum[p] = " << walknum[p] << std::endl;
+		}
 		m.stop_time("3_getCurrentWalks");
 		return count;
 	}
