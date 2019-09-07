@@ -142,6 +142,8 @@ public:
 		assert(f > 0);
 		/* read from file*/
 		preada(f, &curwalks[0], dwalknum[p]*sizeof(WalkDataType), 0);
+		/* 清空文件 */
+    	ftruncate(f,0);
 		close(f);
 		/* remove the walk file*/
 		unlink(walksfile.c_str()); 
