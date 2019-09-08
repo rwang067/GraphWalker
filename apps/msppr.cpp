@@ -14,7 +14,8 @@ public:
     vid_t firstsource, numsources;
     wid_t walkspersource;
     hid_t maxwalklength;
-    DiscreteDistribution *visitfrequencies;
+    // DiscreteDistribution *visitfrequencies;
+    DiscreteDistribution visitfrequencies;
 
     tid_t exec_threads;
     eid_t *used_edges;
@@ -27,7 +28,7 @@ public:
         walkspersource = _walkspersource;
         maxwalklength = _maxwalklength;
         initializeRW(numsources*walkspersource, maxwalklength);
-        visitfrequencies = new DiscreteDistribution[numsources];
+        // visitfrequencies = new DiscreteDistribution[numsources];
         logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
 
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
@@ -46,7 +47,7 @@ public:
         while(count > 0){
             if(ens > firstsource+numsources) 
                 ens = firstsource+numsources;
-            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ")"<< std::endl;
+            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ") , blocks[p+1] = " << blocks[p+1] << std::endl;
             nums = ens - sts;
             count -= nums;
             walk_manager.minstep[p] = 0;
@@ -69,7 +70,8 @@ public:
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         // logstream(LOG_INFO) << "updateInfo in msppr." << std::endl;
-        visitfrequencies[s].add(dstId);
+        // visitfrequencies[s].add(dstId);
+        visitfrequencies.add(dstId);
         used_edges[threadid]++;
     }
 
@@ -133,7 +135,8 @@ int main(int argc, const char ** argv) {
     graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);
 
-    program.visitfrequencies[0].getTop(20);
+    // program.visitfrequencies[0].getTop(20);
+    program.visitfrequencies.getTop(20);
 
     system("killall top");
     /* Report execution metrics */
