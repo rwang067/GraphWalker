@@ -8,12 +8,14 @@
 class WalkBuffer{
 
 public:
+	bool malloced;
 	wid_t size_w;
 	WalkDataType *walks;
 
 public:
 	WalkBuffer(){
 		size_w = 0;
+		malloced = false;
 		// walks = (WalkDataType*)malloc(WALK_BUFFER_SIZE*sizeof(WalkDataType));
 	}
 
@@ -28,8 +30,11 @@ public:
     }
 
 	void push_back(WalkDataType w){
-		if(size_w == 0)
+		if(!malloced ){
+			assert(size_w == 0);
 			walks = (WalkDataType*)malloc(WALK_BUFFER_SIZE*sizeof(WalkDataType));
+			malloced = true;
+		}
         walks[size_w++] = w;
 	}
 };
