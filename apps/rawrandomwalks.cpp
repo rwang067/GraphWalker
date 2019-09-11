@@ -85,6 +85,7 @@ int main(int argc, const char ** argv){
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
+    bid_t batchblocks = get_option_int("batchblocks", 100); // number of in-memory blocks
     
     logstream(LOG_DEBUG) << "N R L : " << N << " " << R << " " << L << std::endl;
     // run
@@ -103,8 +104,8 @@ int main(int argc, const char ** argv){
 
     logstream(LOG_DEBUG) << "nblocks nmblocks : " << nblocks << " " << nmblocks << std::endl;
 
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
-    engine.run(program, prob);
+    graphwalker_engine engine(filename, blocksize_kb, nblocks, nmblocks, m);
+    engine.run(program, batchblocks, prob);
 
     metrics_report(m);
     return 0;

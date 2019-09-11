@@ -36,7 +36,7 @@ public:
     /**
      *  Walk update function.
      */
-    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, bid_t batchblocks, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
         logstream(LOG_ERROR) << "No definition of function : updateByWalk!" << std::endl;
     }
     
@@ -84,10 +84,11 @@ public:
     /**
      * check if it has finished all walks
      */
-    virtual bool hasFinishedWalk(WalkManager &walk_manager){
+    // virtual bool hasFinishedWalk(WalkManager &walk_manager){
+    virtual wid_t walkSum(WalkManager &walk_manager){
         wid_t remaining_walknum = walk_manager.walksum;
         // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << std::endl;
-        return ( remaining_walknum > 0 ); 
+        return remaining_walknum; 
     }
 
     /**

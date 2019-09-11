@@ -27,7 +27,7 @@ public:
         L = _L;
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, bid_t batchblocks, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
         // logstream(LOG_INFO) << "updateByWalk in randomwalkwithstop." << std::endl;
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
@@ -37,7 +37,7 @@ public:
         unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
         // logstream(LOG_DEBUG) << "dstId = " << dstId << ",  exec_block = " << exec_block << ", range = [" << blocks[exec_block] << "," << blocks[exec_block+1] << ")"<< std::endl;
         // logstream(LOG_DEBUG) << "hop = " << hop << ",  maxwalklength = " << maxwalklength << std::endl;
-        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] && hop < L ){
+        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+batchblocks] && hop < L ){
             // std::cout  << " -> " << dstId ;//<< " " << walk_manager.getSourceId(walk) << std::endl;
             updateInfo(sourId, dstId, threadid, hop);
             vid_t dstIdp = dstId - blocks[exec_block];

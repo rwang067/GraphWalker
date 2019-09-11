@@ -111,32 +111,43 @@ public:
 		m.stop_time("4_writeWalks2Disk");
 	}
 
-	wid_t getCurrentWalks(bid_t p){
+	wid_t getCurrentWalks(bid_t p, bid_t bb){
+		// logstream(LOG_DEBUG) << "getCurrentWalks, p = " << p << ", bb = " << bb << std::endl;
 		m.start_time("3_getCurrentWalks");
-		curwalks = (WalkDataType*)malloc(walknum[p]*sizeof(WalkDataType));
-		if(dwalknum[p] > 0){
-			readWalksfromDisk(p);
+		wid_t walkcount = 0;
+		for(bid_t b = 0; b < bb; b++){
+			walkcount += walknum[p+b];
 		}
-		wid_t count = dwalknum[p];
-		// logstream(LOG_INFO) << "read walks count = " << count << ", disk walknum[p] = " << dwalknum[p] << std::endl;
-		for(tid_t t = 0; t < nthreads; t++){
-			if(pwalks[t][p].size_w > 0){
-				for(wid_t w = 0; w < pwalks[t][p].size_w; w++)
-					curwalks[count+w] = pwalks[t][p][w];
-				count += pwalks[t][p].size_w;
-				// logstream(LOG_INFO) << "read walks count = " << count << ", pwalks["<<(int)t<<"]["<<p<<"].size_w = " << pwalks[t][p].size_w << std::endl;
-				pwalks[t][p].size_w = 0;
+		curwalks = (WalkDataType*)malloc(walkcount*sizeof(WalkDataType));
+
+		wid_t cumsum = 0;
+		for(bid_t b = p; b < p+bb; b++){
+			if(dwalknum[b] > 0){
+				readWalksfromDisk(b, cumsum);
+				cumsum += dwalknum[b];
+				dwalknum[b] = 0;
+				// logstream(LOG_INFO) << "read walks count = " << cumsum << ", disk walknum[b] = " << dwalknum[b] << std::endl;
+			}
+			for(tid_t t = 0; t < nthreads; t++){
+				if(pwalks[t][b].size_w > 0){
+					for(wid_t w = 0; w < pwalks[t][b].size_w; w++){
+						curwalks[cumsum+w] = pwalks[t][b][w];
+					}
+					cumsum += pwalks[t][b].size_w;
+					// logstream(LOG_INFO) << "t" << (int)t << ", read walks count = " << cumsum << ", pwalks["<<(int)t<<"]["<<b<<"].size_w = " << pwalks[t][b].size_w << std::endl;
+					pwalks[t][b].size_w = 0;
+				}
 			}
 		}
-		if (count != walknum[p]) {
-			logstream(LOG_DEBUG) << "read walks count = " << count << ", recorded walknum[p] = " << walknum[p] << ", disk walknum[p]" << dwalknum[p] << std::endl;
+		if (cumsum != walkcount) {
+			logstream(LOG_DEBUG) << "read walks count = " << cumsum << ", recorded walknum[p] = " << walkcount << std::endl;
+			assert(false);
 		}
-		dwalknum[p] = 0;
 		m.stop_time("3_getCurrentWalks");
-		return count;
+		return cumsum;
 	}
 
-	void readWalksfromDisk(bid_t p){
+	void readWalksfromDisk(bid_t p, wid_t offset){
 		m.start_time("z_w_readWalksfromDisk");
 
 		std::string walksfile = walksname( base_filename, p );
@@ -146,7 +157,7 @@ public:
 		}
 		assert(f > 0);
 		/* read from file*/
-		preada(f, &curwalks[0], dwalknum[p]*sizeof(WalkDataType), 0);
+		preada(f, &curwalks[offset], dwalknum[p]*sizeof(WalkDataType), 0);
 		/* 清空文件 */
     	ftruncate(f,0);
 		close(f);
@@ -156,7 +167,7 @@ public:
 		m.stop_time("z_w_readWalksfromDisk");
 	}
 
-	void updateWalkNum(bid_t p){
+	void updateWalkNum(bid_t p, bid_t bb){
 
 		m.start_time("6_updateWalkNum");
 		wid_t forwardWalks = 0;
@@ -168,7 +179,10 @@ public:
 				for(tid_t t = 0; t < nthreads; t++){
 					newwalknum += pwalks[t][b].size_w;
 				}
-				assert(newwalknum > walknum[b]);
+				if(newwalknum <= walknum[b]){
+					logstream(LOG_DEBUG) << "newwalknum = " << newwalknum << ", walknum[b] = " << walknum[b] << std::endl;
+					assert(false);
+				}
 				forwardWalks += newwalknum - walknum[b];
 				walknum[b] = newwalknum;
 			}
@@ -178,9 +192,14 @@ public:
 		
 		m.start_time("z_w_clear_curwalks");
 		walksum += forwardWalks;
-		walksum -= walknum[p];
-		walknum[p] = 0;
-		minstep[p] = 0xffff;
+		wid_t walkcount = 0;
+		for(bid_t b = 0; b < bb; b++){
+			walkcount += walknum[p+b];
+			walknum[p+b] = 0;
+			minstep[p+b] = 0xffff;
+		}
+		walksum -= walkcount;
+		// logstream(LOG_DEBUG) <<"Remain " << walksum << " walks, reduced " << walkcount << " walks. " << std::endl;
 		free(curwalks);
 		curwalks = NULL;
 		m.stop_time("z_w_clear_curwalks");
