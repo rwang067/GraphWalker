@@ -271,20 +271,23 @@ public:
         vid_t nverts, *csr;
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
-        int blockcount = 0;
+        int blockcount = 1;
         // while( userprogram.hasFinishedWalk(*walk_manager) ){
         wid_t walksremain = userprogram.walkSum(*walk_manager);
         while( walksremain > 0 ){
             int dom = 0;
-            while(walksremain){
-                dom++;
-                walksremain /= 10;
-            }
-            if( dom > 3 ){
-                batchblocks = pow(2, dom-3);
-            }else{
-                batchblocks = 1;
-            }
+            // while(walksremain){
+            //     dom++;
+            //     walksremain /= 10;
+            // }
+            // if( dom > 3 ){
+            //     batchblocks = pow(2, dom-3);
+            // }else{
+            //     batchblocks = 1;
+            // }
+            batchblocks = 1;
+            if(walksremain > 10000) batchblocks = 512;
+
             blockcount++;
             m.start_time("1_chooseBlock");
             exec_block = walk_manager->chooseBlock(prob);
