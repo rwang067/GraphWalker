@@ -257,6 +257,7 @@ public:
     void exec_updates(RandomWalk &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
         // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("5_exec_updates");
+        if(nwalks < 100) omp_set_num_threads(1);
         #pragma omp parallel for schedule(static)
             for(wid_t i = 0; i < nwalks; i++ ){
                 // logstream(LOG_INFO) << "exec_block : " << exec_block << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;

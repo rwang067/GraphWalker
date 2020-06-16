@@ -4,18 +4,18 @@
 #include <fstream>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithstop.hpp"
+#include "walks/randomwalkwithprob.hpp"
 #include "walks/discretedistribution.hpp"
 #include "util/toplist.hpp"
 #include "util/comperror.hpp"
 
-class MultiSourcePersonalizedPageRank : public RandomWalkwithStop{
+class KK_PPR : public RandomWalkwithProb{
 public:
     vid_t firstsource, numsources;
     wid_t walkspersource;
     hid_t maxwalklength;
-    DiscreteDistribution *visitfrequencies;
-    // DiscreteDistribution visitfrequencies;
+    // DiscreteDistribution *visitfrequencies;
+    DiscreteDistribution visitfrequencies;
 
     tid_t exec_threads;
     eid_t *used_edges;
@@ -28,8 +28,8 @@ public:
         walkspersource = _walkspersource;
         maxwalklength = _maxwalklength;
         initializeRW(numsources*walkspersource, maxwalklength);
-        visitfrequencies = new DiscreteDistribution[numsources];
-        logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
+        // visitfrequencies = new DiscreteDistribution[numsources];
+        // logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
 
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         used_edges = new eid_t[exec_threads];
@@ -70,7 +70,7 @@ public:
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         // logstream(LOG_INFO) << "updateInfo in msppr." << std::endl;
-        visitfrequencies[s].add(dstId);
+        // visitfrequencies[s].add(dstId);
         // visitfrequencies.add(dstId);
         used_edges[threadid]++;
     }
@@ -102,14 +102,14 @@ int main(int argc, const char ** argv) {
     
     /* Metrics object for keeping track of performance count_invectorers
      and other information. Currently required. */
-    metrics m("multi-source-personalizedpagerank");
+    metrics m("KK_PPR");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../../raid0_mnop/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/Friendster/out.friendster-reorder");  // Base filename
     vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
-    vid_t numsources = get_option_int("numsources", 1); // Number of sources
-    wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps
-    hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
+    vid_t numsources = get_option_int("numsources", 68349467); // Number of sources
+    wid_t walkspersource = get_option_long("walkspersource", 1); // Number of steps
+    hid_t maxwalklength = get_option_int("maxwalklength", 1000); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
 
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
@@ -122,7 +122,7 @@ int main(int argc, const char ** argv) {
     // system((const char *)cmd);
 
     /* Run */
-    MultiSourcePersonalizedPageRank program;
+    KK_PPR program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
 
     if(blocksize_kb == 0)
@@ -135,10 +135,10 @@ int main(int argc, const char ** argv) {
     graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);
 
-    program.visitfrequencies[0].getTop(20);
-    // program.visitfrequencies.getTop(20);
+    // program.visitfrequencies[0].getTop(20);
+    program.visitfrequencies.getTop(20);
 
-    system("killall top");
+    // system("killall top");
     /* Report execution metrics */
     metrics_report(m);
     return 0;

@@ -161,14 +161,17 @@ public:
 		m.start_time("6_updateWalkNum");
 		wid_t forwardWalks = 0;
 		for(bid_t b = 0; b < nblocks; b++){
-			if(ismodified[b]){
+			if(ismodified[b] && b != p){
 				ismodified[b] = false;
 				wid_t newwalknum = 0;
 				newwalknum = dwalknum[b];
 				for(tid_t t = 0; t < nthreads; t++){
 					newwalknum += pwalks[t][b].size_w;
 				}
-				assert(newwalknum > walknum[b]);
+				if(newwalknum < walknum[b]){
+					logstream(LOG_DEBUG) <<" b = " << b <<", newwalknum = " << newwalknum << ", walknum[b] = " << walknum[b] << std::endl;
+					assert(false);
+				}
 				forwardWalks += newwalknum - walknum[b];
 				walknum[b] = newwalknum;
 			}

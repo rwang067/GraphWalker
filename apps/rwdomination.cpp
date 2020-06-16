@@ -84,7 +84,7 @@ int main(int argc, const char ** argv) {
     unsigned L = get_option_int("L", 6); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
-    // bid_t nmblocks = get_option_int("nmblocks", 10); // number of in-memory blocks
+    bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
     
     /* Run */
     RandomWalkDomination program;
@@ -94,7 +94,7 @@ int main(int argc, const char ** argv) {
         blocksize_kb = program.compBlockSize(N*R);
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
-    bid_t nmblocks = program.compNmblocks(blocksize_kb);
+    if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
     graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);

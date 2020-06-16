@@ -30,7 +30,7 @@ public:
     }
 
 	void push_back(WalkDataType w){
-		if(!malloced ){
+		if(!malloced){
 			assert(size_w == 0);
 			walks = (WalkDataType*)malloc(WALK_BUFFER_SIZE*sizeof(WalkDataType));
 			malloced = true;

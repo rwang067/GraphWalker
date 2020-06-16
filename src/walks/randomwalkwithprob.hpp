@@ -1,10 +1,9 @@
-#ifndef RANDOMWALKWITHJUMP
-#define RANDOMWALKWITHJUMP
+#ifndef RANDOMWALKWITHSTOP
+#define RANDOMWALKWITHSTOP
 
 #include <string>
 #include <fstream>
 #include <time.h>
-//#include <chrono>
 
 #include "walks/walk.hpp" 
 #include "api/datatype.hpp"
@@ -14,18 +13,9 @@
  * Sharder-program.
  */
  
-class RandomWalkwithJump : public RandomWalk{
+class RandomWalkwithProb : public RandomWalk {
 
-public:
-        vid_t N;
-
-public:
-
-    void initializeRW(vid_t _N, wid_t _R, hid_t _L){
-        N = _N;
-        R = _R;
-        L = _L;
-    }
+public:  
 
     void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
         // logstream(LOG_INFO) << "updateByWalk in randomwalkwithstop." << std::endl;
@@ -37,7 +27,7 @@ public:
         unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
         // logstream(LOG_DEBUG) << "dstId = " << dstId << ",  exec_block = " << exec_block << ", range = [" << blocks[exec_block] << "," << blocks[exec_block+1] << ")"<< std::endl;
         // logstream(LOG_DEBUG) << "hop = " << hop << ",  maxwalklength = " << maxwalklength << std::endl;
-        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] && hop < L ){
+        while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] ){
             // std::cout  << " -> " << dstId ;//<< " " << walk_manager.getSourceId(walk) << std::endl;
             updateInfo(sourId, dstId, threadid, hop);
             vid_t dstIdp = dstId - blocks[exec_block];
@@ -47,18 +37,23 @@ public:
                 // logstream(LOG_DEBUG) << "dstId = " << dstId << ",  pos = " << pos << ", csr[pos] = " << csr[pos] << std::endl;
                 dstId = csr[pos];
             }else{
-                dstId = rand_r(&seed) % N;
+                // if(hop>0) logstream(LOG_DEBUG) << "sourId = " << sourId << ", hop " << hop << std::endl;
+                return;
             }
             hop++;
             nowWalk++;
         }
-        if( hop < L ){
+        // if( hop < L ){
             bid_t p = getblock( dstId );
             if(p>=nblocks) return;
+            if(p == exec_block){
+                logstream(LOG_DEBUG) << "dstId = " << dstId << ", p " << p << std::endl;
+                assert(false);
+            }
             walk_manager.moveWalk(nowWalk, p, threadid, dstId - blocks[p]);
             walk_manager.setMinStep( p, hop );
             walk_manager.ismodified[p] = true;
-        }
+        // }
     }
 
 };
