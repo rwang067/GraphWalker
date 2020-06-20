@@ -31,5 +31,5 @@ Here, we will take application `msppr` as an example to show how to run applicat
 
 ```bash
 $ cd GraphWalker
-$ ./bin/apps/msppr file ../../data/raid0_defghij_ssd/LiveJournal/soc-LiveJournal1.txt firstsource 0 numsources 1 walkspersource 2000 maxwalklength 10 prob 0.2
+$ LOG_LEVEL="debug" ./bin/apps/msppr file ../../data/raid0_defghij_ssd/LiveJournal/soc-LiveJournal1.txt firstsource 0 numsources 1 walkspersource 2000 maxwalklength 10 prob 0.2
 ```

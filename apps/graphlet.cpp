@@ -21,7 +21,6 @@ class graphLet : public RandomWalkwithStop{
         }
 
         void startWalksbyApp(WalkManager &walk_manager){
-            // std::cout << "graphLet:\tStart " << R << " walks randomly ..." << std::endl;
             srand((unsigned)time(NULL));
             tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
             omp_set_num_threads(nthreads);
@@ -30,7 +29,6 @@ class graphLet : public RandomWalkwithStop{
                     vid_t s = rand()%N;
                     bid_t p = getblock(s);
                     vid_t cur = s - blocks[p];
-                    //std::cout << "startWalksbyApp:\t" << "source" << i <<"=" << s << "\tp=" << p << "\tcur=" << cur << std::endl;
                     WalkDataType walk = walk_manager.encode(s,cur,0);
                     walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     walk_manager.minstep[p] = 0;
@@ -44,7 +42,6 @@ class graphLet : public RandomWalkwithStop{
         }
 
 		void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-            // logstream(LOG_DEBUG) << dstId << " " << s << std::endl;
             if(hop < L-1) return;
             if (dstId == s){
                 cnt_ok[threadid]++;

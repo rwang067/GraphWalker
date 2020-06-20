@@ -38,7 +38,6 @@ public:
             unsigned hop = walk_manager.getHop(nowWalk);
             unsigned seed = walkid+dstId+hop+(unsigned)time(NULL);
             while (dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second && hop < nsteps ){
-                // std::cout  << " -> " << dstId << " " << walk_manager.getSourceId(walk) << std::endl;
                 updateInfo(sourId, dstId, threadid, hop);
                 Vertex &nowVertex = vertices[dstId - intervals[exec_interval].first];
                 if (nowVertex.outd > 0 && ((float)rand_r(&seed))/RAND_MAX > 0.15 )
@@ -49,17 +48,12 @@ public:
                 hop++;
                 nowWalk++;
             }
-            // std::cout  << " hop, to " << hop << " " << dstId << std::endl;
             if( hop < nsteps ){
             // if( hop < nsteps && dstId != source){
                 unsigned p = getInterval( dstId );
                 walk_manager.moveWalk(nowWalk, p, threadid, dstId - intervals[p].first);
                 walk_manager.setMinStep( p, hop );
             }
-            // else if(dstId >= intervals[exec_interval].first && dstId <= intervals[exec_interval].second) {
-            //     ;//updateInfo(dstId);
-            // }
-            // std::cout << " move walk " << nowWalk << "  " << dstId << "  " << hop << std::endl;
     }   
 
 };

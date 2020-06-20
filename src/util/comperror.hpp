@@ -43,7 +43,6 @@
         unsigned st = 0, len = 0;
         while( st < N ){
             len = N-st < maxwindow ? N-st : maxwindow;
-            // logstream(LOG_INFO) << " s , len : " << st << " " << len << std::endl;
             // len = min( maxwindow, N - st );
             vertex_value = (VertexDataType*)malloc(sizeof(VertexDataType)*len);
             fv = open(filename_vertex_data(basefilename).c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
@@ -82,7 +81,6 @@
         float err=0, appv; //accurate pagerank value
         for(unsigned i = 0; i < ntop; i++ ){
             fin >> vid >> appv;
-            // logstream(LOG_INFO) << "vid appv vertex_value err: " << vid << " " << appv << " " << visit_prob[vid] << " " << fabs(visit_prob[vid]-appv)<< " " << fabs(visit_prob[vid]-appv)/appv << std::endl;
             err += fabs(visit_prob[vid]-appv)/appv;
         }
         free(visit_prob);

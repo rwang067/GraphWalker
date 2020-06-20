@@ -65,7 +65,6 @@ public:
 			logstream(LOG_ERROR) << "Wrong source s : " << s << std::endl;
 			assert(0);
 		}
-		// std::cout << "s , hop, dstId = " << s << " " << hop << " " << dstId << std::endl;
 	}
 
 	float computeResult(){
@@ -73,10 +72,8 @@ public:
 		for( wid_t i = 0; i < R; i++ )
 			for( wid_t j = 0; j < R; j++ )
 				for( wid_t l = 0; l < L; l++ ){
-					// std::cout << i << " " << j << " " << l << " : " << walksfroma[i*R+l] << " " << walksfromb[j*R+l] << std::endl;
 					if( walksfroma[i*L+l] == walksfromb[j*L+l] && walksfroma[i*L+l] != 0xffffffff ){
 						simrank += (1.0/(R*R))*pow(0.8, l);
-						// std::cout << i << " " << j << " " << l << " " << walksfroma[i*L+l] << " " << simrank << std::endl;
 						break;
 					}
 				}

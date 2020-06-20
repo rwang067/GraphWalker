@@ -34,10 +34,8 @@ public:
                 vid_t s = rand()%N;
                 bid_t p = getblock(s);
                 vid_t cur = s - blocks[p];
-                // std::cout << "startWalksbyApp:\t" << "source " << i <<" = " << s << "\tp=" << p << "\tcur=" << cur << std::endl;
                 WalkDataType walk = walk_manager.encode(s,cur,0);
                 walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
-                // walk_manager.pwalks[omp_get_thread_num()][p].push_back(walk);
             }
         for( bid_t p = 0; p < nblocks; p++){
             walk_manager.walknum[p] = walk_manager.dwalknum[p];
@@ -60,7 +58,6 @@ public:
         // }
 
         // float utilization = (float)used_edges[0] / (float)total_edges;
-        // // logstream(LOG_INFO) << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
         // std::string utilization_filename = "graphwalker_utilization.csv";
         // std::ofstream utilizationfile;
         // utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);

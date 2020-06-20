@@ -196,22 +196,12 @@ public:
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
         m.stop_time("z__g_loadSubGraph_read_csr");     
 
-        /*output load graph info*/
-        // logstream(LOG_INFO) << "LoadSubGraph data end, with nverts = " << *nverts << ", " << "nedges = " << *nedges << std::endl;
-        
-        // logstream(LOG_INFO) << "beg_pos : "<< std::endl;
-        // for(vid_t i = *nverts-10; i < *nverts; i++)
-        //     logstream(LOG_INFO) << "beg_pos[" << i << "] = " << beg_pos[i] << ", "<< std::endl;
-        // logstream(LOG_INFO) << "csr : "<< std::endl;
-        // for(eid_t i = *nedges-10; i < *nedges; i++)
-        //     logstream(LOG_INFO) << "csr[" << i << "] = " << csr[i] << ", "<< std::endl;
         m.stop_time("g_loadSubGraph");
     }
 
     void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
         m.start_time("2_findSubGraph");
         if(inMemIndex[p] == nmblocks){//the block is not in memory
-            // logstream(LOG_INFO) << "Load block " << p << " from disk" << std::endl;
             bid_t swapin;
             if(cmblocks < nmblocks){
                 swapin = cmblocks++;
@@ -226,7 +216,6 @@ public:
             loadSubGraph(p, beg_posbuf[swapin], csrbuf[swapin], nverts, nedges);
             inMemIndex[p] = swapin;
         }else{
-            // logstream(LOG_INFO) << "Oh yeah! Block " << p << " is in memory!" << std::endl;
         }
         beg_pos = beg_posbuf[ inMemIndex[p] ];
         csr = csrbuf[ inMemIndex[p] ];
@@ -243,9 +232,6 @@ public:
                 minmwb = b;
             }
         }
-        // logstream(LOG_DEBUG) << "block " << minmwb << " is chosen to swap out!" << std::endl;
-        // bid_t res = inMemIndex[minmwb];
-        // inMemIndex[minmwb] = nmblocks;
         m.start_time("z_g_swapOut");
         return minmwb;
     }
@@ -260,11 +246,9 @@ public:
         if(nwalks < 100) omp_set_num_threads(1);
         #pragma omp parallel for schedule(static)
             for(wid_t i = 0; i < nwalks; i++ ){
-                // logstream(LOG_INFO) << "exec_block : " << exec_block << " , walk : " << i << " --> threads." << omp_get_thread_num() << std::endl;
                 WalkDataType walk = walk_manager->curwalks[i];
                 userprogram.updateByWalk(walk, i, exec_block, beg_pos, csr, *walk_manager );//, vertex_value);
             }
-        // logstream(LOG_INFO) << "exec_updates end. Processsed walks with exec_threads = " << (int)exec_threads << std::endl;
         m.stop_time("5_exec_updates");
         // walk_manager->writeblockWalks(exec_block);
     }

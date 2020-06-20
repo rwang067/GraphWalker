@@ -66,7 +66,6 @@ public:
             }
         }
         size = idx;
-        // logstream(LOG_INFO) << "after filter, size = " << size << std::endl;
     }
 
     void getTop(unsigned ntop){

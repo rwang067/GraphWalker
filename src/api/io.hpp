@@ -48,7 +48,6 @@ void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {
         }
         buf += a;
         nwritten += a;
-        // logstream(LOG_DEBUG) << "In pwritea, nwritten = " << nwritten << " , nbytes = " << nbytes << std::endl;
     }  
 }
 

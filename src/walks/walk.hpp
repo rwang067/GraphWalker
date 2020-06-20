@@ -92,7 +92,6 @@ public:
 
 	void moveWalk( WalkDataType walk, bid_t p, tid_t t, vid_t toVertex ){
 		if(pwalks[t][p].size_w == WALK_BUFFER_SIZE){
-            // logstream(LOG_DEBUG) << "Walk buffer : pwalks["<< (int)t <<"]["<< p <<"] is ful with size_w = " << pwalks[t][p].size_w << " , WALK_BUFFER_SIZE = " << WALK_BUFFER_SIZE << std::endl;
 			writeWalks2Disk(t,p);
         }
         assert(pwalks[t][p].size_w < WALK_BUFFER_SIZE);
@@ -118,13 +117,11 @@ public:
 			readWalksfromDisk(p);
 		}
 		wid_t count = dwalknum[p];
-		// logstream(LOG_INFO) << "read walks count = " << count << ", disk walknum[p] = " << dwalknum[p] << std::endl;
 		for(tid_t t = 0; t < nthreads; t++){
 			if(pwalks[t][p].size_w > 0){
 				for(wid_t w = 0; w < pwalks[t][p].size_w; w++)
 					curwalks[count+w] = pwalks[t][p][w];
 				count += pwalks[t][p].size_w;
-				// logstream(LOG_INFO) << "read walks count = " << count << ", pwalks["<<(int)t<<"]["<<p<<"].size_w = " << pwalks[t][p].size_w << std::endl;
 				pwalks[t][p].size_w = 0;
 			}
 		}
@@ -177,7 +174,6 @@ public:
 			}
 		}
 
-		// logstream(LOG_DEBUG) <<"Total " << walksum << " walks, Updated " << walknum[p] << " walks, and forward " << forwardWalks << " walks. " << std::endl;
 		
 		m.start_time("z_w_clear_curwalks");
 		walksum += forwardWalks;

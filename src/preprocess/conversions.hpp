@@ -222,7 +222,6 @@
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
             
-            // logstream(LOG_INFO) << " s= " << s << std::endl;
             char *t1, *t2;
             t1 = strtok(s, "\t, ");
             t2 = strtok(NULL, "\t, ");
@@ -242,7 +241,6 @@
                 outd++;
             }else{  //a new vertex
                 if( cpos - bstp + outd >= EDGE_SIZE || curvertex - bstv + 1 >= VERT_SIZE ){
-                    // logstream(LOG_DEBUG) << "vert_id outd -- " << curvertex << ": " << count << std::endl;
                     flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
                     if( outd > EDGE_SIZE){
                         logstream(LOG_ERROR) << "Too small memory capacity with EDGE_SIZE = " << EDGE_SIZE << " to support larger ourdegree of vert " << curvertex << ", with outdegree = " << outd << std::endl;
@@ -253,7 +251,6 @@
                 if( from - curvertex > 1 ){ //there are verts with zero out-links
                     vid_t remianzero = from-curvertex-1;
                     vid_t remainsize = VERT_SIZE - (curvertex - bstv);
-                    // logstream(LOG_INFO) << "remianzero = " << remianzero << " , remainsize =  " << remainsize << " malloc_size = " << malloc_size << std::endl;
                     while(remianzero > remainsize){
                         bwritezero( beg_pos, beg_posptr, remainsize ); 
                         flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
@@ -286,9 +283,6 @@
 
         //output beg_pos information
         logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges(fnum=1)) = " << cpos << std::endl;
-        // logstream(LOG_INFO) << "beg_pos : "<< std::endl;
-        // for(vid_t i = max_vert-10; i <= max_vert; i++) //max_vert is far larger than the buffer size
-        //     logstream(LOG_INFO) << "beg_pos[" << i << "] = " << *((eid_t*)(beg_pos+sizeof(eid_t)*i)) << ", " << *((eid_t*)(beg_pos+sizeof(eid_t)*(i+1))) << std::endl;
 
         if(csr!=NULL) free(csr);
         if(beg_pos!=NULL) free(beg_pos);
@@ -324,11 +318,6 @@
             for(vid_t v = 0; v < rv; v++){
                 if(beg_pos[v]-bgstvb > mneb){
                     logstream(LOG_INFO) << "Block_" << blockid << " : [" << stvb << ", " << nread+v-1 << ")" << std::endl;
-                    // if(beg_pos[v]-beg_pos[v-1] > mneb){
-                    //     logstream(LOG_ERROR) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
-                    //     logstream(LOG_ERROR) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
-                    //     assert(false);
-                    // }
                     if(beg_pos[v]-beg_pos[v-1] > mneb){
                         logstream(LOG_WARNING) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
                         logstream(LOG_WARNING) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
@@ -376,7 +365,6 @@
             //return nshards;
         }else{
             logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;
-            // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
             logstream(LOG_INFO) << "Will try create them now..." << std::endl;
 
             nshards = convert_to_csr(basefilename, FILE_SIZE);
@@ -392,7 +380,6 @@
             //return nshards;
         }else{
             logstream(LOG_INFO) << "Did not find computed blocks for " << basefilename  << std::endl;
-            // logstream(LOG_INFO) << "(Edge-value size: " << sizeof(EdgeDataType) << ")" << std::endl;
             logstream(LOG_INFO) << "Will try compute the blcok range now..." << std::endl;
 
             nblocks = compute_block(basefilename, blocksize_kb);

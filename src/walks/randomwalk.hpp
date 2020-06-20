@@ -76,7 +76,6 @@ public:
             if( v < blocks[p+1] )
                 return p;
         }
-        // logstream(LOG_DEBUG) << "v = " << v << ", blocks[nblocks] = " << blocks[nblocks] << std::endl;
         // assert(false);
         return nblocks;
     }
@@ -86,7 +85,6 @@ public:
      */
     virtual bool hasFinishedWalk(WalkManager &walk_manager){
         wid_t remaining_walknum = walk_manager.walksum;
-        // logstream(LOG_DEBUG) << "Walks remaining = " << remaining_walknum << std::endl;
         return ( remaining_walknum > 0 ); 
     }
 

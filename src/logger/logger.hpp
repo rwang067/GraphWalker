@@ -248,17 +248,39 @@ class file_logger{
      there is no logger file, and logger level is set to LOG_WARNING
      */
     file_logger() {
-        log_file = "";
-        log_to_console = true;
-        log_level = LOG_DEBUG; 
-        pthread_mutex_init(&mut, NULL);
-        pthread_key_create(&streambuffkey, streambuffdestructor);
+      auto env_var_val = std::getenv("LOG_LEVEL");
+
+      std::string min_log_level;
+      if (env_var_val == nullptr) {
+        min_log_level = "debug"; // default is debug
+      } else {
+        min_log_level = env_var_val;
+      }
+
+      if (min_log_level == "debug") {
+        log_level = LOG_DEBUG;
+      } else if (min_log_level == "info") {
+        log_level = LOG_INFO;
+      } else if (min_log_level == "warning") {
+        log_level = LOG_WARNING;
+      } else if (min_log_level == "error") {
+        log_level = LOG_ERROR;
+      } else if (min_log_level == "fatal") {
+        log_level = LOG_FATAL;
+      } else {
+        log_level = LOG_NONE;
+      }
+
+      log_file = "";
+      log_to_console = true;
+      pthread_mutex_init(&mut, NULL);
+      pthread_key_create(&streambuffkey, streambuffdestructor);
     }
     
     ~file_logger() {
         if (fout.good()) {
-            fout.flush();
-            fout.close();
+          fout.flush();
+          fout.close();
         }
         
         pthread_mutex_destroy(&mut);
@@ -493,9 +515,9 @@ struct log_dispatch<true> {
   inline static void exec(int loglevel,const char* file,const char* function,
                 int line,const char* fmt, ... ) {
   va_list argp;
-	va_start(argp, fmt);
-	global_logger()._log(loglevel, file, function, line, fmt, argp);
-	va_end(argp);
+  va_start(argp, fmt);
+  global_logger()._log(loglevel, file, function, line, fmt, argp);
+  va_end(argp);
   }
 };
 

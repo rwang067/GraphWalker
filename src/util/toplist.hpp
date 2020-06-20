@@ -126,7 +126,6 @@
                 logstream(LOG_ERROR) << "Could not open " << vertex_value_file << " error: " << strerror(errno) << std::endl;
             }
             assert(f >= 0);
-            //std::cout << "st nt " << st << " " << nt << std::endl;
             preada(f, vertexdata, nt*sizeof(VertexDataType), st*sizeof(VertexDataType));
             close(f);
             // vertexdata->load(st, en);
@@ -140,9 +139,7 @@
             for(int j=0; j < nt; j++) {
                 VertexDataType val = *vertexdataptr;
                 vertexdataptr++;
-                if( j < 10 ){
-                    //std::cout << st+j << " " << val << " " << nt << std::endl;
-                } 
+
                 if (count == 0 || (val > minima)) {
                     buffer_idxs[k] = vv_t((vid_t)idx + from, val);
                     k++;
