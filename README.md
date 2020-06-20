@@ -9,7 +9,7 @@ Traditional graph systems mainly use the iteration-based model which iteratively
 
 ### Publication
 
-Rui Wang, Yongkun Li, Hong Xie, Yinlong Xu, John C.S. Lui. GraphWalker: An I/O-Efficient and Resource-Friendly Graph Analytic System for Fast and Scalable Random Walks. ATC2020. [paperlink](www.github.com)
+Rui Wang, Yongkun Li, Hong Xie, Yinlong Xu, John C.S. Lui. GraphWalker: An I/O-Efficient and Resource-Friendly Graph Analytic System for Fast and Scalable Random Walks. ATC2020. [paperlink](https://www.usenix.org/conference/atc20/presentation/wang-rui)
 
 ### Try out `GraphWalker`
 
