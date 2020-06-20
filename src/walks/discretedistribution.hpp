@@ -26,14 +26,13 @@ public:
 	vid_t* ids;
 	uint16_t* counts;
 	unsigned size;
-    // unsigned capacity;
 
 public:
 	DiscreteDistribution(){
 		size = 0;
-        // capacity = 1000;
         ids = (vid_t*)malloc(capacity*sizeof(vid_t));
 		counts = (uint16_t*)malloc(capacity*sizeof(uint16_t));
+        std::memset(counts, 0, capacity*sizeof(uint16_t));
 	}
 
 	~DiscreteDistribution(){

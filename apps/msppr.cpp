@@ -15,7 +15,6 @@ public:
     wid_t walkspersource;
     hid_t maxwalklength;
     DiscreteDistribution *visitfrequencies;
-    // DiscreteDistribution visitfrequencies;
 
     tid_t exec_threads;
     eid_t *used_edges;
@@ -52,7 +51,6 @@ public:
             count -= nums;
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] = nums*walkspersource;
-            // WalkDataType* curwalks = (WalkDataType*)malloc(walk_manager.walknum[p]*sizeof(WalkDataType));
             #pragma omp parallel for schedule(static)
                 for(vid_t s = 0; s < nums; s++){
                     vid_t cur = s + sts - blocks[p];
@@ -70,7 +68,6 @@ public:
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         visitfrequencies[s].add(dstId);
-        // visitfrequencies.add(dstId);
         used_edges[threadid]++;
     }
 
