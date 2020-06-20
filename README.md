@@ -25,11 +25,19 @@ $ cd GraphWalker
 $ make
 ```
 
+#### Dataset preparing
+
+```bash
+$ mkdir Dataset && cd Dataset
+$ wget https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz
+$ gunzip soc-LiveJournal1.txt.gz
+```
+
 #### Performing apps atop `GraphWalker`
 
 Here, we will take application `msppr` as an example to show how to run applications atop `GraphWalker`.
 
 ```bash
-$ cd GraphWalker
-$ LOG_LEVEL="debug" ./bin/apps/msppr file ../../data/raid0_defghij_ssd/LiveJournal/soc-LiveJournal1.txt firstsource 0 numsources 1 walkspersource 2000 maxwalklength 10 prob 0.2
+$ cd ../
+$ LOG_LEVEL="debug" ./bin/apps/msppr file ./Dataset/soc-LiveJournal1.txt firstsource 0 numsources 1 walkspersource 2000 maxwalklength 10 prob 0.2
 ```

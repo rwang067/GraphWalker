@@ -128,7 +128,6 @@ int main(int argc, const char ** argv) {
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);
-    // program.visitfrequencies.getTop(20);
 
     /* Report execution metrics */
     metrics_report(m);
