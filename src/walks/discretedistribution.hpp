@@ -47,8 +47,11 @@ public:
                 return ;
             }
         }
-        while(size >= capacity){
-            filter(2);
+        #pragma omp critical
+        {
+            while(size >= capacity){
+                filter(2);
+            }
         }
         ids[size] = _id;
         counts[size] = 1;
