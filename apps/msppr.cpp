@@ -115,12 +115,6 @@ int main(int argc, const char ** argv) {
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
 
-    // char cmd[256];
-	// // sprintf(cmd,"%s","iostat -x 1 -k > iostat_randomwalks.log&");
-	// sprintf(cmd,"%s","top -b -d 5 -u wang > top_msppr.log&");
-	// std::cout<<cmd<<"\n";
-    // system((const char *)cmd);
-
     /* Run */
     MultiSourcePersonalizedPageRank program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
@@ -138,7 +132,6 @@ int main(int argc, const char ** argv) {
     program.visitfrequencies[0].getTop(20);
     // program.visitfrequencies.getTop(20);
 
-    system("killall top");
     /* Report execution metrics */
     metrics_report(m);
     return 0;
