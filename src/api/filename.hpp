@@ -29,24 +29,24 @@ static std::string walksname( std::string basefilename, bid_t p ){
     return ss.str();
 }
 
-static std::string filerangename(std::string basefilename, uint16_t filesize_GB){
-    std::stringstream ss;
-    ss << basefilename;
-    ss << "_GraphWalker/filesize_" << filesize_GB << "GB.filerange";
-    return ss.str();
-}
+// static std::string filerangename(std::string basefilename, uint16_t filesize_MB){
+//     std::stringstream ss;
+//     ss << basefilename;
+//     ss << "_GraphWalker/filesize_" << filesize_MB << "MB.filerange";
+//     return ss.str();
+// }
 
-static std::string blockrangename(std::string basefilename, unsigned long long blocksize_KB){
+static std::string blockrangename(std::string basefilename, uint16_t blocksize_MB){
     std::stringstream ss;
     ss << basefilename;
-    ss << "_GraphWalker/blocksize_" << blocksize_KB << "KB.blockrange";
+    ss << "_GraphWalker/graphinfo/blocksize_" << blocksize_MB << "MB.blockrange";
     return ss.str();
 }
 
 static std::string nverticesname(std::string basefilename) {
     std::stringstream ss;
     ss << basefilename;
-    ss << "_GraphWalker/N.nvertices"; 
+    ss << "_GraphWalker/graphinfo/N.nvertices"; 
     return ss.str();
 }
 

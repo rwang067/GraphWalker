@@ -80,7 +80,7 @@ int main(int argc, const char ** argv){
     wid_t R = get_option_long("R", 10000); // Number of steps
     hid_t L = get_option_int("L", 4); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
+    uint16_t blocksize = get_option_long("blocksize", 0); // Size of block, represented in MB
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
     
     logstream(LOG_DEBUG) << "N R L : " << N << " " << R << " " << L << std::endl;
@@ -89,18 +89,18 @@ int main(int argc, const char ** argv){
     program.initializeApp(N,R,L);
 
     /* Detect the number of shards or preprocess an input to create them */
-    if(blocksize_kb == 0){
-        blocksize_kb = program.compBlockSize(R);
+    if(blocksize == 0){
+        blocksize = program.compBlockSize(R);
     }
     if(nmblocks == 0){
-        nmblocks = program.compNmblocks(blocksize_kb);
+        nmblocks = program.compNmblocks(blocksize);
     }
-    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
+    bid_t nblocks = convert_if_notexists(filename, blocksize);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
     logstream(LOG_DEBUG) << "nblocks nmblocks : " << nblocks << " " << nmblocks << std::endl;
 
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+    graphwalker_engine engine(filename, blocksize, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     metrics_report(m);

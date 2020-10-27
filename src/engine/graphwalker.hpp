@@ -27,7 +27,7 @@ class graphwalker_engine {
 public:     
     std::string base_filename;
     // unsigned membudget_mb;
-    unsigned long long blocksize_kb;  
+    uint16_t blocksize;  
     bid_t nblocks;  
     vid_t nvertices;      
     tid_t exec_threads;
@@ -52,7 +52,7 @@ public:
     void print_config() {
         logstream(LOG_INFO) << "Engine configuration: " << std::endl;
         logstream(LOG_INFO) << " exec_threads = " << (int)exec_threads << std::endl;
-        logstream(LOG_INFO) << " blocksize_kb = " << blocksize_kb << "kb" << std::endl;
+        logstream(LOG_INFO) << " blocksize = " << blocksize << "MB" << std::endl;
         logstream(LOG_INFO) << " number of total blocks = " << nblocks << std::endl;
         logstream(LOG_INFO) << " number of in-memory blocks = " << nmblocks << std::endl;
     }
@@ -71,11 +71,11 @@ public:
      * @param nblocks number of shards
      * @param selective_scheduling if true, uses selective scheduling 
      */
-    graphwalker_engine(std::string _base_filename, unsigned long long _blocksize_kb, bid_t _nblocks, bid_t _nmblocks, metrics &_m) : base_filename(_base_filename), blocksize_kb(_blocksize_kb), nblocks(_nblocks), nmblocks(_nmblocks), m(_m) {
+    graphwalker_engine(std::string _base_filename, uint16_t _blocksize, bid_t _nblocks, bid_t _nmblocks, metrics &_m) : base_filename(_base_filename), blocksize(_blocksize), nblocks(_nblocks), nmblocks(_nmblocks), m(_m) {
         // membudget_mb = get_option_int("membudget_mb", 1024);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
-        load_block_range(base_filename, blocksize_kb, blocks);
+        load_block_range(base_filename, blocksize, blocks);
         logstream(LOG_INFO) << "block_range loaded!" << std::endl;
         nvertices = num_vertices();
         walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
@@ -83,40 +83,20 @@ public:
 
         csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
         for(bid_t b = 0; b < nmblocks; b++){
-            csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
-            // csrbuf[b] = (vid_t *)mmap(NULL, blocksize_kb*1024,
-            //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS 
-            //         //| MAP_HUGETLB | MAP_HUGE_2MB
-            //         , 0, 0);
-            // if(csrbuf[b] == MAP_FAILED){
-            //     printf("%lld\n",b*blocksize_kb*1024);
-            //     perror("csrbuf alloc mmap");
-            //     exit(-1);
-            // }
+            csrbuf[b] = (vid_t*)malloc((size_t)blocksize*1024*1024);
         }
         logstream(LOG_INFO) << "csrbuf malloced!" << std::endl;
+
+        eid_t max_nedges = (eid_t)blocksize * 1024 * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
+        vid_t max_nvertices = (vid_t)max_nedges / 8; //max number of (vertices+edges) of a shard
         beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
+        for(bid_t b = 0; b < nmblocks; b++){
+            beg_posbuf[b] = (eid_t*)malloc(max_nvertices*sizeof(eid_t));
+        }
+
         inMemIndex = (bid_t*)malloc(nblocks*sizeof(bid_t));
         for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
         cmblocks = 0;
-
-        // m.start_time("__g_loadSubGraph_filename");
-        std::string invlname = fidname( base_filename, 0 ); //only 1 file
-        std::string beg_posname = invlname + ".beg_pos";
-        std::string csrname = invlname + ".csr";
-        // m.stop_time("__g_loadSubGraph_filename");
-        // m.start_time("__g_loadSubGraph_open_begpos");
-        beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        // m.stop_time("__g_loadSubGraph_open_begpos");
-        // m.start_time("__g_loadSubGraph_open_csr");
-        csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        // m.stop_time("__g_loadSubGraph_open_csr");
-        // m.start_time("__g_loadSubGraph_if_open_success");
-        if (csrf < 0 || beg_posf < 0) {
-            logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
-        }
-        assert(csrf > 0 && beg_posf > 0);
-        // m.stop_time("__g_loadSubGraph_if_open_success");
 
         _m.set("file", _base_filename);
         _m.set("engine", "default");
@@ -134,17 +114,13 @@ public:
         for(bid_t b = 0; b < cmblocks; b++){
             if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
             if(csrbuf[b] != NULL)   free(csrbuf[b]);
-                // munmap(csrbuf[b], blocksize_kb*1024);
         }
         if(beg_posbuf != NULL) free(beg_posbuf);
         if(csrbuf != NULL) free(csrbuf);
-
-        close(beg_posf);  
-        close(csrf);  
     }
 
-    void load_block_range(std::string base_filename, unsigned long long blocksize_kb, vid_t * &blocks, bool allowfail=false) {
-        std::string blockrangefile = blockrangename(base_filename, blocksize_kb);
+    void load_block_range(std::string base_filename, uint16_t blocksize, vid_t * &blocks, bool allowfail=false) {
+        std::string blockrangefile = blockrangename(base_filename, blocksize);
         std::ifstream brf(blockrangefile.c_str());
         
         if (!brf.good()) {
@@ -167,34 +143,37 @@ public:
 
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
         m.start_time("g_loadSubGraph");
+
+        std::string block_name = fidname( base_filename, p ); 
+        std::string beg_posname = block_name + ".beg_pos";
+        std::string csrname = block_name + ".csr";
+        beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        if (csrf < 0 || beg_posf < 0) {
+            logstream(LOG_FATAL) << "Could not load :" << csrname << " or " << beg_posname << ", error: " << strerror(errno) << std::endl;
+        }
+        assert(csrf > 0 && beg_posf > 0);
         
 
         // m.start_time("__g_loadSubGraph_malloc_begpos");
         /* read beg_pos file */
         *nverts = blocks[p+1] - blocks[p];
-        beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
-        // m.stop_time("__g_loadSubGraph_malloc_begpos");
-        // beg_pos=(eid_t *)mmap(NULL,(size_t)(*nverts+1)*sizeof(eid_t),
-        //         PROT_READ | PROT_WRITE,MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-        // if(beg_pos == MAP_FAILED)
-        // {
-        //     printf("%ld\n",(size_t)(*nverts+1)*sizeof(eid_t));
-        //     perror("beg_pos alloc mmap");
-        //     exit(-1);
-        // }
         m.start_time("z__g_loadSubGraph_read_begpos");
-        preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
+        preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), 0);        
         m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
         m.start_time("z__g_loadSubGraph_realloc_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
-        if(*nedges*sizeof(vid_t) > blocksize_kb*1024){
+        if(*nedges*sizeof(vid_t) > (size_t)blocksize*1024*1024){
             csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
         }
         m.stop_time("z__g_loadSubGraph_realloc_csr");     
         m.start_time("z__g_loadSubGraph_read_csr");
-        preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
+        preada(csrf, csr, (*nedges)*sizeof(vid_t), 0);
         m.stop_time("z__g_loadSubGraph_read_csr");     
+
+        close(beg_posf);  
+        close(csrf); 
 
         m.stop_time("g_loadSubGraph");
     }

@@ -95,21 +95,21 @@ int main(int argc, const char ** argv) {
     wid_t R = get_option_int("R", 1000); // Number of steps
     hid_t L = get_option_int("L", 11); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
+    uint16_t blocksize = get_option_long("blocksize", 0); // Size of block, represented in MB
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
     
     /* Run */
     SimRank program;
     program.initializeApp( a, b, R, L );
     
-	if(blocksize_kb == 0)
-        blocksize_kb = program.compBlockSize(2*R);
+	if(blocksize == 0)
+        blocksize = program.compBlockSize(2*R);
     /* Detect the number of shards or preprocess an input to create them */
-    bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
-    if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
+    bid_t nblocks = convert_if_notexists(filename, blocksize);
+    if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+    graphwalker_engine engine(filename, blocksize, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     float simrank = program.computeResult();

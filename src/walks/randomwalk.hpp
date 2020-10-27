@@ -97,17 +97,17 @@ public:
             dom++;
             nwalks /= 10;
         }
-        unsigned long long blocksize_kb = pow(2, 11 + dom);
-        logstream(LOG_DEBUG) << "Determined blocksize_kb = " << blocksize_kb << std::endl;
-        return blocksize_kb; 
+        uint16_t blocksize = pow(2, 1 + dom);
+        logstream(LOG_DEBUG) << "Determined blocksize = " << blocksize << std::endl;
+        return blocksize; 
     }
 
     /**
      * determine the number of in-memory blocks
      */
-    virtual bid_t compNmblocks(unsigned long long blocksize_kb){
-        bid_t nmblocks = MEM_BUDGET / blocksize_kb;
-        logstream(LOG_DEBUG) << "Computed nmblocks = " << nmblocks << std::endl;
+    virtual bid_t compNmblocks(uint16_t blocksize){
+        bid_t nmblocks = MEM_BUDGET / blocksize;
+        // logstream(LOG_DEBUG) << "Computed nmblocks = " << nmblocks << std::endl;
         return nmblocks; 
     }
     
