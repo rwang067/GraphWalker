@@ -25,10 +25,10 @@
     }
 
     //for convert_to_csr
-    eid_t nedges, max_nedges; //total edges and max num of edges in an csr file
-    vid_t nverts, max_nvertices; //total vertices and max num of vertices in an beg_pos file
+    eid_t edgenum, max_edgenum; //total edges and max num of edges in an csr file
+    vid_t vertnum, max_nvertices; //total vertices and max num of vertices in an beg_pos file
 
-    bid_t nblocks;
+    bid_t bnum;
     std::vector<vid_t> blocks;
     vid_t bstv; //start vertex of current block
     vid_t curvert; // current vertex
@@ -83,14 +83,14 @@
         std::string blockrangefile = blockrangename(base_filename, blocksize);
         FILE *tryf = fopen(blockrangefile.c_str(), "r");
         if (tryf != NULL) { // Found!
-            bid_t nblocks = 0;
+            bid_t bnum = 0;
             while(!feof(tryf)){
                 char flag = fgetc(tryf);
                 if(flag == '\n')
-                nblocks++;
+                bnum++;
             }
             fclose(tryf);
-            return nblocks-1;
+            return bnum-1;
         }
         // Not found!
         logstream(LOG_WARNING) << "Could not find blocks with blocksize = " << blocksize << "MB." << std::endl;
@@ -109,7 +109,7 @@
         /*write nvertices*/
         std::string nverticesfile = nverticesname(filename);
         std::ofstream nvf(nverticesfile.c_str());
-        nvf << blocks[nblocks] << std::endl;
+        nvf << blocks[bnum] << std::endl;
         nvf.close();
     }
 
@@ -132,19 +132,19 @@
 
     void flushBlock(std::string filename, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
         
-        std::string fidfile = fidname(filename,nblocks);
+        std::string fidfile = fidname(filename,bnum);
         std::string csrname = fidfile + ".csr";
         std::string beg_posname = fidfile + ".beg_pos";
         appendfile(csrname, csr, csrptr);
         appendfile(beg_posname, beg_pos, beg_posptr);
 
-        logstream(LOG_INFO) << "FILE_" << nblocks << " : [ " << bstv << " , " << curvert-1 << " ], totally stores " 
+        logstream(LOG_INFO) << "FILE_" << bnum << " : [ " << bstv << " , " << curvert-1 << " ], totally stores " 
                             << curvert - bstv << " vertices, and " << curpos << " edges." << std::endl;
 
         csrptr = csr;
         beg_posptr = beg_pos + sizeof(eid_t);
         bstv = curvert;
-        nedges += curpos;
+        edgenum += curpos;
         curpos = 0;
     }
 
@@ -160,25 +160,25 @@
         mkdir((filename+"_GraphWalker/").c_str(), 0777);
         mkdir((filename+"_GraphWalker/graphinfo/").c_str(), 0777);
 
-        max_nedges = (eid_t)filesize_MB * 1024 * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
-        max_nvertices = (vid_t)max_nedges / 8; //max number of (vertices+edges) of a shard
-        logstream(LOG_INFO) << "Begin convert_to_csr, max_nedges in an csr file = " << max_nedges << ", max_nvertices = " << max_nvertices << std::endl;
-        // logstream(LOG_INFO) << "max_nvertices in a beg_pos buffer = " << max_nvertices << ", max_nedges in an csr buffer = " << max_nedges << std::endl;
+        max_edgenum = (eid_t)filesize_MB * 1024 * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
+        max_nvertices = (vid_t)max_edgenum / 8; //max number of (vertices+edges) of a shard
+        logstream(LOG_INFO) << "Begin convert_to_csr, max_edgenum in an csr file = " << max_edgenum << ", max_nvertices = " << max_nvertices << std::endl;
+        // logstream(LOG_INFO) << "max_nvertices in a beg_pos buffer = " << max_nvertices << ", max_edgenum in an csr buffer = " << max_edgenum << std::endl;
         
-        char * csr = (char*) malloc(max_nedges*sizeof(vid_t));
+        char * csr = (char*) malloc(max_edgenum*sizeof(vid_t));
         char * csrptr = csr;
         char * beg_pos = (char*) malloc(max_nvertices*sizeof(eid_t));
         char * beg_posptr = beg_pos;
                
         logstream(LOG_INFO) << "Reading in edge list format!" << std::endl;
 
-        nblocks = 0;
+        bnum = 0;
         bstv = 0;
         blocks.push_back(bstv);
         curvert = 0;
         curpos = 0;
-        nverts = 0;
-        nedges = 0;
+        vertnum = 0;
+        edgenum = 0;
 
         *((eid_t*)beg_posptr) = 0;
         beg_posptr += sizeof(eid_t);
@@ -210,14 +210,14 @@
                 outv.push_back(to);
                 outd++;
             }else{  //a new vertex
-                if( curpos + outd >= max_nedges || curvert - bstv + 1 >= max_nvertices ){
-                    if( outd > max_nedges){
-                        logstream(LOG_ERROR) << "Too small memory capacity with max_nedges = " << max_nedges << " to support larger ourdegree of vert " << curvert << ", with outdegree = " << outd << std::endl;
+                if( curpos + outd >= max_edgenum || curvert - bstv + 1 >= max_nvertices ){
+                    if( outd > max_edgenum){
+                        logstream(LOG_ERROR) << "Too small memory capacity with max_edgenum = " << max_edgenum << " to support larger ourdegree of vert " << curvert << ", with outdegree = " << outd << std::endl;
                         assert(false);
                     }
                     flushBlock(filename, csr, csrptr, beg_pos, beg_posptr);
                     blocks.push_back(bstv);
-                    nblocks++;
+                    bnum++;
                 }
                 bwrite(beg_pos, beg_posptr, csr, csrptr, outd, outv, filename); //write a vertex to buffer
                 if( from - curvert > 1 ){ //there are verts with zero out-links
@@ -248,58 +248,43 @@
         
         flushBlock(filename, csr, csrptr, beg_pos, beg_posptr);
         blocks.push_back(max_vert+1);
-        nblocks++;
+        bnum++;
 
-        logstream(LOG_INFO) << "Partitioned csr file number : " << nblocks << std::endl;
+        logstream(LOG_INFO) << "Partitioned csr file number : " << bnum << std::endl;
         writeFileRange(filename,filesize_MB);
 
         //output beg_pos information
-        logstream(LOG_INFO) << "nverts = " << max_vert+1 << ", " << "nedges = " << nedges << std::endl;
+        logstream(LOG_INFO) << "vertnum = " << max_vert+1 << ", " << "edgenum = " << edgenum << std::endl;
 
         if(csr!=NULL) free(csr);
         if(beg_pos!=NULL) free(beg_pos);
 
 
-        return nblocks;
+        return bnum;
     }
 
     /**
-     * Converts graph from an edge list format. Input may contain
+     * Covertnum graph from an edge list format. Input may contain
      * value for the edges. Self-edges are ignored.
      */
 
     bid_t convert_if_notexists(std::string basefilename, uint16_t blocksize) {
-        // bid_t nshards = find_filerange(basefilename, FILE_SIZE);
-        // /* Check if input file is already sharded */
-        // if(nshards > 0) {
-        //     logstream(LOG_INFO) << "Found preprocessed files for " << basefilename << ", shardsize = " << FILE_SIZE << "GB, num file=" << nshards << std::endl;
-        //     //return nshards;
-        // }else{
-        //     logstream(LOG_INFO) << "Did not find preprocessed shards for " << basefilename  << std::endl;
-        //     logstream(LOG_INFO) << "Will try create them now..." << std::endl;
-
-        //     nshards = convert_to_csr(basefilename, FILE_SIZE);
-
-        //     logstream(LOG_INFO) << "Successfully finished sharding for " << basefilename << std::endl;
-        //     logstream(LOG_INFO) << "Created " << nshards << " shards." << std::endl;
-        // }
-
         assert(blocksize > 0);
-        bid_t nblocks = find_blockrange(basefilename, blocksize);
+        bid_t bnum = find_blockrange(basefilename, blocksize);
         /* Check if input file is already sharded */
-        if(nblocks > 0) {
-            logstream(LOG_INFO) << "Found computed blocks for " << basefilename << ", blocksize = " << blocksize << "MB, num blocks=" << nblocks << std::endl;
+        if(bnum > 0) {
+            logstream(LOG_INFO) << "Found computed blocks for " << basefilename << ", blocksize = " << blocksize << "MB, num blocks=" << bnum << std::endl;
             //return nshards;
         }else{
             logstream(LOG_INFO) << "Did not find computed blocks for " << basefilename  << std::endl;
             logstream(LOG_INFO) << "Will try compute the blcok range now..." << std::endl;
 
-            nblocks = convert_to_csr(basefilename, blocksize); //compute_block(basefilename, blocksize);
+            bnum = convert_to_csr(basefilename, blocksize); //compute_block(basefilename, blocksize);
 
             logstream(LOG_INFO) << "Successfully finished compute_block for " << basefilename << std::endl;
-            logstream(LOG_INFO) << "computed " << nblocks << " blocks." << std::endl;
+            logstream(LOG_INFO) << "computed " << bnum << " blocks." << std::endl;
         }
-        return nblocks;
+        return bnum;
     }
 
 #endif

@@ -71,20 +71,19 @@ public:
         startWalksbyApp(walk_manager);
     }
 
-    virtual unsigned getblock( vid_t v ){
-        for( unsigned p = 0; p < nblocks; p++ ){
+    virtual bid_t getblock( vid_t v ){
+        for( bid_t p = 0; p < nblocks; p++ ){
             if( v < blocks[p+1] )
                 return p;
         }
-        // assert(false);
         return nblocks;
     }
     
     /**
      * check if it has finished all walks
      */
-    virtual bool hasFinishedWalk(WalkManager &walk_manager){
-        wid_t remaining_walknum = walk_manager.walksum;
+    virtual bool hasFinishedWalk(WalkManager *walk_manager){
+        wid_t remaining_walknum = walk_manager->walksum;
         return ( remaining_walknum > 0 ); 
     }
 
@@ -107,7 +106,6 @@ public:
      */
     virtual bid_t compNmblocks(uint16_t blocksize){
         bid_t nmblocks = MEM_BUDGET / blocksize;
-        // logstream(LOG_DEBUG) << "Computed nmblocks = " << nmblocks << std::endl;
         return nmblocks; 
     }
     

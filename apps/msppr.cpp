@@ -1,3 +1,5 @@
+#define DYNAMIC_GRAPH
+
 #include <string>
 #include <fstream>
 #include <cmath>
@@ -121,7 +123,8 @@ int main(int argc, const char ** argv) {
     if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
-    graphwalker_engine engine(filename, blocksize,nblocks,nmblocks, m);
+    GraphWalkerEngine engine(filename, blocksize,nblocks,nmblocks, m);
+
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);

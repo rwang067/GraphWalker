@@ -100,7 +100,7 @@ int main(int argc, const char ** argv){
 
     logstream(LOG_DEBUG) << "nblocks nmblocks : " << nblocks << " " << nmblocks << std::endl;
 
-    graphwalker_engine engine(filename, blocksize, nblocks,nmblocks, m);
+    GraphWalkerEngine engine(filename, blocksize, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     metrics_report(m);
