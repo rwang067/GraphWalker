@@ -2,7 +2,7 @@
 #ifndef DEF_MEMORY_GRAPH
 #define DEF_MEMORY_GRAPH
 
-
+#include "walks/randomwalk.hpp"
 #include "engine/dynamicgraph.hpp"
 #include "engine/staticgraph.hpp"
 
@@ -24,13 +24,13 @@ public:
         
 public:
         
-    MemGraph(std::string base_filename, uint16_t blocksize, bid_t nblocks, bid_t _nmblocks) 
+    MemGraph(std::string base_filename, uint16_t blocksize, bid_t nblocks, bid_t _nmblocks, metrics &m) 
             : nmblocks(_nmblocks) {
 
         #ifdef DYNAMIC_GRAPH
-        graph = new DynamicGraph(base_filename, blocksize,nblocks,nmblocks);
+        graph = new DynamicGraph(base_filename, blocksize,nblocks,m);
     #else
-        graph = new StaticGraph(base_filename, blocksize,nblocks,nmblocks);
+        graph = new StaticGraph(base_filename, blocksize,nblocks,m);
     #endif
 
         csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));

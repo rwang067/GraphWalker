@@ -132,7 +132,7 @@
 
     void flushBlock(std::string filename, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
         
-        std::string fidfile = fidname(filename,bnum);
+        std::string fidfile = blockname(filename,bnum);
         std::string csrname = fidfile + ".csr";
         std::string beg_posname = fidfile + ".beg_pos";
         appendfile(csrname, csr, csrptr);

@@ -28,11 +28,14 @@ public:
     uint16_t blocksize;
     bid_t nblocks;
     vid_t* blocks;
+
+    /* Metrics */
+    metrics &m;
         
 public:
         
-    StaticGraph(std::string _base_filename, uint16_t _blocksize, bid_t _nblocks, bid_t _nmblocks) 
-            : base_filename(_base_filename), blocksize(_blocksize), nblocks(_nblocks){
+    StaticGraph(std::string _base_filename, uint16_t _blocksize, bid_t _nblocks, metrics &_m) 
+            : base_filename(_base_filename), blocksize(_blocksize), nblocks(_nblocks), m(_m){
         load_block_range(base_filename, blocksize, blocks);
         logstream(LOG_INFO) << "block_range loaded!" << std::endl;
         nvertices = num_vertices();
@@ -77,7 +80,16 @@ public:
     }
     
     void loadBegpos(bid_t p, eid_t * &beg_pos, vid_t nverts, vid_t off = 0){
-        std::string beg_posname = fidname( base_filename, p ) + ".beg_pos";
+
+        std::string beg_posname = blockname( base_filename, p ) + ".beg_pos";
+        FILE *tryf = fopen(beg_posname.c_str(), "r");
+        if (tryf == NULL) { // Not found block beg_pos file
+            // logstream(LOG_WARNING) << "Could not find the block beg_pos file : " << beg_posname << std::endl;
+            memset(beg_pos, 0, (nverts+1)*sizeof(eid_t));
+            return ;
+        }
+        fclose(tryf);
+
         int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (beg_posf < 0) {
             logstream(LOG_FATAL) << "Could not load :" << beg_posname << ", error: " << strerror(errno) << std::endl;
@@ -91,7 +103,9 @@ public:
     }
 
     void loadCSR(bid_t p, vid_t * &csr, eid_t nedges, eid_t off = 0){
-        std::string csrname = fidname( base_filename, p ) + ".csr";
+        if(nedges <= 0) return;
+
+        std::string csrname = blockname( base_filename, p ) + ".csr";
         int csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (csrf < 0) {
             logstream(LOG_FATAL) << "Could not load :" << csrname << ", error: " << strerror(errno) << std::endl;
@@ -114,23 +128,33 @@ public:
         loadCSR(p, csr, *nedges);
     }
 
+    void writeSubGraph(bid_t p, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
+        std::string beg_posname = blockname( base_filename, p ) + ".beg_pos";
+        writefile(beg_posname, beg_pos, beg_posptr);
+        std::string csrname = blockname( base_filename, p ) + ".csr";
+        writefile(csrname, csr, csrptr);
+    }
+
     std::vector<vid_t> getNeighbors(vid_t v){
-        bid_t p = getblock(v);
-        vid_t off = v - blocks[p];
-        eid_t nedges, *beg_pos = new eid_t[2];
-        vid_t *csr = new vid_t[1000];
-
-        loadBegpos(p, beg_pos, 1, off);
-        nedges = beg_pos[1] - beg_pos[0];
-        loadCSR(p, csr, nedges, beg_pos[0]);
-
         std::vector<vid_t> neighbors;
-        for(eid_t i = 0; i < nedges; i++){
-            neighbors.push_back(csr[i]);
-        }
 
-        delete csr;
-        delete beg_pos;
+        bid_t p = getblock(v);
+
+        eid_t *beg_pos = (eid_t*)malloc(2*sizeof(eid_t));
+        vid_t off = v - blocks[p];
+        loadBegpos(p, beg_pos, 1, off);
+
+        eid_t nedges = beg_pos[1] - beg_pos[0];
+        if(nedges > 0){
+            logstream(LOG_WARNING) << nedges << std::endl;
+            vid_t *csr = (vid_t*)malloc(nedges*sizeof(vid_t));
+            loadCSR(p, csr, nedges, beg_pos[0]);
+            for(eid_t i = 0; i < nedges; i++){
+                neighbors.push_back(csr[i]);
+            }
+            free(csr);
+        }
+        free(beg_pos);
 
         return neighbors;
     }

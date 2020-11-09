@@ -13,10 +13,10 @@
 #include "api/datatype.hpp"
 #include "logger/logger.hpp"
 
-static std::string fidname( std::string basefilename, bid_t p ){
+static std::string blockname( std::string basefilename, bid_t p ){
     std::stringstream ss;
     ss << basefilename;
-    ss << "_GraphWalker/graphinfo/file";
+    ss << "_GraphWalker/graphinfo/block";
     ss << "_" << p;
     return ss.str();
 }

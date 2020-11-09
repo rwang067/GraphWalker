@@ -37,7 +37,7 @@ public:
         
     GraphWalkerEngine(std::string base_filename, uint16_t blocksize, bid_t nblocks, bid_t nmblocks, metrics &_m): m(_m){
 
-        memgraph = new MemGraph(base_filename, blocksize,nblocks,nmblocks);
+        memgraph = new MemGraph(base_filename, blocksize,nblocks,nmblocks,m);
 
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
