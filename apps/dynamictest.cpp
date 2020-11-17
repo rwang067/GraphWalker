@@ -21,9 +21,17 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    uint16_t blocksize = get_option_int("blocksize", 64); // Size of block, represented in MB
-    bid_t nblocks = get_option_int("nblocks", 20); // number of blocks
     bid_t nverts = get_option_int("nverts", 4847571); // number of vertices
+    uint16_t blocksize = get_option_int("blocksize", 64); // Size of block, represented in MB
+    bid_t nblocks = get_option_int("nblocks", 5); // number of blocks
+    size_t buffersize = get_option_int("buffersize", 2); // Size of edge buffer, represented in MB
+    size_t logsize = get_option_int("logsize", 32); // Size of edge buffer, represented in MB
+
+    m.set("file", filename);
+    m.set("nverts", (size_t)nverts);
+    m.set("nblocks", (size_t)nblocks);
+    m.set("buffersize(MB)", (size_t)buffersize);
+    m.set("logsize(MB)", (size_t)logsize);
 
     /* Detect the number of shards or preprocess an input to create them */
     // bid_t nblocks = convert_if_notexists(filename, blocksize);
@@ -34,7 +42,7 @@ int main(int argc, const char ** argv) {
     importgraph->clearDir(filename);
     importgraph->generateBlockRange(filename, blocksize, nblocks, nverts);
 
-    DynamicGraph *graph = new DynamicGraph(filename, blocksize, nblocks, m);
+    DynamicGraph *graph = new DynamicGraph(filename, blocksize, nblocks, m, buffersize, logsize);
     m.start_time("importEdges");
     importgraph->importEdges(filename, graph);
     m.stop_time("importEdges");
@@ -52,6 +60,12 @@ int main(int argc, const char ** argv) {
 
     neighbors = graph->getNeighbors(1);
     std::cout << "Got " << neighbors.size() << " neighbors of vertex 1 : " << std::endl;
+    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
+        std::cout << *it << "\t";
+    std::cout << std::endl;
+
+    neighbors = graph->getNeighbors(969513);
+    std::cout << "Got " << neighbors.size() << " neighbors of vertex 969513 : " << std::endl;
     for(auto it = neighbors.begin(); it != neighbors.end(); it++)
         std::cout << *it << "\t";
     std::cout << std::endl;

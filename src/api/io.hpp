@@ -36,6 +36,31 @@ size_t readfull(int f, T ** buf) {
 }
 
 template <typename T>
+size_t readfile(std::string fname, T** buf){
+    int f = open(fname.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+    if (f < 0) {
+        logstream(LOG_ERROR) << "Could not open " << fname << " error: " << strerror(errno) << std::endl;
+    }
+    assert(f >= 0);
+    size_t sz = readfull(f, buf);
+    close(f);
+    return sz;
+}
+
+size_t filesize(std::string fname) {
+    int f = open(fname.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+    if (f < 0) {
+        logstream(LOG_ERROR) << "Could not open " << fname << " error: " << strerror(errno) << std::endl;
+    }
+    assert(f >= 0);
+    off_t sz = lseek(f, 0, SEEK_END);
+    lseek(f, 0, SEEK_SET);
+    close(f);
+    return sz;
+}
+
+
+template <typename T>
 void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {
     size_t nwritten = 0;
     T * buf = (T*)tbuf;
@@ -46,7 +71,7 @@ void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {
             logstream(LOG_ERROR) << "Could not write " << (nbytes-nwritten) << " bytes!" << " error:" <<  strerror(errno) << std::endl;
             assert(false);
         }
-        buf += a;
+        buf += a / sizeof(T);
         nwritten += a;
     }  
 }
@@ -64,13 +89,35 @@ void writefile(std::string fname, T * buf, T * &bufptr){
 }
 
 template <typename T>
+void writefile(std::string fname, T * buf, size_t nbytes){
+    int f = open(fname.c_str(), O_WRONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+    if (f < 0) {
+        logstream(LOG_ERROR) << "Could not open " << fname << " error: " << strerror(errno) << std::endl;
+    }
+    assert(f >= 0);
+    pwritea( f, buf, nbytes);
+    close(f);
+}
+
+template <typename T>
 void appendfile(std::string fname, T * buf, T * &bufptr){
     int f = open(fname.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
     if (f < 0) {
         logstream(LOG_ERROR) << "Could not open " << fname << " error: " << strerror(errno) << std::endl;
     }
     assert(f >= 0);
-    pwritea( f, buf, bufptr - buf );
+    pwritea( f, buf, (bufptr - buf)*sizeof(T) );
+    close(f);
+}
+
+template <typename T>
+void appendfile(std::string fname, T * buf, size_t nbytes){
+    int f = open(fname.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+    if (f < 0) {
+        logstream(LOG_ERROR) << "Could not open " << fname << " error: " << strerror(errno) << std::endl;
+    }
+    assert(f >= 0);
+    pwritea( f, buf, nbytes);
     close(f);
 }
 

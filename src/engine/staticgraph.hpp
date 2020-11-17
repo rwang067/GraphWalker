@@ -106,7 +106,7 @@ public:
         if(nedges <= 0) return;
 
         std::string csrname = blockname( base_filename, p ) + ".csr";
-        int csrf = open(csrname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        int csrf = open(csrname.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (csrf < 0) {
             logstream(LOG_FATAL) << "Could not load :" << csrname << ", error: " << strerror(errno) << std::endl;
         }
@@ -128,11 +128,11 @@ public:
         loadCSR(p, csr, *nedges);
     }
 
-    void writeSubGraph(bid_t p, char * csr, char * &csrptr, char * beg_pos, char * &beg_posptr){
+    void writeSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){
         std::string beg_posname = blockname( base_filename, p ) + ".beg_pos";
-        writefile(beg_posname, beg_pos, beg_posptr);
+        writefile(beg_posname, beg_pos, (size_t)(nverts+1)*sizeof(eid_t));
         std::string csrname = blockname( base_filename, p ) + ".csr";
-        writefile(csrname, csr, csrptr);
+        writefile(csrname, csr, (size_t)nedges*sizeof(vid_t));
     }
 
     std::vector<vid_t> getNeighbors(vid_t v){
@@ -146,7 +146,7 @@ public:
 
         eid_t nedges = beg_pos[1] - beg_pos[0];
         if(nedges > 0){
-            logstream(LOG_WARNING) << nedges << std::endl;
+            // logstream(LOG_WARNING) << nedges << std::endl;
             vid_t *csr = (vid_t*)malloc(nedges*sizeof(vid_t));
             loadCSR(p, csr, nedges, beg_pos[0]);
             for(eid_t i = 0; i < nedges; i++){

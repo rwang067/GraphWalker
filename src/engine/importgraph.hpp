@@ -41,7 +41,7 @@ public:
         }
         assert(inf != NULL);
 
-        int count = 0;
+        long long count = 0;
         char s[1024];
         while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
@@ -64,10 +64,11 @@ public:
 
             if(count++ % (64*1024*1024) == 0)
                 logstream(LOG_INFO) << "Processed " << count << " edges." << std::endl;
-            if(count == 1024*1024*1024)
-                return;
+            // if(count == 1024*1024*1024)
+            //     return;
 
         }
+        graph->flush();
         logstream(LOG_WARNING) << "All edges imported done!" << std::endl;
     }
 
