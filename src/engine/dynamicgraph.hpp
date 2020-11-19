@@ -51,12 +51,14 @@ public:
     void flush(){
         m.start_time("_flush_");
 
+        bid_t cur_nblocks = nblocks;
+
         
         //1. malloc logs
         m.start_time("_flush_1_malloc_logs");
-        vid_t** logs = (vid_t**)malloc(nblocks*sizeof(vid_t*));
-        eid_t* nlogs = (eid_t*)malloc(nblocks*sizeof(eid_t));
-        for(vid_t p = 0; p < nblocks; p++){
+        vid_t** logs = (vid_t**)malloc(cur_nblocks*sizeof(vid_t*));
+        eid_t* nlogs = (eid_t*)malloc(cur_nblocks*sizeof(eid_t));
+        for(bid_t p = 0; p < cur_nblocks; p++){
             logs[p] = (vid_t*)malloc(ecap*sizeof(vid_t)*2);
             nlogs[p] = 0;
         }
@@ -74,18 +76,19 @@ public:
 
         //3. write edge logs for each block
         m.start_time("_flush_3_write_logs");
-        for(vid_t p = 0; p < nblocks; p++){
+        for(bid_t p = 0; p < cur_nblocks; p++){
             if(nlogs[p]>0){
-                std::string logfile = blockname( base_filename, p ) + ".log";
+                bid_t new_p = getblock(logs[p][0]);
+                std::string logfile = blockname( base_filename, blocks[new_p] ) + ".log";
+
+                appendfile(logfile, logs[p], 2 * nlogs[p] * sizeof(vid_t));
+
                 size_t fsize = filesize(logfile);
-                if(fsize/(sizeof(vid_t)*2) + nlogs[p] > logcap){ 
-                    // logstream(LOG_WARNING) << "filesize = " << fsize << ", nlogs[p] = " << nlogs[p] << std::endl;
-                    compaction(p);
+                // logstream(LOG_WARNING) << logfile << ", filesize = " << fsize/(1024*1024) << "MB, nlogs[" << p << "] = " << nlogs[p] << std::endl;
+                if(fsize/(sizeof(vid_t)*2) >= logcap){ 
+                    compaction(new_p);
                     remove(logfile.c_str());
                 }
-                // vid_t* logptr = logs[p] + 2 * nlogs[p];
-                appendfile(logfile, logs[p], 2 * nlogs[p] * sizeof(vid_t));
-                // logstream(LOG_DEBUG) << "filesize = " << filesize(logfile) << ", nlogs[p] = " << nlogs[p] << std::endl;
             }
             free(logs[p]);
         }
@@ -109,11 +112,14 @@ public:
         
         //1. Load the logs of block_p
         m.start_time("_compaction_1_loadLog");
-        std::string logfile = blockname( base_filename, p ) + ".log";
+        std::string logfile = blockname( base_filename, blocks[p] ) + ".log";
         vid_t* logs;
         eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
         m.stop_time("_compaction_1_loadLog");
 
+        if(nlogs <= 0){
+            logstream(LOG_ERROR) << p << " " << logfile << " "<< nlogs << std::endl;
+        }
         assert(nlogs > 0);
         if(nlogs == 0) return; // no added edge logs of block p
         
@@ -138,6 +144,14 @@ public:
         }
         for(eid_t e = 0; e < nlogs; e++){
             vid_t v = logs[2*e]-blocks[p];
+            if(!(v >= 0 && v < nverts)){
+                logstream(LOG_WARNING) << v << " " << nverts << " " << getblock(logs[2*e]) << std::endl;
+                for( bid_t b = 0; b < nblocks+1; b++ )
+                    std::cout << blocks[b] << " ";
+                std::cout << std::endl;
+                // addEdge(logs[2*e], logs[2*e+1]);
+                // continue;
+            }
             assert(v >= 0 && v < nverts);
             newdeg[v]++;
         }
@@ -184,8 +198,12 @@ public:
 
         //8. Rewrite the CSR to disk
         m.start_time("_compaction_8_writeNewCsr");
-        writeSubGraph(p, newcsr, nedges, newbeg_pos, nverts);
-        // logstream(LOG_WARNING) << "After compaction, we have " << nverts << " vertices and " << nedges << " edges." << std::endl;
+        if( (size_t)(nedges*sizeof(vid_t)) >= (size_t)(blocksize * 1024 * 1024)){
+            splitSubGraph(p, newcsr, nedges, newbeg_pos, nverts);
+        }else{
+            writeSubGraph(p, newcsr, nedges, newbeg_pos, nverts);
+            // logstream(LOG_WARNING) << "After compaction, we have " << nverts << " vertices and " << nedges << " edges." << std::endl;
+        }
         m.stop_time("_compaction_8_writeNewCsr");
 
         //9. Free the old CSR from memory
@@ -204,6 +222,30 @@ public:
         m.stop_time("_compaction_");
     }
 
+    void splitSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){
+        std::vector<bid_t>::iterator it = blocks.begin() + p + 1;
+        vid_t nverts1;
+        eid_t nedges1;
+        for(vid_t v = 0; v < nverts; v++){
+            if(beg_pos[v] >= nedges/2){
+                nverts1 = v+1;
+                nedges1 = beg_pos[v];
+                blocks.insert(it, blocks[p]+nverts1);
+                nblocks++;
+                break;
+            }
+        }
+        logstream(LOG_INFO) << "split subgraph " << p << ": [" << blocks[p] << ", " << blocks[p+2] << "), into two subgraphs." << std::endl;
+        writeSubGraph(p, csr, nedges1, beg_pos, nverts1);
+        for(vid_t v = nverts1-1; v < nverts; v++){
+            beg_pos[v] -= nedges1;
+        }
+        writeSubGraph(p+1, csr+nedges1, nedges-nedges1, beg_pos+nverts1-1, nverts-nverts1);
+        logstream(LOG_INFO) << "After split, we have :" << std::endl;
+        logstream(LOG_INFO) << " " << p << ": [" << blocks[p] << ", " << blocks[p+1] << "), #edges = " << nedges1 << std::endl;
+        logstream(LOG_INFO) << " " << p+1 << ": [" << blocks[p+1] << ", " << blocks[p+2] << "), #edges = " << nedges-nedges1 << std::endl;
+    }
+    
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
 
         //3. Search logs of memory edge buffer
@@ -226,7 +268,7 @@ public:
         // logstream(LOG_DEBUG) << "After loadBlock, # of neighbors = " << neighbors.size() << std::endl;
 
         // load and search logs of block_p
-        std::string logfile = blockname( base_filename, p ) + ".log";
+        std::string logfile = blockname( base_filename, blocks[p] ) + ".log";
         vid_t* logs;
         eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
         for(eid_t e = 0; e < nlogs; e++){

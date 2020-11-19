@@ -68,7 +68,7 @@ public:
     void run(RandomWalk &userprogram, float prob) {
         // srand((unsigned)time(NULL));
         m.start_time("0_startWalks");
-        userprogram.startWalks(*walk_manager, memgraph->graph->nblocks, memgraph->graph->blocks, memgraph->graph->base_filename);
+        userprogram.startWalks(*walk_manager, memgraph->graph->nblocks, &(memgraph->graph->blocks[0]), memgraph->graph->base_filename);
         m.stop_time("0_startWalks");
         
         gettimeofday(&start, NULL);

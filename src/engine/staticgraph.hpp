@@ -27,7 +27,7 @@ public:
     vid_t nvertices;
     uint16_t blocksize;
     bid_t nblocks;
-    vid_t* blocks;
+    std::vector<vid_t> blocks;
 
     /* Metrics */
     metrics &m;
@@ -42,14 +42,15 @@ public:
     }
         
     virtual ~StaticGraph() {
-        if(blocks != NULL) free(blocks);
+        // if(blocks != NULL) free(blocks);
+        blocks.clear();
     }
 
     virtual size_t num_vertices() {
         return blocks[nblocks];
     }
 
-    void load_block_range(std::string base_filename, uint16_t blocksize, vid_t * &blocks, bool allowfail=false) {
+    void load_block_range(std::string base_filename, uint16_t blocksize, std::vector<vid_t> &blocks, bool allowfail=false) {
         std::string blockrangefile = blockrangename(base_filename, blocksize);
         std::ifstream brf(blockrangefile.c_str());
         
@@ -58,7 +59,7 @@ public:
         }
         assert(brf.good());
         
-        blocks = (vid_t*)malloc((nblocks+1)*sizeof(vid_t));
+        blocks.resize(nblocks+1);
         vid_t en;
         for(bid_t i=0; i < nblocks+1; i++) {
             assert(!brf.eof());
@@ -81,7 +82,7 @@ public:
     
     void loadBegpos(bid_t p, eid_t * &beg_pos, vid_t nverts, vid_t off = 0){
 
-        std::string beg_posname = blockname( base_filename, p ) + ".beg_pos";
+        std::string beg_posname = blockname( base_filename, blocks[p] ) + ".beg_pos";
         FILE *tryf = fopen(beg_posname.c_str(), "r");
         if (tryf == NULL) { // Not found block beg_pos file
             // logstream(LOG_WARNING) << "Could not find the block beg_pos file : " << beg_posname << std::endl;
@@ -105,7 +106,7 @@ public:
     void loadCSR(bid_t p, vid_t * &csr, eid_t nedges, eid_t off = 0){
         if(nedges <= 0) return;
 
-        std::string csrname = blockname( base_filename, p ) + ".csr";
+        std::string csrname = blockname( base_filename, blocks[p] ) + ".csr";
         int csrf = open(csrname.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (csrf < 0) {
             logstream(LOG_FATAL) << "Could not load :" << csrname << ", error: " << strerror(errno) << std::endl;
@@ -129,9 +130,9 @@ public:
     }
 
     void writeSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){
-        std::string beg_posname = blockname( base_filename, p ) + ".beg_pos";
+        std::string beg_posname = blockname( base_filename, blocks[p] ) + ".beg_pos";
         writefile(beg_posname, beg_pos, (size_t)(nverts+1)*sizeof(eid_t));
-        std::string csrname = blockname( base_filename, p ) + ".csr";
+        std::string csrname = blockname( base_filename, blocks[p] ) + ".csr";
         writefile(csrname, csr, (size_t)nedges*sizeof(vid_t));
     }
 

@@ -22,16 +22,17 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     bid_t nverts = get_option_int("nverts", 4847571); // number of vertices
-    uint16_t blocksize = get_option_int("blocksize", 64); // Size of block, represented in MB
-    bid_t nblocks = get_option_int("nblocks", 5); // number of blocks
+    bid_t nblocks = get_option_int("nblocks", 1); // number of blocks
     size_t buffersize = get_option_int("buffersize", 2); // Size of edge buffer, represented in MB
     size_t logsize = get_option_int("logsize", 32); // Size of edge buffer, represented in MB
+    uint16_t blocksize = get_option_int("blocksize", 64); // Size of block, represented in MB
 
     m.set("file", filename);
     m.set("nverts", (size_t)nverts);
     m.set("nblocks", (size_t)nblocks);
     m.set("buffersize(MB)", (size_t)buffersize);
     m.set("logsize(MB)", (size_t)logsize);
+    m.set("blocksize(MB)", (size_t)blocksize);
 
     /* Detect the number of shards or preprocess an input to create them */
     // bid_t nblocks = convert_if_notexists(filename, blocksize);
