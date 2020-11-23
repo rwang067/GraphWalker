@@ -67,25 +67,50 @@
               std::string statistic_filename = filename + ".statistics";
               std::ofstream ofs;
               ofs.open(statistic_filename.c_str(), std::ofstream::out | std::ofstream::app );
-              if( it->first == "00_runtime")
+              if( it->first == "_addEdges_")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "1_chooseBlock")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "2_findSubGraph")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "3_getCurrentWalks")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "4_writeWalks2Disk")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "5_exec_updates")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "6_updateWalkNum"){
+              else if( it->first == "_compaction_"){
                   ofs << ent.value << "  \t  " ;
                   ofs << ent.count << "  \t  " ; 
               }
-              else if( it->first == "g_loadSubGraph"){
-                  ofs << ent.count << "  \t  " ;
+              else if( it->first == "_compaction_1_loadLog")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_2_mallocCSR")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_3_loadSubGraph")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_4_computeDegree")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_5_mallocNewCSR")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_6_compBeg+copyCSR")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_7_mergeLog2CSR")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_8_writeNewCsr")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_8_writeNewCsr_splitSubGraph"){
+                  ofs << ent.value << "  \t  " ;
+                  ofs << ent.count << "  \t  " ; 
               }
+              else if( it->first == "_compaction_9_freeCSR")
+                  ofs << ent.value << "  \t  " ;
+
+              else if( it->first == "_flush_"){
+                  ofs << ent.value << "  \t  " ;
+                  ofs << ent.count << "  \t  " ; 
+              }
+              else if( it->first == "_flush_1_malloc_logs")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_flush_2_log_classification")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_flush_3_write_logs")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_flush_4_free_logs")
+                  ofs << ent.value << "  \t  " ;
+
+              else if( it->first == "runtime" )
+                  ofs << ent.value << std::endl;
               else if( it->first == "nblocks" )
                   ofs << ent.value << std::endl;
               // Rui end

@@ -46,4 +46,14 @@ int my_rand_r (unsigned int *seed){
     return result;
 }
 
+template<typename T>
+int binarySearch(T* array, T val, int st, int en){
+    int mid = (st + en) >> 1;
+    if(val <  array[mid])
+        return binarySearch(array, val, st, mid-1);
+    if(val >=  array[mid+1])
+        return binarySearch(array, val, mid+1, en);
+    return mid;
+}
+
 #endif

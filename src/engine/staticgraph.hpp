@@ -36,8 +36,7 @@ public:
         
     StaticGraph(std::string _base_filename, uint16_t _blocksize, bid_t _nblocks, metrics &_m) 
             : base_filename(_base_filename), blocksize(_blocksize), nblocks(_nblocks), m(_m){
-        load_block_range(base_filename, blocksize, blocks);
-        logstream(LOG_INFO) << "block_range loaded!" << std::endl;
+        loadBlockRange();
         nvertices = num_vertices();
     }
         
@@ -50,7 +49,7 @@ public:
         return blocks[nblocks];
     }
 
-    void load_block_range(std::string base_filename, uint16_t blocksize, std::vector<vid_t> &blocks, bool allowfail=false) {
+    void loadBlockRange() {
         std::string blockrangefile = blockrangename(base_filename, blocksize);
         std::ifstream brf(blockrangefile.c_str());
         
@@ -72,12 +71,23 @@ public:
         brf.close();
     }
 
-    bid_t getblock( vid_t v ){
-        for( bid_t p = 0; p < nblocks; p++ ){
-            if( v < blocks[p+1] )
-                return p;
+    void writeBlockRange(){
+        std::string blockrangefile = blockrangename(base_filename, blocksize);
+        std::ofstream brf(blockrangefile.c_str());
+        for( bid_t p = 0; p <= nblocks; p++ ){
+            brf << blocks[p] << std::endl;
         }
-        return nblocks;
+        brf.close();
+    }
+
+    bid_t getblock( vid_t v ){
+        // for( bid_t p = 0; p < nblocks; p++ ){
+        //     if( v < blocks[p+1] )
+        //         return p;
+        // }
+        bid_t p = (bid_t)binarySearch(blocks.data(), v, 0, nblocks);
+        assert(p < nblocks);
+        return p;
     }
     
     void loadBegpos(bid_t p, eid_t * &beg_pos, vid_t nverts, vid_t off = 0){
@@ -115,7 +125,7 @@ public:
 
         /* read csr file */
         if(nedges*sizeof(vid_t) > (size_t)blocksize*1024*1024){
-            csr = (vid_t*)realloc(csr, (nedges)*sizeof(vid_t) );
+            csr = (vid_t*)realloc(csr, (nedges+16)*sizeof(vid_t) );
         }
         preada(csrf, csr, nedges*sizeof(vid_t), off*sizeof(vid_t));
 

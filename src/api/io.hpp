@@ -19,6 +19,7 @@ void preada(int f, T * tbuf, size_t nbytes, size_t off = 0) {
             logstream(LOG_INFO) << "Pread arguments: " << f << " tbuf: " << tbuf << " nbytes: " << nbytes << " off: " << off << std::endl;
             assert(a != (-1));
         }
+        if(a<=0) logstream(LOG_ERROR) << a << " " << nread << " " << nbytes << std::endl;
         assert(a>0);
         buf += a/sizeof(T);
         nread += a;
@@ -58,7 +59,6 @@ size_t filesize(std::string fname) {
     close(f);
     return sz;
 }
-
 
 template <typename T>
 void pwritea(int f, T * tbuf, size_t nbytes, size_t off = 0) {

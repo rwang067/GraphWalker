@@ -29,7 +29,6 @@ int main(int argc, const char ** argv) {
 
     m.set("file", filename);
     m.set("nverts", (size_t)nverts);
-    m.set("nblocks", (size_t)nblocks);
     m.set("buffersize(MB)", (size_t)buffersize);
     m.set("logsize(MB)", (size_t)logsize);
     m.set("blocksize(MB)", (size_t)blocksize);
@@ -45,12 +44,12 @@ int main(int argc, const char ** argv) {
 
     DynamicGraph *graph = new DynamicGraph(filename, blocksize, nblocks, m, buffersize, logsize);
     m.start_time("importEdges");
-    importgraph->importEdges(filename, graph);
+    importgraph->importEdges(filename, graph, m);
     m.stop_time("importEdges");
 
-    graph->addEdge(0, 56);
-    graph->addEdge(1, 2);
+    graph->addEdge(0, 1);
     graph->addEdge(1, 110);
+    graph->addEdge(68349394, 1100);
     std::vector<vid_t> neighbors = graph->getNeighbors(0);
     std::cout << "Got " << neighbors.size() << " neighbors of vertex 0 : " << std::endl;
     for(auto it = neighbors.begin(); it != neighbors.end(); it++)
@@ -65,14 +64,8 @@ int main(int argc, const char ** argv) {
         std::cout << *it << "\t";
     std::cout << std::endl;
 
-    neighbors = graph->getNeighbors(969513);
-    std::cout << "Got " << neighbors.size() << " neighbors of vertex 969513 : " << std::endl;
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
-        std::cout << *it << "\t";
-    std::cout << std::endl;
-
-    neighbors = graph->getNeighbors(4847570);
-    std::cout << "Got " << neighbors.size() << " neighbors of vertex 4847570 : " << std::endl;
+    neighbors = graph->getNeighbors(68349394);
+    std::cout << "Got " << neighbors.size() << " neighbors of vertex 68349394 : " << std::endl;
     for(auto it = neighbors.begin(); it != neighbors.end(); it++)
         std::cout << *it << "\t";
     std::cout << std::endl;

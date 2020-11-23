@@ -34,14 +34,17 @@ public:
         frf.close();
     }
 
-    void importEdges(std::string filename, DynamicGraph *graph){
+    void importEdges(std::string filename, DynamicGraph *graph, metrics &m){
         FILE * inf = fopen(filename.c_str(), "r");
         if (inf == NULL) {
             logstream(LOG_FATAL) << "Could not load :" << filename << " error: " << strerror(errno) << std::endl;
         }
         assert(inf != NULL);
 
-        long long count = 0;
+        eid_t InputSize = 16 * 1024 * 1024;
+        std::pair<vid_t, vid_t> *edges = new std::pair<vid_t, vid_t>[InputSize];
+
+        eid_t count = 0;
         char s[1024];
         while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
@@ -60,16 +63,26 @@ public:
             vid_t to = atoi(t2);
             if( from == to ) continue;
 
-            graph->addEdge(from, to);
+            // graph->addEdge(from, to);
 
-            if(count++ % (64*1024*1024) == 0)
-                logstream(LOG_INFO) << "Processed " << count << " edges." << std::endl;
-            // if(count == 1024*1024*1024)
-            //     return;
+            edges[count].first = from;
+            edges[count].second = to;
+            count++;
+            if(count == InputSize){
+                m.start_time("_addEdges_");
+                for(eid_t e = 0; e < InputSize; e++){
+                    graph->addEdge(edges[e].first, edges[e].second);
+                }
+                // logstream(LOG_INFO) << "Added " << count << " edges." << std::endl;
+                count = 0;
+                m.stop_time("_addEdges_");
+            }
 
         }
+        delete [] edges;
         graph->flush();
-        logstream(LOG_WARNING) << "All edges imported done!" << std::endl;
+        graph->writeBlockRange();
+        logstream(LOG_WARNING) << "All edges imported done, totally generated " << graph->nblocks << " blocks." << std::endl;
     }
 
 };
