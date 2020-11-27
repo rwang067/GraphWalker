@@ -13,11 +13,27 @@
 #include "api/datatype.hpp"
 #include "logger/logger.hpp"
 
-static std::string blockname( std::string basefilename, vid_t startv ){
+// static std::string blockname( std::string basefilename, vid_t startv ){
+//     std::stringstream ss;
+//     ss << basefilename;
+//     ss << "_GraphWalker/graphinfo/block";
+//     ss << "_" << startv;
+//     return ss.str();
+// }
+
+static std::string blockname( std::string basefilename, bid_t p ){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/graphinfo/block";
-    ss << "_" << startv;
+    ss << "_" << p;
+    return ss.str();
+}
+
+static std::string segmentname( std::string basefilename, bid_t p, vid_t off){
+    std::stringstream ss;
+    ss << basefilename;
+    ss << "_GraphWalker/graphinfo/block";
+    ss << "_" << p << "_" << off;
     return ss.str();
 }
 
@@ -36,10 +52,24 @@ static std::string walksname( std::string basefilename, bid_t p ){
 //     return ss.str();
 // }
 
-static std::string blockrangename(std::string basefilename, uint16_t blocksize_MB){
+static std::string blockrangename(std::string basefilename){
     std::stringstream ss;
     ss << basefilename;
-    ss << "_GraphWalker/graphinfo/blocksize_" << blocksize_MB << "MB.blockrange";
+    ss << "_GraphWalker/graphinfo/blockrange.txt";
+    return ss.str();
+}
+
+static std::string segmentrangename(std::string basefilename){
+    std::stringstream ss;
+    ss << basefilename;
+    ss << "_GraphWalker/graphinfo/segmentrange.txt";
+    return ss.str();
+}
+
+static std::string blockrangename(std::string basefilename, size_t blocksize){
+    std::stringstream ss;
+    ss << basefilename;
+    ss << "_GraphWalker/graphinfo/blockrange_" << blocksize << "MB.txt";
     return ss.str();
 }
 

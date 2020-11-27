@@ -21,7 +21,7 @@ public:
         
     void print_config() {
         logstream(LOG_INFO) << "Engine configuration: " << std::endl;
-        logstream(LOG_INFO) << " blocksize = " << memgraph->graph->blocksize << "MB" << std::endl;
+        // logstream(LOG_INFO) << " blocksize = " << memgraph->graph->blocksize << "MB" << std::endl;
         logstream(LOG_INFO) << " number of total blocks = " << memgraph->graph->nblocks << std::endl;
         logstream(LOG_INFO) << " number of in-memory blocks = " << memgraph->nmblocks << std::endl;
         logstream(LOG_INFO) << " exec_threads = " << (int)exec_threads << std::endl;

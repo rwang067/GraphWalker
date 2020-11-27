@@ -9,6 +9,15 @@
 #include "engine/dynamicgraph.hpp"
 #include "engine/importgraph.hpp"
 
+void searchNeighbor(DynamicGraph *graph, vid_t v){
+    std::vector<vid_t> neighbors = graph->getNeighbors(v);
+    std::cout << "Got " << neighbors.size() << " neighbors of vertex " << v << std::endl;
+    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
+        std::cout << *it << "\t";
+    std::cout << std::endl;
+    return ;
+}
+
 
 int main(int argc, const char ** argv) {
     /* GraphChi initialization will read the command line
@@ -21,54 +30,48 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    bid_t nverts = get_option_int("nverts", 4847571); // number of vertices
-    bid_t nblocks = get_option_int("nblocks", 1); // number of blocks
+    vid_t N = get_option_int("N", 4847571); // number of vertices
+    vid_t nverts_per_blk = get_option_int("nverts_per_blk", 2*1024*1024); // number of vertices per block
     size_t buffersize = get_option_int("buffersize", 2); // Size of edge buffer, represented in MB
     size_t logsize = get_option_int("logsize", 32); // Size of edge buffer, represented in MB
-    uint16_t blocksize = get_option_int("blocksize", 64); // Size of block, represented in MB
+    size_t segsize = get_option_int("segsize", 64); // Size of block, represented in MB
 
     m.set("file", filename);
-    m.set("nverts", (size_t)nverts);
-    m.set("buffersize(MB)", (size_t)buffersize);
-    m.set("logsize(MB)", (size_t)logsize);
-    m.set("blocksize(MB)", (size_t)blocksize);
+    m.set("N", (size_t)N);
+    m.set("nverts_per_blk", (size_t)nverts_per_blk);
+    m.set("buffersize(MB)", buffersize);
+    m.set("logsize(MB)", logsize);
+    m.set("segsize(MB)", segsize);
 
     /* Detect the number of shards or preprocess an input to create them */
     // bid_t nblocks = convert_if_notexists(filename, blocksize);
     
     m.start_time("runtime");
 
-    ImportGraph *importgraph = new ImportGraph();
+    ImportGraph *importgraph = new ImportGraph(m);
     importgraph->clearDir(filename);
-    importgraph->generateBlockRange(filename, blocksize, nblocks, nverts);
+    importgraph->generateBlockRange(filename, N, nverts_per_blk);
 
-    DynamicGraph *graph = new DynamicGraph(filename, blocksize, nblocks, m, buffersize, logsize);
+    DynamicGraph *graph = new DynamicGraph(m, filename, N, nverts_per_blk, buffersize, logsize, segsize);
     m.start_time("importEdges");
-    importgraph->importEdges(filename, graph, m);
+    importgraph->importEdgeList(filename, graph);
     m.stop_time("importEdges");
 
-    graph->addEdge(0, 1);
-    graph->addEdge(1, 110);
+
+    // //Test for LiveJournal
+    // graph->addEdge(0, 51);
+    // graph->flush();
+    // graph->addEdge(0, 101);
+    // searchNeighbor(graph, 0); // for LJ, 46+1+1
+    // graph->addEdge(1, 11);
+    // searchNeighbor(graph, 1); // for LJ, 194+1+0
+    // graph->addEdge(4847570, 12);
+    // searchNeighbor(graph, 4847570); // for LJ, 0+18+1
+
+    //Test for Friendster
     graph->addEdge(68349394, 1100);
-    std::vector<vid_t> neighbors = graph->getNeighbors(0);
-    std::cout << "Got " << neighbors.size() << " neighbors of vertex 0 : " << std::endl;
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
-        std::cout << *it << "\t";
-    std::cout << std::endl;
-
-    // graph->compaction(0);
-
-    neighbors = graph->getNeighbors(1);
-    std::cout << "Got " << neighbors.size() << " neighbors of vertex 1 : " << std::endl;
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
-        std::cout << *it << "\t";
-    std::cout << std::endl;
-
-    neighbors = graph->getNeighbors(68349394);
-    std::cout << "Got " << neighbors.size() << " neighbors of vertex 68349394 : " << std::endl;
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
-        std::cout << *it << "\t";
-    std::cout << std::endl;
+    searchNeighbor(graph, 12); // for FS, 16+0+0
+    searchNeighbor(graph, 68349394); // for FS, 0+1+1
 
     m.stop_time("runtime");
 

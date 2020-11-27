@@ -9,11 +9,11 @@
 class MemGraph {
 public:  
     
-#ifdef DYNAMIC_GRAPH
-    DynamicGraph *graph;
-#else
+// #ifdef DYNAMIC_GRAPH
+//     DynamicGraph *graph;
+// #else
     StaticGraph *graph;
-#endif
+// #endif
     
     /* In memory blocks */
     bid_t nmblocks; //number of in memory blocks
@@ -27,11 +27,11 @@ public:
     MemGraph(std::string base_filename, uint16_t blocksize, bid_t nblocks, bid_t _nmblocks, metrics &m) 
             : nmblocks(_nmblocks) {
 
-        #ifdef DYNAMIC_GRAPH
-        graph = new DynamicGraph(base_filename, blocksize,nblocks,m);
-    #else
-        graph = new StaticGraph(base_filename, blocksize,nblocks,m);
-    #endif
+    // #ifdef DYNAMIC_GRAPH
+    //     graph = new DynamicGraph(m, base_filename, nblocks);
+    // #else
+        graph = new StaticGraph(m, base_filename, nblocks, blocksize);
+    // #endif
 
         csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
         for(bid_t b = 0; b < nmblocks; b++){

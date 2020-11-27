@@ -7,10 +7,11 @@
 
 class ImportGraph {
 public:  
+    metrics &m;
 
 public:
         
-    ImportGraph(){
+    ImportGraph(metrics &_m):m(_m){
     }
         
     virtual ~ImportGraph() {
@@ -22,19 +23,28 @@ public:
         mkdir((base_filename+"_GraphWalker/graphinfo/").c_str(), 0777);
     }
 
-    void generateBlockRange(std::string base_filename, vid_t blocksize, bid_t nblocks, vid_t nverts){
-        vid_t avg =  nverts / nblocks;
-        std::string blockrangefile = blockrangename(base_filename, blocksize);
+    void generateBlockRange(std::string base_filename, vid_t N, vid_t nverts_per_blk){
+        std::string blockrangefile = blockrangename(base_filename);
         std::ofstream frf(blockrangefile.c_str());      
-        
+
+        bid_t nblocks = N / nverts_per_blk + 1;
         for( bid_t p = 0; p < nblocks; p++ ){
-            frf << p * avg << std::endl;
+            frf << p * nverts_per_blk << std::endl;
         }
-        frf << nverts << std::endl;
+        frf << N << std::endl;
         frf.close();
     }
 
-    void importEdges(std::string filename, DynamicGraph *graph, metrics &m){
+    void addEdgeBuffer(std::pair<vid_t, vid_t> *edges, DynamicGraph *graph, eid_t nedges){
+        m.start_time("_addEdges_");
+        for(eid_t e = 0; e < nedges; e++){
+            graph->addEdge(edges[e].first, edges[e].second);
+        }
+        // logstream(LOG_INFO) << "Added " << count << " edges." << std::endl;
+        m.stop_time("_addEdges_");
+    }
+
+    void importEdgeList(std::string filename, DynamicGraph *graph){
         FILE * inf = fopen(filename.c_str(), "r");
         if (inf == NULL) {
             logstream(LOG_FATAL) << "Could not load :" << filename << " error: " << strerror(errno) << std::endl;
@@ -65,24 +75,18 @@ public:
 
             // graph->addEdge(from, to);
 
-            edges[count].first = from;
-            edges[count].second = to;
+            edges[count%InputSize].first = from;
+            edges[count%InputSize].second = to;
             count++;
-            if(count == InputSize){
-                m.start_time("_addEdges_");
-                for(eid_t e = 0; e < InputSize; e++){
-                    graph->addEdge(edges[e].first, edges[e].second);
-                }
-                // logstream(LOG_INFO) << "Added " << count << " edges." << std::endl;
-                count = 0;
-                m.stop_time("_addEdges_");
+            if(count%InputSize == 0){
+                addEdgeBuffer(edges, graph, InputSize);
             }
-
         }
+        addEdgeBuffer(edges, graph, count%InputSize);
         delete [] edges;
         graph->flush();
-        graph->writeBlockRange();
-        logstream(LOG_WARNING) << "All edges imported done, totally generated " << graph->nblocks << " blocks." << std::endl;
+        graph->writeSegmentRange();
+        logstream(LOG_WARNING) << "All edges imported done, totally imported " << count << " edges, and generated " << graph->nblocks << " blocks." << std::endl;
     }
 
 };

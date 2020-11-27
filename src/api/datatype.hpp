@@ -2,6 +2,7 @@
 #define DATATYPE_DEF
 
 #include <vector>
+#include <queue>
 #include <stdint.h>
 #include "logger/logger.hpp"
 
