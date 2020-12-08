@@ -14,6 +14,7 @@ public:
     eid_t bufsize; //number of edges in ebuffer 
 
     vid_t nverts_per_blk; //number of vertices per block
+    uint8_t nbits_nverts_per_blk;
     size_t logsize;
     size_t segsize;
 
@@ -27,6 +28,7 @@ public:
         bufsize = 0;
         ebuffer = (vid_t*) malloc(bufcap*sizeof(vid_t)*2);
         immutable_ebuffer = NULL;
+        nbits_nverts_per_blk = log(nverts_per_blk)/log(2);
 
         segs.resize(nblocks);
         for(bid_t p = 0; p < nblocks; p++){
@@ -51,7 +53,8 @@ public:
     }
 
     bid_t getSegment(vid_t v, bid_t p){
-        bid_t s = (bid_t)binarySearch(segs[p].data(), v-blocks[p], 0, segs[p].size()-1);
+        bid_t s = 0;
+        if(segs[p].size() > 1) s = (bid_t)binarySearch(segs[p].data(), v-blocks[p], 0, segs[p].size()-1);
         return s;
     }
 
@@ -74,60 +77,96 @@ public:
         
         //1. malloc logs
         m.start_time("_flush_1_malloc_logs");
-        vid_t** blogs = (vid_t**)malloc(nblocks*sizeof(vid_t*));
-        eid_t* nblogs = (eid_t*)malloc(nblocks*sizeof(eid_t));
+        bid_t* nsegs = (bid_t*)malloc(nblocks*sizeof(bid_t));
+        eid_t** nseglogs = (eid_t**)malloc(nblocks*sizeof(eid_t*));
+        vid_t*** seglogs = (vid_t***)malloc(nblocks*sizeof(vid_t**));
         for(bid_t p = 0; p < nblocks; p++){
-            blogs[p] = (vid_t*)malloc(bufcap*sizeof(vid_t)*2);
-            nblogs[p] = 0;
+            nsegs[p] = segs[p].size()-1;
+            nseglogs[p] = (eid_t*)malloc(nsegs[p]*sizeof(eid_t));
+            seglogs[p] = (vid_t**)malloc(nsegs[p]*sizeof(vid_t*));
+            for(bid_t s = 0; s < nsegs[p]; s++){
+                nseglogs[p][s] = 0;
+                seglogs[p][s] = (vid_t*)malloc(bufcap*sizeof(vid_t)*2);
+            }
         }
         m.stop_time("_flush_1_malloc_logs");
 
         //2. edge log classification by block
         m.start_time("_flush_2_log_classification");
         for(eid_t e = 0; e < bufcap; e++){
-            bid_t p = getblock(immutable_ebuffer[2*e]);
-            assert(p < nblocks);
-            blogs[p][2*nblogs[p]] = immutable_ebuffer[2*e];
-            blogs[p][2*nblogs[p]+1] = immutable_ebuffer[2*e+1];
-            nblogs[p]++;
+            vid_t v = immutable_ebuffer[2*e];
+            // bid_t p = (bid_t)(v/nverts_per_blk);
+            bid_t p = (bid_t)(v >> nbits_nverts_per_blk);
+            bid_t s = 0;
+            if(nsegs[p] > 1){
+                // s = (bid_t)binarySearch(segs[p].data(), v - blocks[p], 0, nsegs[p]);
+                vid_t val = v - blocks[p];
+                vid_t* array = segs[p].data();
+                // while(val >= array[s+1])    s++;
+                bid_t st = 0, en = nsegs[p], mid;
+                while(val >= array[s+1]){
+                    mid = (st + en) >> 1;
+                    if(val <  array[mid]){
+                        en = mid -1;
+                    }else if(val >=  array[mid+1]){
+                        st = mid + 1;
+                    }else{
+                        s = mid;
+                        break;
+                    }
+                }
+            }
+            eid_t i = 2*nseglogs[p][s];
+            seglogs[p][s][i] = v;
+            seglogs[p][s][i+1] = immutable_ebuffer[2*e+1];
+            nseglogs[p][s]++;
         }
         m.stop_time("_flush_2_log_classification");
 
         //3. write edge logs for each block
         m.start_time("_flush_3_write_logs");
         for(bid_t p = 0; p < nblocks; p++){
-            if(nblogs[p]>0){
-                std::string logfile = blockname( base_filename, p ) + ".log";
-
-                appendfile(logfile, blogs[p], nblogs[p] * 2 * sizeof(vid_t));
-
-                size_t fsize = filesize(logfile);
-                // logstream(LOG_WARNING) << logfile << ", filesize = " << fsize/(1024*1024) << "MB, nlogs[" << p << "] = " << nblogs[p] << std::endl;
-                if(fsize >= logsize){ 
-                    compaction(p);
-                    remove(logfile.c_str());
+            bid_t nsplits = 0;
+            for(bid_t s = 0; s < nsegs[p]; s++){
+                if(nseglogs[p][s]>0){
+                    bid_t ss = s + nsplits;
+                    std::string logfile = segmentname(base_filename, p, segs[p][ss]) + ".log";
+                    appendfile(logfile, seglogs[p][s], nseglogs[p][s] * 2 * sizeof(vid_t));
+                    size_t fsize = filesize(logfile);
+                    // logstream(LOG_WARNING) << logfile << ", filesize = " << fsize/(1024*1024) << "MB, nlogs[" << p << "] = " << nblogs[p] << std::endl;
+                    if(fsize >= logsize){ 
+                        nsplits += compaction(p, ss);
+                        remove(logfile.c_str());
+                    }
                 }
             }
-            free(blogs[p]);
         }
         m.stop_time("_flush_3_write_logs");
 
         //4. free space
         m.start_time("_flush_4_free_logs");
-        free(nblogs);
-        free(blogs);
+        for(bid_t p = 0; p < nblocks; p++){
+            for(bid_t s = 0; s < nsegs[p]; s++){
+                free(seglogs[p][s]);
+            }
+            free(seglogs[p]);
+            free(nseglogs[p]);
+        }
+        free(seglogs);
+        free(nseglogs);
+        free(nsegs);
         bufsize = 0;
         m.stop_time("_flush_4_free_logs");
 
         m.stop_time("_flush_");
     }
 
-    void compaction(bid_t p){
+    eid_t compaction(bid_t p, bid_t s){
         m.start_time("_compaction_");
         
         //1. Load the logs of block_p
         m.start_time("_compaction_1_loadLog");
-        std::string logfile = blockname( base_filename, p ) + ".log";
+        std::string logfile = segmentname(base_filename, p, segs[p][s]) + ".log";
         vid_t* logs;
         eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
         assert(nlogs > 0);
@@ -135,111 +174,108 @@ public:
 
         //2. compute new degree for each vertex
         m.start_time("_compaction_2_computeDegree");
-        eid_t* newdeg = (eid_t*)malloc(nverts_per_blk*sizeof(eid_t));
-        memset(newdeg, 0, nverts_per_blk*sizeof(eid_t));
+        vid_t nverts = segs[p][s+1] - segs[p][s];
+        vid_t stv = blocks[p] + segs[p][s];
+        eid_t* newdeg = (eid_t*)malloc(nverts*sizeof(eid_t));
+        memset(newdeg, 0, nverts*sizeof(eid_t));
         for(eid_t e = 0; e < nlogs; e++){
-            vid_t v = logs[2*e]-blocks[p];
-            assert(v >= 0 && v < nverts_per_blk);
-            newdeg[v]++;
+            logs[2*e] -= stv;
+            newdeg[logs[2*e]]++;
+            // vid_t v = logs[2*e] - stv;
+            // assert(v >= 0 && v < nverts);
+            // newdeg[v]++;
         }
         m.stop_time("_compaction_2_computeDegree");
 
-        bid_t nsegs = segs[p].size()-1;
-        bid_t nsplits = 0;
-        for(bid_t ss = 0; ss < nsegs; ss++){
-            bid_t s = ss + nsplits;
-            eid_t nupdates = 0;
-            for(vid_t v = segs[p][s]; v < segs[p][s+1]; v++){
-                if(v >= nverts_per_blk) logstream(LOG_WARNING) << v << std::endl;
-                assert(v >= 0 && v < nverts_per_blk);
-                nupdates += newdeg[v];
-            }
-            if(nupdates > 0){
-                //3. Load the CSR from disk
-                m.start_time("_compaction_3_loadSubGraph");
-                vid_t nverts, *csr = NULL;
-                eid_t nedges, *beg_pos = NULL;
-                loadSubGraphSegment(p, s, beg_pos, csr, &nverts, &nedges);
-                // logstream(LOG_DEBUG) << "loaded " << nverts << " vertices and " << nedges << " edges of subgraph_" << p << ": [" << blocks[p] << ", " << blocks[p+1] << ")" << std::endl;
-                m.stop_time("_compaction_3_loadSubGraph");
+        //3. Load the CSR from disk
+        m.start_time("_compaction_3_loadSubGraph");
+        vid_t *csr = NULL;
+        eid_t nedges, *beg_pos = NULL;
+        loadSubGraphSegment(p, s, beg_pos, csr, nverts, &nedges);
+        // logstream(LOG_DEBUG) << "loaded " << nverts << " vertices and " << nedges << " edges of subgraph_" << p << ": [" << blocks[p] << ", " << blocks[p+1] << ")" << std::endl;
+        m.stop_time("_compaction_3_loadSubGraph");
 
-                //4. Allocate new space
-                m.start_time("_compaction_4_mallocNewCSR");
-                // logstream(LOG_DEBUG) << "p = " << p << ", s = " << s << ", nedges = " << nedges << ", nupdates = " << nupdates << std::endl;
-                nedges += nupdates;
-                vid_t * newcsr = (vid_t*) malloc(nedges*sizeof(vid_t));
-                eid_t * newbeg_pos = (eid_t*) malloc((nverts+1)*sizeof(eid_t));
-                m.stop_time("_compaction_4_mallocNewCSR");
+        //4. Allocate new space
+        m.start_time("_compaction_4_mallocNewCSR");
+        // logstream(LOG_DEBUG) << "p = " << p << ", s = " << s << ", nedges = " << nedges << ", nupdates = " << nupdates << std::endl;
+        nedges += nlogs;
+        vid_t * newcsr = (vid_t*) malloc(nedges*sizeof(vid_t));
+        eid_t * newbeg_pos = (eid_t*) malloc((nverts+1)*sizeof(eid_t));
+        m.stop_time("_compaction_4_mallocNewCSR");
 
-                //5. Compute new begpos
-                m.start_time("_compaction_5_compBeg");
-                eid_t begoff = 0;
-                newbeg_pos[0] = 0;
-                for(vid_t v = 0; v < nverts; v++){
-                    if(newdeg[v+segs[p][s]] > 0)   begoff += newdeg[v+segs[p][s]];
-                    newbeg_pos[v+1] = beg_pos[v+1] + begoff;
-                }
-                // logstream(LOG_DEBUG) << "nverts = " << nverts << ", newbeg_pos[nverts] = " << newbeg_pos[nverts] << ", nedges = " << nedges << std::endl;
-                assert(newbeg_pos[nverts] == nedges);
-                m.stop_time("_compaction_5_compBeg");
+        //5. Compute new begpos
+        m.start_time("_compaction_5_compBeg");
+        eid_t begoff = 0;
+        newbeg_pos[0] = 0;
+        for(vid_t v = 0; v < nverts; v++){
+            if(newdeg[v] > 0)   begoff += newdeg[v];
+            newbeg_pos[v+1] = beg_pos[v+1] + begoff;
+        }
+        // logstream(LOG_DEBUG) << "nverts = " << nverts << ", newbeg_pos[nverts] = " << newbeg_pos[nverts] << ", nedges = " << nedges << std::endl;
+        assert(newbeg_pos[nverts] == nedges);
+        m.stop_time("_compaction_5_compBeg");
 
-                //6. copy CSR
-                m.start_time("_compaction_6_copyCSR");
-                for(vid_t v = 0; v < nverts; v++){
-                    if(beg_pos[v+1]-beg_pos[v] > 0){
-                        memcpy(newcsr+newbeg_pos[v], csr+beg_pos[v], (beg_pos[v+1]-beg_pos[v])*sizeof(vid_t));
-                    }
-                }
-                m.stop_time("_compaction_6_copyCSR");
-
-                //7. write edge log to CSR
-                m.start_time("_compaction_7_mergeLog2CSR");
-                for(eid_t e = 0; e < nlogs; e++){
-                    vid_t v = logs[2*e] - blocks[p];
-                    if(v >= segs[p][s] && v < segs[p][s+1]){
-                        assert(newdeg[v] > 0);
-                        eid_t pos = newbeg_pos[v-segs[p][s]+1] - newdeg[v];
-                        newcsr[pos] = logs[2*e+1];
-                        newdeg[v]--;
-                    }
-                }
-                m.stop_time("_compaction_7_mergeLog2CSR");
-
-                //8. Rewrite the CSR to disk
-                if( (size_t)(nedges*sizeof(vid_t)) >= segsize){
-                    m.start_time("_compaction_8_splitSubGraph");
-                    splitSubGraphSegment(p, s, newcsr, nedges, newbeg_pos, nverts);
-                    nsplits++;
-                    m.stop_time("_compaction_8_splitSubGraph");
-                }else{
-                    m.start_time("_compaction_8_writeSubGraph");
-                    writeSubGraphSegment(p, s, newcsr, nedges, newbeg_pos, nverts);
-                    m.stop_time("_compaction_8_writeSubGraph");
-                    // logstream(LOG_WARNING) << "After compaction block_" << p << "_" << s <<", we have " << nverts << " vertices and " << nedges << " edges." << std::endl;
-                }
-
-                //9. Free memory
-                m.start_time("_compaction_9_free");
-                if(beg_pos != NULL) free(beg_pos);
-                if(csr != NULL) free(csr);
-                csr = (vid_t*)newcsr;
-                beg_pos = (eid_t*)newbeg_pos;
-                if(beg_pos != NULL) free(beg_pos);
-                if(csr != NULL) free(csr);
-                m.stop_time("_compaction_9_free");
+        //6. copy CSR
+        m.start_time("_compaction_6_copyCSR");
+        for(vid_t v = 0; v < nverts; v++){
+            if(beg_pos[v+1]-beg_pos[v] > 0){
+                vid_t u = v;
+                while(newdeg[v]==0 && v < nverts-1) v++;
+                memcpy(newcsr+newbeg_pos[u], csr+beg_pos[u], (beg_pos[v+1]-beg_pos[u])*sizeof(vid_t));
+                // memcpy(newcsr+newbeg_pos[v], csr+beg_pos[v], (beg_pos[v+1]-beg_pos[v])*sizeof(vid_t));
             }
         }
+        m.stop_time("_compaction_6_copyCSR");
+
+        //7. write edge log to CSR
+        m.start_time("_compaction_7_mergeLog2CSR");
+        for(eid_t e = 0; e < nlogs; e++){
+            // vid_t v = logs[2*e] - stv;
+            // assert(v >= 0 && v < nverts);
+            // assert(newdeg[v] > 0);
+            vid_t v = logs[2*e];
+            eid_t pos = newbeg_pos[v+1] - newdeg[v];
+            newcsr[pos] = logs[2*e+1];
+            newdeg[v]--;
+        }
+        m.stop_time("_compaction_7_mergeLog2CSR");
+
+        //8. Rewrite the CSR to disk
+        eid_t isSplit = 0;
+        if( (size_t)(nedges*sizeof(vid_t)) >= segsize){
+            m.start_time("_compaction_8_splitSubGraph");
+            splitSubGraphSegment(p, s, newcsr, nedges, newbeg_pos, nverts);
+            isSplit = 1;
+            m.stop_time("_compaction_8_splitSubGraph");
+        }else{
+            m.start_time("_compaction_8_writeSubGraph");
+            writeSubGraphSegment(p, s, newcsr, nedges, newbeg_pos, nverts);
+            m.stop_time("_compaction_8_writeSubGraph");
+            // logstream(LOG_WARNING) << "After compaction block_" << p << "_" << s <<", we have " << nverts << " vertices and " << nedges << " edges." << std::endl;
+        }
+
+        //9. Free memory
+        m.start_time("_compaction_9_free");
+        if(beg_pos != NULL) free(beg_pos);
+        if(csr != NULL) free(csr);
+        csr = (vid_t*)newcsr;
+        beg_pos = (eid_t*)newbeg_pos;
+        if(beg_pos != NULL) free(beg_pos);
+        if(csr != NULL) free(csr);
         if(newdeg != NULL) free(newdeg);
         if(logs != NULL) free(logs);
+        m.stop_time("_compaction_9_free");
+
         
         m.stop_time("_compaction_");
+
+        return isSplit;
     }
 
-    void loadSubGraphSegment(bid_t p, bid_t s, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
+    void loadSubGraphSegment(bid_t p, bid_t s, eid_t * &beg_pos, vid_t * &csr, vid_t nverts, eid_t *nedges){
         std::string segname = segmentname(base_filename, p, segs[p][s]);
-        *nverts = segs[p][s+1] - segs[p][s];
-        loadBegpos(segname, beg_pos, *nverts);
-        *nedges = beg_pos[*nverts] - beg_pos[0];
+        loadBegpos(segname, beg_pos, nverts);
+        *nedges = beg_pos[nverts] - beg_pos[0];
         loadCSR(segname, csr, *nedges);
     }
 
@@ -262,9 +298,9 @@ public:
         for(vid_t v = nverts1; v <= nverts; v++)    beg_pos[v] -= nedges1;
         writeSubGraphSegment(p, s+1, csr+nedges1, nedges-nedges1, beg_pos+nverts1, nverts-nverts1);
 
-        logstream(LOG_DEBUG) << "Split subgraph " << p << "_" << s << ": [" << blocks[p]+segs[p][s] << ", " << blocks[p]+segs[p][s+2] << ") into :" << std::endl;
-        logstream(LOG_INFO) << " " << p << "_" << s << ": [" << blocks[p]+segs[p][s] << ", " << blocks[p]+segs[p][s+1] << "), #edges = " << nedges1 << std::endl;
-        logstream(LOG_INFO) << " " << p << "_" << s+1 << ": [" << blocks[p]+segs[p][s+1] << ", " << blocks[p]+segs[p][s+2] << "), #edges = " << nedges-nedges1 << std::endl;
+        // logstream(LOG_DEBUG) << "Split subgraph " << p << "_" << s << ": [" << blocks[p]+segs[p][s] << ", " << blocks[p]+segs[p][s+2] << ") into :" << std::endl;
+        // logstream(LOG_INFO) << " " << p << "_" << s << ": [" << blocks[p]+segs[p][s] << ", " << blocks[p]+segs[p][s+1] << "), #edges = " << nedges1 << std::endl;
+        // logstream(LOG_INFO) << " " << p << "_" << s+1 << ": [" << blocks[p]+segs[p][s+1] << ", " << blocks[p]+segs[p][s+2] << "), #edges = " << nedges-nedges1 << std::endl;
     }
     
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
@@ -289,44 +325,55 @@ public:
             return neighbors;
         }
 
-        std::vector<vid_t> neighbors = getNeighborsInSegment(v);
-        logstream(LOG_DEBUG) << "After loadBlock, # of neighbors = " << neighbors.size() << std::endl;
+        bid_t p = getblock(v);
+        bid_t s = getSegment(v, p);
+        // logstream(LOG_DEBUG) << "v = " << v << ", p = " << p << ", s = " << s << ", segs[p].size() = " << segs[p].size() << std::endl;
+
+        m.start_time("test_searchNeighbors_1_InSegmentCSR");
+        std::vector<vid_t> neighbors = getNeighborsInSegment(v, p, s);
+        // logstream(LOG_DEBUG) << "After loadBlock, # of neighbors = " << neighbors.size() << std::endl;
+        m.stop_time("test_searchNeighbors_1_InSegmentCSR");
 
         // load and search logs of block_p
-        bid_t p = getblock(v);
-        std::string logfile = blockname( base_filename, p ) + ".log";
+        m.start_time("test_searchNeighbors_2_InLogfile");
+        m.start_time("test_searchNeighbors_2_InLogfile_1_readfile");
+        std::string logfile = segmentname(base_filename, p, segs[p][s]) + ".log";
         vid_t* logs;
         eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
+        m.stop_time("test_searchNeighbors_2_InLogfile_1_readfile");
+        m.start_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
         for(eid_t e = 0; e < nlogs; e++){
             if(logs[2*e] == v){
                 neighbors.push_back(logs[2*e+1]);
             }
         }
+        m.stop_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
+        m.start_time("test_searchNeighbors_2_InLogfile_3_freeLog");
         if(logs != nullptr) free(logs);
-        logstream(LOG_DEBUG) << "After loadLog, # of neighbors = " << neighbors.size() << std::endl;
+        // logstream(LOG_DEBUG) << "After loadLog, # of neighbors = " << neighbors.size() << std::endl;
+        m.stop_time("test_searchNeighbors_2_InLogfile_3_freeLog");
+        m.stop_time("test_searchNeighbors_2_InLogfile");
 
         // search logs of memory edge buffer
+        m.start_time("test_searchNeighbors_3_InMembuf");
         for(eid_t e = 0; e < bufsize; e++){
             if(ebuffer[2*e] == v){
                 neighbors.push_back(ebuffer[2*e+1]);
             }
         }
-        logstream(LOG_DEBUG) << "After searchBuffer, # of neighbors = " << neighbors.size() << std::endl;
+        // logstream(LOG_DEBUG) << "After searchBuffer, # of neighbors = " << neighbors.size() << std::endl;
+        m.stop_time("test_searchNeighbors_3_InMembuf");
 
         return neighbors;
     }
 
-    std::vector<vid_t> getNeighborsInSegment(vid_t v){
+    std::vector<vid_t> getNeighborsInSegment(vid_t v, bid_t p, bid_t s){
         std::vector<vid_t> neighbors;
 
-        bid_t p = getblock(v);
-        bid_t s = getSegment(v, p);
         std::string segname = segmentname(base_filename, p, segs[p][s]);
-
         // logstream(LOG_WARNING) << v << " " << segname << std::endl;
-
         eid_t *beg_pos;// = (eid_t*)malloc(2*sizeof(eid_t));
-        vid_t off = v - blocks[p];
+        vid_t off = v - blocks[p] - segs[p][s];
         loadBegpos(segname, beg_pos, 1, off);
 
         eid_t nedges = beg_pos[1] - beg_pos[0];

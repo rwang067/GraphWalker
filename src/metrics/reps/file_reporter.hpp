@@ -75,25 +75,25 @@
               }
               else if( it->first == "_compaction_1_loadLog")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_2_mallocCSR")
+              else if( it->first == "_compaction_2_computeDegree")
                   ofs << ent.value << "  \t  " ;
               else if( it->first == "_compaction_3_loadSubGraph")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_4_computeDegree")
+              else if( it->first == "_compaction_4_mallocNewCSR")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_5_mallocNewCSR")
+              else if( it->first == "_compaction_5_compBeg")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_6_compBeg+copyCSR")
+              else if( it->first == "_compaction_6_copyCSR")
                   ofs << ent.value << "  \t  " ;
               else if( it->first == "_compaction_7_mergeLog2CSR")
                   ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_8_writeNewCsr")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_8_writeNewCsr_splitSubGraph"){
+              else if( it->first == "_compaction_8_splitSubGraph"){
                   ofs << ent.value << "  \t  " ;
                   ofs << ent.count << "  \t  " ; 
               }
-              else if( it->first == "_compaction_9_freeCSR")
+              else if( it->first == "_compaction_8_writeSubGraph")
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "_compaction_9_free")
                   ofs << ent.value << "  \t  " ;
 
               else if( it->first == "_flush_"){
@@ -111,8 +111,21 @@
 
               else if( it->first == "runtime" )
                   ofs << ent.value << std::endl;
-              else if( it->first == "nblocks" )
+
+
+              else if( it->first == "test_query" )
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "test_searchNeighbors" ){
+                  ofs << ent.value << "  \t  " ;
+                  ofs << ent.count << "  \t  " ;
+              }
+              else if( it->first == "test_searchNeighbors_1_InSegmentCSR" )
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "test_searchNeighbors_2_InLogfile" )
+                  ofs << ent.value << "  \t  " ;
+              else if( it->first == "test_searchNeighbors_3_InMembuf" )
                   ofs << ent.value << std::endl;
+
               // Rui end
               switch(ent.valtype) {
                   case INTEGER:

@@ -12,9 +12,9 @@
 void searchNeighbor(DynamicGraph *graph, vid_t v){
     std::vector<vid_t> neighbors = graph->getNeighbors(v);
     std::cout << "Got " << neighbors.size() << " neighbors of vertex " << v << std::endl;
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++)
-        std::cout << *it << "\t";
-    std::cout << std::endl;
+    // for(auto it = neighbors.begin(); it != neighbors.end(); it++)
+    //     std::cout << *it << "\t";
+    // std::cout << std::endl;
     return ;
 }
 
@@ -72,6 +72,15 @@ int main(int argc, const char ** argv) {
     graph->addEdge(68349394, 1100);
     searchNeighbor(graph, 12); // for FS, 16+0+0
     searchNeighbor(graph, 68349394); // for FS, 0+1+1
+
+    m.start_time("test_query");
+    for(int i = 0; i <= 10000; i++){
+        vid_t v = rand() % N;
+        m.start_time("test_searchNeighbors");
+        searchNeighbor(graph, v);
+        m.stop_time("test_searchNeighbors");
+    }
+    m.stop_time("test_query");
 
     m.stop_time("runtime");
 
