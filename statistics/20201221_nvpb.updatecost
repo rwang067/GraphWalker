@@ -1,0 +1,46 @@
+2020.12.20 
+app = dynamictest, dataset = Friendster, SSD-RAID0
+Turn on Page Cache, clear pagecache each time
+addEdges	flush	#flush	classifyLog	#classifyLog	writeLog	#writeLog	compaction	#compaction	runtime
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  16384 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+101.145  	  78.5592  	  309  	  78.5584  	  309  	  46.7225  	  41622  	  37.6933  	  8043  	  486.354
+101.308  	  78.821  	  309  	  78.8202  	  309  	  46.9371  	  41622  	  37.8643  	  8043  	  486.911
+101.601  	  79.0478  	  309  	  79.047  	  309  	  47.072  	  41622  	  37.9555  	  8043  	  486.442
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  32768 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+104.813  	  82.2691  	  309  	  82.2684  	  309  	  50.276  	  41622  	  40.9592  	  4799  	  491.785
+105.969  	  83.4073  	  309  	  83.4065  	  309  	  51.3781  	  41622  	  41.2908  	  4799  	  491.86
+105.35  	  82.8044  	  309  	  82.8037  	  309  	  50.6298  	  41622  	  41.1456  	  4799  	  497.002
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  65536 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+109.21  	  86.6562  	  309  	  86.6554  	  309  	  54.7042  	  41622  	  45.2104  	  2741  	  494.86
+110.029  	  87.5155  	  309  	  87.5147  	  309  	  55.2914  	  41622  	  45.5903  	  2741  	  496.551
+151.588  	  129.647  	  309  	  129.646  	  309  	  96.1352  	  41622  	  45.7817  	  2741  	  541.233
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  131072 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+150.709  	  128.211  	  309  	  128.21  	  309  	  95.5086  	  41622  	  53.5481  	  1524  	  546.148
+118.389  	  95.7509  	  309  	  95.7501  	  309  	  63.7863  	  41622  	  53.0064  	  1524  	  510.928
+148.054  	  125.339  	  309  	  125.339  	  309  	  92.2447  	  41622  	  53.5948  	  1524  	  543.02
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  262144 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+133.953  	  111.221  	  309  	  111.22  	  309  	  79.2601  	  41622  	  67.0149  	  843  	  526.923
+132.31  	  109.562  	  309  	  109.561  	  309  	  77.6917  	  41622  	  66.2146  	  843  	  525.515
+132.221  	  109.494  	  309  	  109.494  	  309  	  77.5933  	  41622  	  67.0352  	  843  	  525.598
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  524288 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+141.875  	  119.394  	  309  	  119.393  	  309  	  87.6362  	  41622  	  75.199  	  463  	  535.171
+146.185  	  123.724  	  309  	  123.723  	  309  	  91.8916  	  41622  	  76.0109  	  463  	  540.034
+141.603  	  119.088  	  309  	  119.087  	  309  	  88.5372  	  41622  	  75.2968  	  463  	  537.449
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  1048576 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+151.68  	  129.86  	  309  	  129.86  	  309  	  98.0102  	  41622  	  85.9784  	  262  	  544.35
+150.539  	  128.686  	  309  	  128.685  	  309  	  96.9406  	  41622  	  84.7942  	  262  	  544.306
+149.219  	  126.765  	  309  	  126.764  	  309  	  95.1243  	  41622  	  84.5226  	  262  	  540.974
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  2097152 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo
+156.071  	  134.385  	  309  	  134.385  	  309  	  102.57  	  41622  	  92.3547  	  147  	  547.471
+155.312  	  133.574  	  309  	  133.573  	  309  	  101.862  	  41622  	  91.6454  	  147  	  545.448
+155.477  	  133.744  	  309  	  133.743  	  309  	  101.969  	  41622  	  91.7185  	  147  	  546.56
+
+ buffer capacity =  64 MB, segsize =  1024 MB, each block's nverts_per_blk =  4194304 , nverts_per_grp =  16384 , logsize =  2048 KB, from echo

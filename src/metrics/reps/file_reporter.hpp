@@ -63,70 +63,57 @@
           
           for(it = entries.begin(); it != entries.end(); ++it) {
               metrics_entry ent = it->second;
+
               // print the statistics --Rui start
-              std::string statistic_filename = filename + ".statistics";
-              std::ofstream ofs;
-              ofs.open(statistic_filename.c_str(), std::ofstream::out | std::ofstream::app );
-              if( it->first == "_addEdges_")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_"){
-                  ofs << ent.value << "  \t  " ;
-                  ofs << ent.count << "  \t  " ; 
-              }
-              else if( it->first == "_compaction_1_loadLog")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_2_computeDegree")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_3_loadSubGraph")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_4_mallocNewCSR")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_5_compBeg")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_6_copyCSR")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_7_mergeLog2CSR")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_8_splitSubGraph"){
-                  ofs << ent.value << "  \t  " ;
-                  ofs << ent.count << "  \t  " ; 
-              }
-              else if( it->first == "_compaction_8_writeSubGraph")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_compaction_9_free")
-                  ofs << ent.value << "  \t  " ;
+              std::string update_filename = filename + ".updatecost";
+              std::ofstream ofs1;
+              ofs1.open(update_filename.c_str(), std::ofstream::out | std::ofstream::app );
+              std::string query_filename = filename + ".querycost";
+              std::ofstream ofs2;
+              ofs2.open(query_filename.c_str(), std::ofstream::out | std::ofstream::app );
 
-              else if( it->first == "_flush_"){
-                  ofs << ent.value << "  \t  " ;
-                  ofs << ent.count << "  \t  " ; 
+              if( it->first == "_1_addEdges_")
+                  ofs1 << ent.value << "  \t  " ;
+              else if( it->first == "_2_flush_"){
+                  ofs1 << ent.value << "  \t  " ;
+                  ofs1 << ent.count << "  \t  " ; 
               }
-              else if( it->first == "_flush_1_malloc_logs")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_flush_2_log_classification")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_flush_3_write_logs")
-                  ofs << ent.value << "  \t  " ;
-              else if( it->first == "_flush_4_free_logs")
-                  ofs << ent.value << "  \t  " ;
-
+              else if( it->first == "_3_flush_2_classifyLog"){
+                  ofs1 << ent.value << "  \t  " ;
+                  ofs1 << ent.count << "  \t  " ; 
+              }
+              else if( it->first == "_4_flush_3_writeLogs"){
+                  ofs1 << ent.value << "  \t  " ;
+                  ofs1 << ent.count << "  \t  " ; 
+              }
+              else if( it->first == "_5_compaction_"){
+                  ofs1 << ent.value << "  \t  " ;
+                  ofs1 << ent.count << "  \t  " ; 
+              }
+              
               else if( it->first == "runtime" )
-                  ofs << ent.value << std::endl;
-
+                  ofs1 << ent.value << std::endl;
 
               else if( it->first == "test_query" )
-                  ofs << ent.value << "  \t  " ;
+                  ofs2 << ent.value << "  \t  " ;
               else if( it->first == "test_searchNeighbors" ){
-                  ofs << ent.value << "  \t  " ;
-                  ofs << ent.count << "  \t  " ;
+                  ofs2 << ent.value << "  \t  " ;
+                  ofs2 << ent.count << "  \t  " ;
               }
               else if( it->first == "test_searchNeighbors_1_InSegmentCSR" )
-                  ofs << ent.value << "  \t  " ;
+                  ofs2 << ent.value << "  \t  " ;
               else if( it->first == "test_searchNeighbors_2_InLogfile" )
-                  ofs << ent.value << "  \t  " ;
+                  ofs2 << ent.value << "  \t  " ;
+              else if( it->first == "test_searchNeighbors_2_InLogfile_1_readfile" )
+                  ofs2 << ent.value << "  \t  " ;
               else if( it->first == "test_searchNeighbors_3_InMembuf" )
-                  ofs << ent.value << std::endl;
+                  ofs2 << ent.value << "  \t  " ;
+
+              else if( it->first == "test_traverse" )
+                  ofs2 << ent.value << std::endl;
 
               // Rui end
+
               switch(ent.valtype) {
                   case INTEGER:
                       

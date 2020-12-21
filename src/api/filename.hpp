@@ -37,6 +37,14 @@ static std::string segmentname( std::string basefilename, bid_t p, vid_t off){
     return ss.str();
 }
 
+static std::string logname( std::string basefilename, bid_t g){
+    std::stringstream ss;
+    ss << basefilename;
+    ss << "_GraphWalker/graphinfo/group";
+    ss << "_" << g << ".log";
+    return ss.str();
+}
+
 static std::string walksname( std::string basefilename, bid_t p ){
     std::stringstream ss;
     ss << basefilename;

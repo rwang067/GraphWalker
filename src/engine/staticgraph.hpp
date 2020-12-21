@@ -65,7 +65,7 @@ public:
             brf >> en;
             blocks[i] = en;
         }
-        for(bid_t i = 0; i < nblocks; i++) {
+        for(bid_t i = nblocks-1; i < nblocks; i++) {
              logstream(LOG_INFO) << "Shard " << i << " : " << blocks[i] << " - " << blocks[i+1] << std::endl;
         }
         brf.close();

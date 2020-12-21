@@ -36,12 +36,12 @@ public:
     }
 
     void addEdgeBuffer(std::pair<vid_t, vid_t> *edges, DynamicGraph *graph, eid_t nedges){
-        m.start_time("_addEdges_");
+        m.start_time("_1_addEdges_");
         for(eid_t e = 0; e < nedges; e++){
             graph->addEdge(edges[e].first, edges[e].second);
         }
         // logstream(LOG_INFO) << "Added " << count << " edges." << std::endl;
-        m.stop_time("_addEdges_");
+        m.stop_time("_1_addEdges_");
     }
 
     void importEdgeList(std::string filename, DynamicGraph *graph){
@@ -85,6 +85,7 @@ public:
         addEdgeBuffer(edges, graph, count%InputSize);
         delete [] edges;
         graph->flush();
+        graph->writeLogfiles();
         graph->writeSegmentRange();
         logstream(LOG_WARNING) << "All edges imported done, totally imported " << count << " edges, and generated " << graph->nblocks << " blocks." << std::endl;
     }

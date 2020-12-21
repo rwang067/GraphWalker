@@ -58,7 +58,7 @@ int my_rand_r (unsigned int *seed){
 // }
 
 template<typename T>
-int binarySearch(T* array, T val, int st, int en){
+inline int binarySearch(T* array, T val, int st, int en){
     int mid;
     while(1){
         mid = (st + en) >> 1;
