@@ -34,10 +34,9 @@ public:
         
 public:
         
-    StaticGraph(metrics &_m, std::string _base_filename, bid_t _nblocks, uint16_t _blocksize = 0) 
-            : m(_m), base_filename(_base_filename), nblocks(_nblocks), blocksize(_blocksize){
-        loadBlockRange();
-        N = num_vertices();
+    StaticGraph(metrics &_m, std::string _base_filename, vid_t _N, bid_t _nblocks, size_t _blocksize = 0) 
+            : m(_m), base_filename(_base_filename), N(_N), nblocks(_nblocks), blocksize(_blocksize){
+        // loadBlockRange();
     }
 
     // 当类有继承时，虚构函数必须为虚函数
@@ -112,7 +111,7 @@ public:
         /* read beg_pos file */
         preada(beg_posf, beg_pos, (size_t)(nverts+1)*sizeof(eid_t), (size_t)(off)*sizeof(eid_t));
 
-        close(beg_posf);  
+        close(beg_posf);
     }
 
     void loadCSR(std::string bname, vid_t * &csr, eid_t nedges, eid_t off = 0){

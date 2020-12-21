@@ -13,27 +13,11 @@
 #include "api/datatype.hpp"
 #include "logger/logger.hpp"
 
-// static std::string blockname( std::string basefilename, vid_t startv ){
-//     std::stringstream ss;
-//     ss << basefilename;
-//     ss << "_GraphWalker/graphinfo/block";
-//     ss << "_" << startv;
-//     return ss.str();
-// }
-
-static std::string blockname( std::string basefilename, bid_t p ){
+static std::string blockname(std::string basefilename, bid_t g){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/graphinfo/block";
-    ss << "_" << p;
-    return ss.str();
-}
-
-static std::string segmentname( std::string basefilename, bid_t p, vid_t off){
-    std::stringstream ss;
-    ss << basefilename;
-    ss << "_GraphWalker/graphinfo/block";
-    ss << "_" << p << "_" << off;
+    ss << "_" << g;
     return ss.str();
 }
 
@@ -64,13 +48,6 @@ static std::string blockrangename(std::string basefilename){
     std::stringstream ss;
     ss << basefilename;
     ss << "_GraphWalker/graphinfo/blockrange.txt";
-    return ss.str();
-}
-
-static std::string segmentrangename(std::string basefilename){
-    std::stringstream ss;
-    ss << basefilename;
-    ss << "_GraphWalker/graphinfo/segmentrange.txt";
     return ss.str();
 }
 

@@ -84,9 +84,9 @@ public:
         }
         addEdgeBuffer(edges, graph, count%InputSize);
         delete [] edges;
-        graph->flush();
-        graph->writeLogfiles();
-        graph->writeSegmentRange();
+        // graph->flush();
+        // graph->writeLogfiles();
+        graph->writeBlockRange();
         logstream(LOG_WARNING) << "All edges imported done, totally imported " << count << " edges, and generated " << graph->nblocks << " blocks." << std::endl;
     }
 
