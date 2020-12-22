@@ -92,16 +92,7 @@ public:
     void loadBegpos(std::string bname, eid_t * &beg_pos, vid_t nverts, vid_t off = 0){
 
         beg_pos = (eid_t*)malloc((nverts+1)*sizeof(eid_t));
-
         std::string beg_posname = bname + ".beg_pos";
-        FILE *tryf = fopen(beg_posname.c_str(), "r");
-        if (tryf == NULL) { // Not found block beg_pos file
-            // logstream(LOG_WARNING) << "Could not find the block beg_pos file : " << beg_posname << std::endl;
-            memset(beg_pos, 0, (nverts+1)*sizeof(eid_t));
-            return ;
-        }
-        fclose(tryf);
-
         int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
         if (beg_posf < 0) {
             logstream(LOG_FATAL) << "Could not load :" << beg_posname << ", error: " << strerror(errno) << std::endl;

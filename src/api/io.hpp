@@ -9,7 +9,7 @@
 #include <zlib.h>
 
 template <typename T>
-void preada(int f, T * tbuf, size_t nbytes, size_t off = 0) {
+size_t preada(int f, T * tbuf, size_t nbytes, size_t off = 0) {
     size_t nread = 0;
     T * buf = (T*)tbuf;
     while(nread<nbytes) {
@@ -19,12 +19,13 @@ void preada(int f, T * tbuf, size_t nbytes, size_t off = 0) {
             logstream(LOG_INFO) << "Pread arguments: " << f << " tbuf: " << tbuf << " nbytes: " << nbytes << " off: " << off << std::endl;
             assert(a != (-1));
         }
-        if(a<=0) logstream(LOG_ERROR) << a << " " << nread << " " << nbytes << std::endl;
-        assert(a>0);
+        if(a == 0) break;
+        if( a< 0) logstream(LOG_FATAL) << "a = " << a << ", nread = " << nread << ", required nbytes = " << nbytes << std::endl;
         buf += a/sizeof(T);
         nread += a;
     }
-    assert(nread <= nbytes);
+    // assert(nread <= nbytes);
+    return nread;
 }
 
 template <typename T>

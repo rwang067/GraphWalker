@@ -20,34 +20,31 @@ public:
     vid_t nverts_per_grp; //number of vertices per log group
     uint8_t nbits_nverts_per_grp; //number of bits of nverts_per_grp
     eid_t logcap; //capcity of logs in a memory group log buffer
-    eid_t* nglogs; //number of logs in a memory group log buffer
-    vid_t** glogs; //memory group log buffer
-    size_t logsize; //capcity of disk log file
+    size_t logsize; //capcity (Bytes) of disk log file
+    std::vector<eid_t> nglogs; //number of logs in a memory group log buffer
+    std::vector<vid_t*> glogs; //memory group log buffer
+    // eid_t* nglogs; //number of logs in a memory group log buffer
+    // vid_t** glogs; //memory group log buffer
         
 public:
         
-    DynamicGraph(metrics &_m, std::string _base_filename, vid_t _N, size_t _blocksize, 
+    DynamicGraph(metrics &_m, std::string _base_filename, size_t _blocksize, 
         size_t buffersize = 0, vid_t _nverts_per_grp = 0, size_t _logsize = 0)
-        : StaticGraph(_m, _base_filename, _N, 1, _blocksize*1024*1024), 
+        : StaticGraph(_m, _base_filename, 1, 1, _blocksize*1024*1024), 
         ebuffer(NULL), immutable_ebuffer(NULL), bufcap((buffersize * 1024 * 1024) / (sizeof(vid_t)*2)), bufsize(0), 
-        ngroups((bid_t)(_N / _nverts_per_grp + 1)), nverts_per_grp(_nverts_per_grp), nbits_nverts_per_grp(log(_nverts_per_grp)/log(2)),
-        logcap(1024), nglogs(NULL), glogs(NULL), logsize(_logsize*1024){
+        ngroups(0), nverts_per_grp(_nverts_per_grp), nbits_nverts_per_grp(log(_nverts_per_grp)/log(2)),
+        logcap(1024), logsize(_logsize*1024){
 
         /**block management **/
         blocks.push_back(0);
-        blocks.push_back(ngroups);
+        blocks.push_back(1);
 
         /** memory buffer management **/
         ebuffer = (vid_t*) malloc(bufcap*sizeof(vid_t)*2);
         immutable_ebuffer = NULL;
         
         /** edge logs mangement **/
-        nglogs = (eid_t*)malloc(ngroups*sizeof(eid_t*));
-        glogs = (vid_t**)malloc(ngroups*sizeof(vid_t**));
-        for(bid_t g = 0; g < ngroups; g++){
-            nglogs[g] = 0;
-            glogs[g] = (vid_t*)malloc(logcap*sizeof(vid_t)*2);
-        }
+        addLogGroup();
 
         logstream(LOG_INFO) << "buffer capacity = " << bufcap << " edges(" << buffersize << "MB).\n" 
                             << "number of log groups = " << ngroups << ", nverts_per_grp = " << nverts_per_grp << ", nbits_nverts_per_grp = " << (int)nbits_nverts_per_grp << ".\n" 
@@ -64,8 +61,6 @@ public:
         for(bid_t g = 0; g < ngroups; g++){
             if(glogs[g] != NULL) free(glogs[g]);
         }
-        if(glogs != NULL) free(glogs);
-        if(nglogs != NULL) free(nglogs);
         m.stop_time("destroyGraph");
     }
 
@@ -77,13 +72,33 @@ public:
         return (bid_t)binarySearch(blocks.data(), g, 0, nblocks);
     }
 
-    void addEdge(vid_t s, vid_t d, bool isDel = 0){
+    inline void addLogGroup(){
+        m.start_time("addLogGroup");
+        nglogs.push_back(0);
+        glogs.push_back(NULL);
+        glogs[ngroups] = (vid_t*)malloc(logcap*sizeof(vid_t)*2);
+        ngroups++;
+        blocks[nblocks] = ngroups;
+        m.stop_time("addLogGroup");
+    }
+    
+    inline void addVertex(){
+        N++;
+        if(N % nverts_per_grp == 0) addLogGroup();
+    }
+    
+    void addEdge(vid_t s, vid_t t, bool isDel = 0){
+        if(s == N) addVertex();
+        if(t == N) addVertex();
+        if(!(s <= N && t <= N)) logstream(LOG_FATAL) << s << " " << t << " " << N << std::endl;
+        assert(s <= N && t <= N);
+        
         if(bufsize >= bufcap){
             immutable_ebuffer = ebuffer;
             flush();
         }
         ebuffer[2*bufsize] = s;
-        ebuffer[2*bufsize+1] = d;
+        ebuffer[2*bufsize+1] = t;
         bufsize++;
     }
 
@@ -127,7 +142,7 @@ public:
             if(fsize >= logsize){ 
                 // logstream(LOG_WARNING) << "Start getBlockByGroupId of " << g << "..." << std::endl;
                 bid_t p = getBlockByGroupId(g);
-                // logstream(LOG_WARNING) << "Start compact block " << p << " : [" << blocks[p] << ", " << blocks[p+1] << ")..." << std::endl;
+                // logstream(LOG_INFO) << "Log group " << g << " is full, start compact block " << p << " : [" << blocks[p] << ", " << blocks[p+1] << ")..." << std::endl;
                 compaction(p);
                 m.start_time("_4_flush_3_writeLogs_removeLogfiles");
                 for(bid_t g1 = blocks[p]; g1 < blocks[p+1]; g1++){
@@ -269,6 +284,57 @@ public:
         *nedges = beg_pos[nverts] - beg_pos[0];
         // logstream(LOG_ERROR) << "loadSubGraphCSR : p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", *nedges = " << *nedges << ", beg_pos[0] = " << beg_pos[0] << ", beg_pos[nverts] = " << beg_pos[nverts] << std::endl;
         loadCSR(blkname, csr, *nedges);
+    }
+
+    void loadBegpos(std::string bname, eid_t * &beg_pos, vid_t nverts, vid_t off = 0){
+
+        beg_pos = (eid_t*)malloc((nverts+1)*sizeof(eid_t));
+
+        std::string beg_posname = bname + ".beg_pos";
+        FILE *tryf = fopen(beg_posname.c_str(), "r");
+        if (tryf == NULL) { // Not found block beg_pos file
+            // logstream(LOG_WARNING) << "Could not find the block beg_pos file : " << beg_posname << std::endl;
+            memset(beg_pos, 0, (nverts+1)*sizeof(eid_t));
+            return ;
+        }
+        fclose(tryf);
+
+        int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        if (beg_posf < 0) {
+            logstream(LOG_FATAL) << "Could not load :" << beg_posname << ", error: " << strerror(errno) << std::endl;
+        }
+        assert(beg_posf > 0);
+
+        /* read beg_pos file */
+        size_t nread = preada(beg_posf, beg_pos, (size_t)(nverts+1)*sizeof(eid_t), (size_t)(off)*sizeof(eid_t));
+        if(nread == 0) {
+            memset(beg_pos, 0, (nverts+1)*sizeof(eid_t));
+        }else{
+            vid_t rnverts = nread / sizeof(eid_t) - 1;
+            // logstream(LOG_WARNING) << "rnverts = " << rnverts << ", nverts = " << nverts << std::endl;
+            for(vid_t v = rnverts+1; v <= nverts; v++)
+            beg_pos[v] = beg_pos[rnverts];
+        }
+
+        close(beg_posf);
+    }
+
+    void loadCSR(std::string bname, vid_t * &csr, eid_t nedges, eid_t off = 0){
+        if(nedges <= 0) return;
+
+        std::string csrname = bname + ".csr";
+        int csrf = open(csrname.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
+        if (csrf < 0) {
+            logstream(LOG_FATAL) << "Could not load :" << csrname << ", error: " << strerror(errno) << std::endl;
+        }
+        assert(csrf > 0);
+
+        /* read csr file */
+        csr = (vid_t*)malloc(nedges*sizeof(vid_t));
+        size_t nread = preada(csrf, csr, nedges*sizeof(vid_t), off*sizeof(vid_t));
+        assert(nread == nedges*sizeof(vid_t));
+
+        close(csrf); 
     }
 
     void writeSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){ 

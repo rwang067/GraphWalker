@@ -45,14 +45,13 @@ int main(int argc, const char ** argv) {
     
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/Friendster/out.friendster");  // Base filename
-    vid_t N = get_option_int("N", 68349467); // number of vertices
+    // vid_t N = get_option_int("N", 68349467); // number of vertices
     size_t buffersize = get_option_int("buffersize", 64); // Size of edge buffer, represented in MB
     vid_t nverts_per_grp = get_option_int("nverts_per_grp", 16*1024); // number of vertices per log group
     size_t logsize = get_option_int("logsize", 2048); // Size of edge buffer, represented in KB
     size_t blocksize = get_option_int("blocksize", 32); // Size of block, represented in MB
 
     m.set("file", filename);
-    m.set("N", (size_t)N);
     m.set("nverts_per_grp", (size_t)nverts_per_grp);
     m.set("buffersize(MB)", buffersize);
     m.set("logsize(KB)", logsize);
@@ -68,11 +67,14 @@ int main(int argc, const char ** argv) {
     // importgraph->generateBlockRange(filename, N, nverts_per_blk);
 
     m.start_time("createGraph");
-    DynamicGraph *graph = new DynamicGraph(m, filename, N, blocksize, buffersize, nverts_per_grp, logsize);
+    DynamicGraph *graph = new DynamicGraph(m, filename, blocksize, buffersize, nverts_per_grp, logsize);
     m.stop_time("createGraph");
     m.start_time("importEdges");
     importgraph->importEdgeList(filename, graph);
     m.stop_time("importEdges");
+
+    m.set("nvertices", (size_t)(graph->N));
+    m.set("ngroups", (size_t)(graph->ngroups));
     m.set("nblocks", (size_t)(graph->nblocks));
 
 
@@ -88,12 +90,15 @@ int main(int argc, const char ** argv) {
 
     //Test for Friendster
     graph->addEdge(68349394, 1100);
+    searchNeighbor(graph, 0); // for FS, 0+0+0
+    searchNeighbor(graph, 1); // for FS, 20+0+0
     searchNeighbor(graph, 12); // for FS, 16+0+0
+    searchNeighbor(graph, 22); // for FS, 4+0+0
     searchNeighbor(graph, 68349394); // for FS, 0+1+1
 
     m.start_time("test_query");
     for(int i = 0; i < 10000; i++){
-        vid_t v = rand() % N;
+        vid_t v = rand() % graph->N;
         m.start_time("test_searchNeighbors");
         // searchNeighbor(graph, v);
         graph->getNeighbors(v);
