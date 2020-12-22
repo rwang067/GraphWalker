@@ -41,6 +41,7 @@ public:
 
     // 当类有继承时，虚构函数必须为虚函数
     virtual ~StaticGraph() {
+        m.set("nblocks", nblocks);
         blocks.clear();
     }
 

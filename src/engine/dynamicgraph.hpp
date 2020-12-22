@@ -150,7 +150,7 @@ public:
     /***
     * Merge several log groups to a block subgraph(CSR)
     ***/
-   void compaction(bid_t p){
+    void compaction(bid_t p){
         m.start_time("_5_compaction_");
         
         m.start_time("_compaction_1_loadSubGraph");
@@ -161,7 +161,7 @@ public:
 
         //8. Rewrite the CSR to disk
         m.start_time("_compaction_2_writeSubGraph");
-        logstream(LOG_DEBUG) << "Start to writeSubGrapg for block_" << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", nedges = " << nedges << ", filesize = " << nedges*sizeof(vid_t)/1024/1024 << "MB."<< std::endl;
+        // logstream(LOG_DEBUG) << "Start to writeSubGraph for block_" << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", nedges = " << nedges << ", filesize = " << nedges*sizeof(vid_t)/1024/1024 << "MB."<< std::endl;
         writeSubGraph(p, csr, nedges, beg_pos, nverts);
         m.stop_time("_compaction_2_writeSubGraph");
 
@@ -184,7 +184,7 @@ public:
         bid_t ngrps = blocks[p+1]-blocks[p];
         *nverts = ngrps << nbits_nverts_per_grp;
         if(p == nblocks-1) *nverts = N - (blocks[p] << nbits_nverts_per_grp);
-        logstream(LOG_DEBUG) << "Start loadSubGraph : " << p << ": [" << blocks[p] << ", " << blocks[p+1] << ") with nverts = " << *nverts << "..." << std::endl;
+        // logstream(LOG_DEBUG) << "Start loadSubGraph : " << p << ": [" << blocks[p] << ", " << blocks[p+1] << ") with nverts = " << *nverts << "..." << std::endl;
         loadSubGraphCSR(p, beg_pos, csr, *nverts, nedges);
         m.stop_time("_load_1_loadCSR");
         // logstream(LOG_INFO) << "After loadSubGraphCSR : " << p << ", nverts = " << *nverts << ", nedges = " << *nedges << std::endl;
@@ -269,18 +269,19 @@ public:
         std::string blkname = blockname(base_filename, blocks[p]);
         loadBegpos(blkname, beg_pos, nverts);
         *nedges = beg_pos[nverts] - beg_pos[0];
-        logstream(LOG_ERROR) << "loadSubGraphCSR : p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", *nedges = " << *nedges << ", beg_pos[0] = " << beg_pos[0] << ", beg_pos[nverts] = " << beg_pos[nverts] << std::endl;
+        // logstream(LOG_ERROR) << "loadSubGraphCSR : p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", *nedges = " << *nedges << ", beg_pos[0] = " << beg_pos[0] << ", beg_pos[nverts] = " << beg_pos[nverts] << std::endl;
         loadCSR(blkname, csr, *nedges);
     }
 
-    void writeSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){
+    void writeSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){ 
+        // logstream(LOG_NONE) << nedges*sizeof(vid_t) << " " << blocksize << " " << blocks[p+1]  << " " << blocks[p] << std::endl;
         if( (size_t)(nedges*sizeof(vid_t)) >= blocksize && blocks[p+1] - blocks[p] > 1){
             splitSubGraph(p, csr, nedges, beg_pos, nverts);
         }else{
             m.start_time("_compaction_2__writeSubGraphCSR");
             writeSubGraphCSR(p, csr, nedges, beg_pos, nverts);
             m.stop_time("_compaction_2__writeSubGraphCSR");
-            logstream(LOG_INFO) << "writeSubGraphCSR for block_" << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", nedges = " << nedges << ", filesize = " << nedges*sizeof(vid_t)/1024/1024 << "MB."<< std::endl;
+            logstream(LOG_DEBUG) << "writeSubGraphCSR for block_" << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", nedges = " << nedges << ", filesize = " << nedges*sizeof(vid_t)/1024/1024 << "MB."<< std::endl;
         }
     }
 
@@ -303,8 +304,8 @@ public:
         writeSubGraph(p, csr, nedges1, beg_pos, nverts1);
         for(vid_t v = nverts1; v <= nverts; v++)    beg_pos[v] -= nedges1;
         bid_t nextp = getBlockByGroupId(blocks[p]+g);
-        logstream(LOG_DEBUG) << "p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] << "), nextp = " << nextp << ": [" << blocks[nextp] << ", " << blocks[nextp+1] << ")" << std::endl;
-        logstream(LOG_DEBUG) << "nverts1 = " << nverts1 << "beg_pos[nverts1] = " << beg_pos[nverts1] << ", beg_pos[nverts1+1] = " << beg_pos[nverts1+1] << std::endl;
+        // logstream(LOG_DEBUG) << "p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] << "), nextp = " << nextp << ": [" << blocks[nextp] << ", " << blocks[nextp+1] << ")" << std::endl;
+        // logstream(LOG_DEBUG) << "nverts1 = " << nverts1 << "beg_pos[nverts1] = " << beg_pos[nverts1] << ", beg_pos[nverts1+1] = " << beg_pos[nverts1+1] << std::endl;
         writeSubGraph(nextp, csr+nedges1, nedges-nedges1, beg_pos+nverts1, nverts-nverts1);
         beg_pos[nverts] += nedges1;
         m.stop_time("_compaction_2__splitSubGraph");
@@ -316,7 +317,7 @@ public:
         writefile(beg_posname, beg_pos, (size_t)(nverts+1)*sizeof(eid_t));
         std::string csrname = blkname + ".csr";
         writefile(csrname, csr, (size_t)nedges*sizeof(vid_t));
-        logstream(LOG_ERROR) << "writeSubGraphCSR : p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", *nedges = " << nedges << ", beg_pos[0] = " << beg_pos[0] << ", beg_pos[nverts] = " << beg_pos[nverts] << std::endl;
+        // logstream(LOG_ERROR) << "writeSubGraphCSR : p = " << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", *nedges = " << nedges << ", beg_pos[0] = " << beg_pos[0] << ", beg_pos[nverts] = " << beg_pos[nverts] << std::endl;
     }
 
     std::vector<vid_t> getNeighbors(vid_t v){
