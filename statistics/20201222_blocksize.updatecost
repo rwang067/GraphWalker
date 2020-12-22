@@ -1,0 +1,24 @@
+245.047  	  221.192  	  308  	  221.191  	  308  	  186.743  	  2521069  	  149.604  	  1455  	  725.445
+
+2020.12.22 
+app = dynamictest, dataset = Friendster, SSD-RAID0
+Turn on Page Cache, clear pagecache each time
+addEdges	flush	#flush	classifyLog	#classifyLog	writeLog	#writeLog	compaction	#compaction	runtime
+
+ buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  4 MB, from echo
+188.359  	  164.957  	  308  	  164.956  	  308  	  130.845  	  2521069  	  95.6457  	  7428  	  658.992
+213.228  	  189.87  	  308  	  189.87  	  308  	  156.156  	  2521069  	  118.791  	  7428  	  687.669
+237.742  	  214.364  	  308  	  214.363  	  308  	  180.463  	  2521069  	  140.476  	  7428  	  718.405
+
+ buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  8 MB, from echo
+274.826  	  251.483  	  308  	  251.482  	  308  	  217.447  	  2521069  	  180.775  	  5595  	  755.632
+276.992  	  253.63  	  308  	  253.629  	  308  	  219.582  	  2521069  	  172.589  	  5595  	  760.711
+282.495  	  259.064  	  308  	  259.063  	  308  	  224.87  	  2521069  	  176.09  	  5595  	  767.808
+
+ buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  16 MB, from echo
+299.926  	  276.485  	  308  	  276.485  	  308  	  242.648  	  2521069  	  199.116  	  3154  	  786.639
+
+/////////////////
+buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  16 MB, from echo
+216.398  	  193.065  	  308  	  193.064  	  308  	  159.002  	  2521069  	  119.957  	  3154  	  1141  	  694.941
+215.094  	  191.702  	  308  	  191.701  	  308  	  156.951  	  2521069  	  114.518  	  3154  	  1141  	  689.221

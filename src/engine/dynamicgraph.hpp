@@ -27,7 +27,7 @@ public:
 public:
         
     DynamicGraph(metrics &_m, std::string _base_filename, vid_t _N, size_t _blocksize, 
-    size_t buffersize = 0, vid_t _nverts_per_grp = 0, size_t _logsize = 0)
+        size_t buffersize = 0, vid_t _nverts_per_grp = 0, size_t _logsize = 0)
         : StaticGraph(_m, _base_filename, _N, 1, _blocksize*1024*1024), 
         ebuffer(NULL), immutable_ebuffer(NULL), bufcap((buffersize * 1024 * 1024) / (sizeof(vid_t)*2)), bufsize(0), 
         ngroups((bid_t)(_N / _nverts_per_grp + 1)), nverts_per_grp(_nverts_per_grp), nbits_nverts_per_grp(log(_nverts_per_grp)/log(2)),
@@ -129,12 +129,11 @@ public:
                 bid_t p = getBlockByGroupId(g);
                 // logstream(LOG_WARNING) << "Start compact block " << p << " : [" << blocks[p] << ", " << blocks[p+1] << ")..." << std::endl;
                 compaction(p);
-                // logstream(LOG_WARNING) << "Start remove logfiles after compact block " << p << std::endl;
+                m.start_time("_4_flush_3_writeLogs_removeLogfiles");
                 for(bid_t g1 = blocks[p]; g1 < blocks[p+1]; g1++){
-                    // logstream(LOG_WARNING) << g1 << " " << g << " " << p << std::endl;
                     remove(logname(base_filename, g1).c_str());
                 }
-                // logstream(LOG_WARNING) << "Remove logfiles end." << std::endl;
+                m.stop_time("_4_flush_3_writeLogs_removeLogfiles");
             }
             nglogs[g] = 0;
         }
@@ -177,7 +176,6 @@ public:
 
     
     void loadSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
-
 
         //1. Load the CSR from disk
         m.start_time("_load_1_loadCSR");
@@ -226,7 +224,7 @@ public:
             newbeg_pos[v+1] = beg_pos[v+1] + begoff;
         }
         assert(newbeg_pos[*nverts] == *nedges);
-        m.stop_time("_load_4_compBeg");
+        m.stop_time("_load_4_compBeg"); 
 
         //6. copy CSR
         m.start_time("_load_5_copyCSR");
@@ -281,7 +279,7 @@ public:
             m.start_time("_compaction_2__writeSubGraphCSR");
             writeSubGraphCSR(p, csr, nedges, beg_pos, nverts);
             m.stop_time("_compaction_2__writeSubGraphCSR");
-            logstream(LOG_DEBUG) << "writeSubGraphCSR for block_" << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", nedges = " << nedges << ", filesize = " << nedges*sizeof(vid_t)/1024/1024 << "MB."<< std::endl;
+            // logstream(LOG_DEBUG) << "writeSubGraphCSR for block_" << p << ": [" << blocks[p] << ", " << blocks[p+1] <<"), nverts = " << nverts << ", nedges = " << nedges << ", filesize = " << nedges*sizeof(vid_t)/1024/1024 << "MB."<< std::endl;
         }
     }
 
@@ -297,9 +295,9 @@ public:
         nverts1 = g << nbits_nverts_per_grp;
         eid_t nedges1 = beg_pos[nverts1];
 
-        logstream(LOG_WARNING) << "Split subgraph " << p << ": [" << blocks[p] << ", " << blocks[p+2] << ") with " << nverts << " vertices, into :" << std::endl;
-        logstream(LOG_INFO) << " " << p << ": [" << blocks[p] << ", " << blocks[p+1] << "), #vertices = " << nverts1 << ", #edges = " << nedges1 << std::endl;
-        logstream(LOG_INFO) << " " << p+1 << ": [" << blocks[p+1] << ", " << blocks[p+2] << "), #vertices = " << nverts - nverts1 << ", #edges = " << nedges-nedges1 << std::endl;
+        // logstream(LOG_WARNING) << "Split subgraph " << p << ": [" << blocks[p] << ", " << blocks[p+2] << ") with " << nverts << " vertices, into :" << std::endl;
+        // logstream(LOG_INFO) << " " << p << ": [" << blocks[p] << ", " << blocks[p+1] << "), #vertices = " << nverts1 << ", #edges = " << nedges1 << std::endl;
+        // logstream(LOG_INFO) << " " << p+1 << ": [" << blocks[p+1] << ", " << blocks[p+2] << "), #vertices = " << nverts - nverts1 << ", #edges = " << nedges-nedges1 << std::endl;
 
         writeSubGraph(p, csr, nedges1, beg_pos, nverts1);
         for(vid_t v = nverts1; v <= nverts; v++)    beg_pos[v] -= nedges1;

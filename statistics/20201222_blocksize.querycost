@@ -1,0 +1,23 @@
+74.1767  	  74.165  	  10000  	  1.102  	  4.48692  	  1.96555  	  68.5445  	  17.9597
+
+2020.12.22 
+app = dynamictest, dataset = Friendster, SSD-RAID0
+Turn on Page Cache, clear pagecache each time
+test_query	searchNeighbors	#query	InCSR	2_InLogfile	readfile	3_InMembuf	test_traverse
+
+ buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  4 MB, from echo
+72.9604  	  72.9504  	  10000  	  7.91972  	  4.85138  	  63.5297  	  19.0344
+74.604  	  74.5944  	  10000  	  9.01547  	  5.92817  	  63.6006  	  19.6851
+75.8925  	  75.8822  	  10000  	  9.66012  	  6.57456  	  63.4727  	  19.4835
+
+ buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  8 MB, from echo
+74.7971  	  74.7872  	  10000  	  8.90786  	  5.90879  	  63.3745  	  19.9753
+76.987  	  76.9765  	  10000  	  10.8661  	  7.86782  	  63.5347  	  20.2685
+77.5104  	  77.5001  	  10000  	  10.4448  	  7.45195  	  63.5149  	  20.1417
+
+ buffer capacity =  64 MB, nverts_per_grp =  16384 , logsize =  2048 KB, blocksize =  16 MB, from echo
+77.9125  	  77.9028  	  10000  	  11.1121  	  8.30192  	  63.5204  	  21.9325
+
+/////////////////
+74.2059  	  74.1957  	  10000  	  2.17923  	  8.28134  	  5.54498  	  63.7093  	  18.5359
+72.5983  	  72.5884  	  10000  	  1.65169  	  7.39884  	  4.65738  	  63.5127  	  15.1304

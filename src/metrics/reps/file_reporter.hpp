@@ -90,7 +90,9 @@
                   ofs1 << ent.value << "  \t  " ;
                   ofs1 << ent.count << "  \t  " ; 
               }
-              
+
+              else if( it->first == "nblocks" )
+                  ofs1 << ent.value << "  \t  " ; 
               else if( it->first == "runtime" )
                   ofs1 << ent.value << std::endl;
 
@@ -100,7 +102,7 @@
                   ofs2 << ent.value << "  \t  " ;
                   ofs2 << ent.count << "  \t  " ;
               }
-              else if( it->first == "test_searchNeighbors_1_InSegmentCSR" )
+              else if( it->first == "test_searchNeighbors_1_InCSR" )
                   ofs2 << ent.value << "  \t  " ;
               else if( it->first == "test_searchNeighbors_2_InLogfile" )
                   ofs2 << ent.value << "  \t  " ;

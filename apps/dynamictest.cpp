@@ -73,6 +73,7 @@ int main(int argc, const char ** argv) {
     m.start_time("importEdges");
     importgraph->importEdgeList(filename, graph);
     m.stop_time("importEdges");
+    m.set("nblocks", (size_t)(graph->nblocks));
 
 
     // //Test for LiveJournal
