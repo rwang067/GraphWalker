@@ -46,16 +46,14 @@ int main(int argc, const char ** argv) {
     /* Basic arguments for application */
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/Friendster/out.friendster");  // Base filename
     // vid_t N = get_option_int("N", 68349467); // number of vertices
-    size_t buffersize = get_option_int("buffersize", 64); // Size of edge buffer, represented in MB
+    size_t buffersize = get_option_int("buffersize", 2); // Size of edge buffer, represented in MB
     vid_t nverts_per_grp = get_option_int("nverts_per_grp", 16*1024); // number of vertices per log group
     size_t logsize = get_option_int("logsize", 2048); // Size of edge buffer, represented in KB
-    size_t blocksize = get_option_int("blocksize", 32); // Size of block, represented in MB
 
     m.set("file", filename);
-    m.set("nverts_per_grp", (size_t)nverts_per_grp);
     m.set("buffersize(MB)", buffersize);
+    m.set("nverts_per_grp", (size_t)nverts_per_grp);
     m.set("logsize(KB)", logsize);
-    m.set("blocksize(MB)", blocksize);
 
     /* Detect the number of shards or preprocess an input to create them */
     // bid_t nblocks = convert_if_notexists(filename, blocksize);
@@ -64,10 +62,9 @@ int main(int argc, const char ** argv) {
 
     ImportGraph *importgraph = new ImportGraph(m);
     importgraph->clearDir(filename);
-    // importgraph->generateBlockRange(filename, N, nverts_per_blk);
 
     m.start_time("createGraph");
-    DynamicGraph *graph = new DynamicGraph(m, filename, blocksize, buffersize, nverts_per_grp, logsize);
+    DynamicGraph *graph = new DynamicGraph(m, filename, 0, buffersize, nverts_per_grp, logsize);
     m.stop_time("createGraph");
     m.start_time("importEdges");
     importgraph->importEdgeList(filename, graph);
