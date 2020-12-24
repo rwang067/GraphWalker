@@ -28,10 +28,10 @@ public:
         
     DynamicGraph(metrics &_m, std::string _base_filename, size_t _blocksize = 0, 
         size_t buffersize = 0, vid_t _nverts_per_grp = 0, size_t _logsize = 0)
-        : StaticGraph(_m, _base_filename, 1, 1, 0), 
+        : StaticGraph(_m, _base_filename, 1, 0, 0), 
         ebuffer(NULL), immutable_ebuffer(NULL), bufcap((buffersize * 1024 * 1024) / (sizeof(vid_t)*2)), bufsize(0), 
         ngroups(0), nverts_per_grp(_nverts_per_grp), nbits_nverts_per_grp(log(_nverts_per_grp)/log(2)),
-        logcap(1024), logsize(_logsize*1024){
+        logcap(16*1024), logsize(_logsize*1024){
 
 
         /** memory buffer management **/

@@ -56,6 +56,7 @@ public:
 
         eid_t count = 0;
         char s[1024];
+        // while(fgets(s, 1024, inf) != NULL && count < 17 * 1024 * 1024) {
         while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
@@ -86,7 +87,7 @@ public:
         delete [] edges;
         // graph->flush();
         // graph->writeLogfiles();
-        graph->writeBlockRange();
+        // graph->writeBlockRange();
         logstream(LOG_WARNING) << "All edges imported done, totally imported " << count << " edges, and generated " << graph->nblocks << " blocks." << std::endl;
     }
 

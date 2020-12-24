@@ -86,12 +86,12 @@ int main(int argc, const char ** argv) {
     // searchNeighbor(graph, 4847570); // for LJ, 0+18+1
 
     //Test for Friendster
-    graph->addEdge(68349394, 1100);
+    graph->addEdge(22, 1100);
     searchNeighbor(graph, 0); // for FS, 0+0+0
     searchNeighbor(graph, 1); // for FS, 20+0+0
     searchNeighbor(graph, 12); // for FS, 16+0+0
-    searchNeighbor(graph, 22); // for FS, 4+0+0
-    searchNeighbor(graph, 68349394); // for FS, 0+1+1
+    searchNeighbor(graph, 22); // for FS, 4+0+1
+    searchNeighbor(graph, 68349394); // for FS, 0+1+0
 
     m.start_time("test_query");
     for(int i = 0; i < 10000; i++){
