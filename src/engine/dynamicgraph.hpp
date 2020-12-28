@@ -23,17 +23,17 @@ public:
     size_t logsize; //capcity (Bytes) of disk log file
     std::vector<eid_t> nglogs; //number of logs in a memory group log buffer
     std::vector<vid_t*> glogs; //memory group log buffer
-    // eid_t* nglogs; //number of logs in a memory group log buffer
-    // vid_t** glogs; //memory group log buffer
+    std::vector<BitMap> bitmaps; //bitmap to indicate whether a vertex has edges in log file
+
         
 public:
         
     DynamicGraph(metrics &_m, std::string _base_filename, size_t _blocksize, 
         size_t buffersize = 0, vid_t _nverts_per_grp = 0, size_t _logsize = 0)
-        : StaticGraph(_m, _base_filename, 1, 1, _blocksize*1024*1024), 
+        : StaticGraph(_m, _base_filename, 1, 1, _blocksize*1024), 
         ebuffer(NULL), immutable_ebuffer(NULL), bufcap((buffersize * 1024 * 1024) / (sizeof(vid_t)*2)), bufsize(0), 
         ngroups(0), nverts_per_grp(_nverts_per_grp), nbits_nverts_per_grp(log(_nverts_per_grp)/log(2)),
-        logcap(1024), logsize(_logsize*1024){
+        logcap(16*1024), logsize(_logsize*1024){
 
         /**block management **/
         blocks.push_back(0);
@@ -49,7 +49,7 @@ public:
         logstream(LOG_INFO) << "buffer capacity = " << bufcap << " edges(" << buffersize << "MB).\n" 
                             << "number of log groups = " << ngroups << ", nverts_per_grp = " << nverts_per_grp << ", nbits_nverts_per_grp = " << (int)nbits_nverts_per_grp << ".\n" 
                             << "each group's logcap = " << logcap << " edges, logsize = " << _logsize << "KB.\n" 
-                            << "nblocks = " << nblocks << ", blocksize = " << _blocksize << "MB.\n"
+                            << "nblocks = " << nblocks << ", blocksize = " << _blocksize << "KB.\n"
                             << std::endl;
     }
         
@@ -76,6 +76,8 @@ public:
         m.start_time("addLogGroup");
         nglogs.push_back(0);
         glogs.push_back(NULL);
+        BitMap bitmap = BitMap(nverts_per_grp/8);
+        bitmaps.push_back(bitmap);
         glogs[ngroups] = (vid_t*)malloc(logcap*sizeof(vid_t)*2);
         ngroups++;
         blocks[nblocks] = ngroups;
@@ -118,11 +120,21 @@ public:
             glogs[g][i] = v;
             glogs[g][i+1] = immutable_ebuffer[2*e+1];
             nglogs[g]++;
+            bitmaps[g].bitmapSet(v & (nverts_per_grp-1));
             if(nglogs[g] == logcap){
                 writeLog(g);
             }
         }
         m.stop_time("_3_flush_2_classifyLog");
+
+        //2. edge log classification by block
+        m.start_time("_3_flush_3_writeLog");
+        for(bid_t g = 0; g < ngroups; g++){
+            if(nglogs[g] > 0){
+                writeLog(g);
+            }
+        }
+        m.stop_time("_3_flush_3_writeLog");
 
         bufsize = 0;
 
@@ -147,6 +159,7 @@ public:
                 m.start_time("_4_flush_3_writeLogs_removeLogfiles");
                 for(bid_t g1 = blocks[p]; g1 < blocks[p+1]; g1++){
                     remove(logname(base_filename, g1).c_str());
+                    bitmaps[g1].bitmapReset();
                 }
                 m.stop_time("_4_flush_3_writeLogs_removeLogfiles");
             }
@@ -339,7 +352,7 @@ public:
 
     void writeSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){ 
         // logstream(LOG_NONE) << nedges*sizeof(vid_t) << " " << blocksize << " " << blocks[p+1]  << " " << blocks[p] << std::endl;
-        if( (size_t)(nedges*sizeof(vid_t)) >= blocksize && blocks[p+1] - blocks[p] > 1){
+        if( (size_t)(nedges*sizeof(vid_t)) > blocksize && blocks[p+1] - blocks[p] > 1){
             splitSubGraph(p, csr, nedges, beg_pos, nverts);
         }else{
             m.start_time("_compaction_2__writeSubGraphCSR");
@@ -352,8 +365,8 @@ public:
     void splitSubGraph(bid_t p, vid_t* csr, eid_t nedges, eid_t* beg_pos, vid_t nverts){
         m.start_time("_compaction_2__splitSubGraph");
         vid_t nverts1 = (vid_t)binarySearch(beg_pos, nedges/2, 0, nverts);
-        bid_t g = (nverts1 >> nbits_nverts_per_grp) + 1;
-        if(blocks[p+1]-blocks[p] == 2) g = 1;
+        bid_t g = (nverts1 >> nbits_nverts_per_grp);
+        if(g == 0) g = 1;
         auto it = blocks.begin() + p + 1;
         blocks.insert(it, g + blocks[p] );
         nblocks++;
@@ -391,7 +404,8 @@ public:
             return neighbors;
         }
 
-        bid_t p = getBlockByVertexId(v);
+        bid_t g = v >> nbits_nverts_per_grp;
+        bid_t p = getBlockByGroupId(g);
         // logstream(LOG_DEBUG) << "v = " << v << ", p = " << p << ", s = " << s << ", segs[p].size() = " << segs[p].size() << std::endl;
 
         m.start_time("test_searchNeighbors_1_InCSR");
@@ -400,26 +414,30 @@ public:
         m.stop_time("test_searchNeighbors_1_InCSR");
 
         // load and search logs of block_p
-        m.start_time("test_searchNeighbors_2_InLogfile");
-        m.start_time("test_searchNeighbors_2_InLogfile_1_readfile");
-        // std::string logfile = segmentname(base_filename, p, segs[p][s]) + ".log";
-        bid_t g = v >> nbits_nverts_per_grp;
-        std::string logfile = logname(base_filename, g);
-        vid_t* logs;
-        eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
-        m.stop_time("test_searchNeighbors_2_InLogfile_1_readfile");
-        m.start_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
-        for(eid_t e = 0; e < nlogs; e++){
-            if(logs[2*e] == v){
-                neighbors.push_back(logs[2*e+1]);
+        if(bitmaps[g].bitmapGet( v & (nverts_per_grp-1) )){
+
+            m.start_time("test_searchNeighbors_2_InLogfile");
+            m.start_time("test_searchNeighbors_2_InLogfile_1_readfile");
+            // std::string logfile = segmentname(base_filename, p, segs[p][s]) + ".log";
+            bid_t g = v >> nbits_nverts_per_grp;
+            std::string logfile = logname(base_filename, g);
+            vid_t* logs;
+            eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
+            m.stop_time("test_searchNeighbors_2_InLogfile_1_readfile");
+            m.start_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
+            for(eid_t e = 0; e < nlogs; e++){
+                if(logs[2*e] == v){
+                    neighbors.push_back(logs[2*e+1]);
+                }
             }
+            m.stop_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
+            m.start_time("test_searchNeighbors_2_InLogfile_3_freeLog");
+            if(logs != nullptr) free(logs);
+            // logstream(LOG_DEBUG) << "After loadLog, # of neighbors = " << neighbors.size() << std::endl;
+            m.stop_time("test_searchNeighbors_2_InLogfile_3_freeLog");
+            m.stop_time("test_searchNeighbors_2_InLogfile");
+
         }
-        m.stop_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
-        m.start_time("test_searchNeighbors_2_InLogfile_3_freeLog");
-        if(logs != nullptr) free(logs);
-        // logstream(LOG_DEBUG) << "After loadLog, # of neighbors = " << neighbors.size() << std::endl;
-        m.stop_time("test_searchNeighbors_2_InLogfile_3_freeLog");
-        m.stop_time("test_searchNeighbors_2_InLogfile");
 
         // search logs of memory edge buffer
         m.start_time("test_searchNeighbors_3_InMembuf");

@@ -18,6 +18,7 @@
 
 #include "api/filename.hpp"
 #include "api/io.hpp"
+#include "api/bitmap.hpp"
 #include "logger/logger.hpp"
 #include "metrics/metrics.hpp"
 

@@ -56,7 +56,8 @@ public:
 
         eid_t count = 0;
         char s[1024];
-        while(fgets(s, 1024, inf) != NULL) {
+        while( fgets(s, 1024, inf) != NULL && count < (258147869 * 0.8) ) {
+        // while(fgets(s, 1024, inf) != NULL) {
             if (s[0] == '#') continue; // Comment
             if (s[0] == '%') continue; // Comment
             
