@@ -47,8 +47,8 @@ int main(int argc, const char ** argv) {
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/Friendster/out.friendster");  // Base filename
     // vid_t N = get_option_int("N", 68349467); // number of vertices
     size_t buffersize = get_option_int("buffersize", 2); // Size of edge buffer, represented in MB
-    vid_t nverts_per_grp = get_option_int("nverts_per_grp", 16*1024); // number of vertices per log group
     size_t logsize = get_option_int("logsize", 2048); // Size of edge buffer, represented in KB
+    vid_t nverts_per_grp = get_option_int("nverts_per_grp", 16*1024); // number of vertices per log group
 
     m.set("file", filename);
     m.set("buffersize(MB)", buffersize);
