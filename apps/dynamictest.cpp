@@ -94,7 +94,7 @@ int main(int argc, const char ** argv) {
     searchNeighbor(graph, 68349394); // for FS, 0+1+0
 
     m.start_time("test_query");
-    for(int i = 0; i < 10000; i++){
+    for(int i = 0; i < 100000; i++){
         vid_t v = rand() % graph->N;
         m.start_time("test_searchNeighbors");
         // searchNeighbor(graph, v);

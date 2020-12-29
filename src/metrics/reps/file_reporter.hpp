@@ -104,8 +104,10 @@
               }
               else if( it->first == "test_searchNeighbors_1_InCSR" )
                   ofs2 << ent.value << "  \t  " ;
-              else if( it->first == "test_searchNeighbors_2_InLogfile" )
+              else if( it->first == "test_searchNeighbors_2_InLogfile" ){
                   ofs2 << ent.value << "  \t  " ;
+                  ofs2 << ent.count << "  \t  " ;
+              }
               else if( it->first == "test_searchNeighbors_2_InLogfile_1_readfile" )
                   ofs2 << ent.value << "  \t  " ;
               else if( it->first == "test_searchNeighbors_3_InMembuf" )

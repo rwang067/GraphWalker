@@ -23,6 +23,7 @@ public:
     size_t logsize; //capcity (Bytes) of disk log file
     std::vector<eid_t> nglogs; //number of logs in a memory group log buffer
     std::vector<vid_t*> glogs; //memory group log buffer
+    std::vector<BitMap> bitmaps; //bitmap to indicate whether a vertex has edges in log file
         
 public:
         
@@ -71,6 +72,8 @@ public:
         m.start_time("addLogGroup");
         nglogs.push_back(0);
         glogs.push_back(NULL);
+        BitMap bitmap = BitMap(nverts_per_grp/8);
+        bitmaps.push_back(bitmap);
         glogs[ngroups] = (vid_t*)malloc(logcap*sizeof(vid_t)*2);
         ngroups++;
         nblocks++;
@@ -113,11 +116,21 @@ public:
             glogs[g][i] = v;
             glogs[g][i+1] = immutable_ebuffer[2*e+1];
             nglogs[g]++;
+            bitmaps[g].bitmapSet(v & (nverts_per_grp-1));
             if(nglogs[g] == logcap){
                 writeLog(g);
             }
         }
         m.stop_time("_3_flush_2_classifyLog");
+
+        //2. edge log classification by block
+        m.start_time("_3_flush_3_writeLog");
+        for(bid_t g = 0; g < ngroups; g++){
+            if(nglogs[g] > 0){
+                writeLog(g);
+            }
+        }
+        m.stop_time("_3_flush_3_writeLog");
 
         bufsize = 0;
 
@@ -142,6 +155,7 @@ public:
                 m.start_time("_4_flush_3_writeLogs_removeLogfiles");
                 for(bid_t g1 = p; g1 < p+1; g1++){
                     remove(logname(base_filename, g1).c_str());
+                    bitmaps[g1].bitmapReset();
                 }
                 m.stop_time("_4_flush_3_writeLogs_removeLogfiles");
             }
@@ -340,26 +354,28 @@ public:
         m.stop_time("test_searchNeighbors_1_InCSR");
 
         // load and search logs of block_p
-        m.start_time("test_searchNeighbors_2_InLogfile");
-        m.start_time("test_searchNeighbors_2_InLogfile_1_readfile");
-        // std::string logfile = segmentname(base_filename, p, segs[p][s]) + ".log";
-        bid_t g = v >> nbits_nverts_per_grp;
-        std::string logfile = logname(base_filename, g);
-        vid_t* logs;
-        eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
-        m.stop_time("test_searchNeighbors_2_InLogfile_1_readfile");
-        m.start_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
-        for(eid_t e = 0; e < nlogs; e++){
-            if(logs[2*e] == v){
-                neighbors.push_back(logs[2*e+1]);
+        if(bitmaps[p].bitmapGet( v & (nverts_per_grp-1) )){
+            m.start_time("test_searchNeighbors_2_InLogfile");
+            m.start_time("test_searchNeighbors_2_InLogfile_1_readfile");
+            // std::string logfile = segmentname(base_filename, p, segs[p][s]) + ".log";
+            bid_t g = v >> nbits_nverts_per_grp;
+            std::string logfile = logname(base_filename, g);
+            vid_t* logs;
+            eid_t nlogs = readfile(logfile, &logs) / (sizeof(vid_t)*2);
+            m.stop_time("test_searchNeighbors_2_InLogfile_1_readfile");
+            m.start_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
+            for(eid_t e = 0; e < nlogs; e++){
+                if(logs[2*e] == v){
+                    neighbors.push_back(logs[2*e+1]);
+                }
             }
+            m.stop_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
+            m.start_time("test_searchNeighbors_2_InLogfile_3_freeLog");
+            if(logs != nullptr) free(logs);
+            // logstream(LOG_DEBUG) << "After loadLog, # of neighbors = " << neighbors.size() << std::endl;
+            m.stop_time("test_searchNeighbors_2_InLogfile_3_freeLog");
+            m.stop_time("test_searchNeighbors_2_InLogfile");
         }
-        m.stop_time("test_searchNeighbors_2_InLogfile_2_searchInfile");
-        m.start_time("test_searchNeighbors_2_InLogfile_3_freeLog");
-        if(logs != nullptr) free(logs);
-        // logstream(LOG_DEBUG) << "After loadLog, # of neighbors = " << neighbors.size() << std::endl;
-        m.stop_time("test_searchNeighbors_2_InLogfile_3_freeLog");
-        m.stop_time("test_searchNeighbors_2_InLogfile");
 
         // search logs of memory edge buffer
         m.start_time("test_searchNeighbors_3_InMembuf");
