@@ -26,9 +26,9 @@ public:
     std::vector<vid_t*> glogs; //memory group log buffer
     std::vector<BitMap> logbitmaps; //bitmap to indicate whether a vertex has edges in log file
 
-    std::ofstream ffout;
-    std::ofstream cfout;
-    std::ofstream segfout;
+    // std::ofstream ffout;
+    // std::ofstream cfout;
+    // std::ofstream segfout;
         
 public:
         
@@ -50,7 +50,7 @@ public:
 
         // ffout.open("graphwalker_metrics_flush.csv", std::ofstream::app);
         // cfout.open("graphwalker_metrics_compaction.csv", std::ofstream::app);
-        segfout.open("graphwalker_metrics_segment.csv", std::ofstream::app);
+        // segfout.open("graphwalker_metrics_segment.csv", std::ofstream::app);
 
         logstream(LOG_INFO) << "buffer capacity = " << bufcap << " edges(" << buffersize << "MB).\n" 
                             << "number of log groups = " << ngroups << ", nverts_per_grp = " << nverts_per_grp << ", nbits_nverts_per_grp = " << (int)nbits_nverts_per_grp << ".\n" 
@@ -68,9 +68,9 @@ public:
             if(glogs[g] != NULL) free(glogs[g]);
         }
 
-        ffout.close();
-        cfout.close();
-        segfout.close();
+        // ffout.close();
+        // cfout.close();
+        // segfout.close();
         m.stop_time("destroyGraph");
     }
 
@@ -192,7 +192,7 @@ public:
     ***/
     void compaction(bid_t p){
         m.start_time("_5_compaction_");
-        cfout << p << ",";
+        // cfout << p << ",";
 
         if(p == 14) m.start_time("_5_compaction_forb14");
         if(p == 129) m.start_time("_5_compaction_forb129");
@@ -261,20 +261,20 @@ public:
         // logstream(LOG_INFO) << "After loadSubGraphlogs and computed degrees : " << p << ", nverts = " << *nverts << ", nedges = " << *nedges << std::endl;
 
 
-        // For breakdown analysis : compute log distribution among segments
-        segfout << p << "," << nlogs << ",";
-        vid_t nverts_per_seg = 16384;
-        bid_t nsegs_per_blk = nverts_per_grp / nverts_per_seg;
-        eid_t *nlogs_per_seg = new eid_t[nsegs_per_blk];
-        for(bid_t s = 0; s < nsegs_per_blk; s++){
-            nlogs_per_seg[s] = 0;
-            for(vid_t v = nverts_per_seg*s; v < nverts_per_seg*(s+1) && v < *nverts; v++){
-                nlogs_per_seg[s] += newdeg[v];
-            }
-            segfout << nlogs_per_seg[s] << ",";
-        }
-        delete [] nlogs_per_seg;
-        segfout << std::endl;
+        // // For breakdown analysis : compute log distribution among segments
+        // segfout << p << "," << nlogs << ",";
+        // vid_t nverts_per_seg = 16384;
+        // bid_t nsegs_per_blk = nverts_per_grp / nverts_per_seg;
+        // eid_t *nlogs_per_seg = new eid_t[nsegs_per_blk];
+        // for(bid_t s = 0; s < nsegs_per_blk; s++){
+        //     nlogs_per_seg[s] = 0;
+        //     for(vid_t v = nverts_per_seg*s; v < nverts_per_seg*(s+1) && v < *nverts; v++){
+        //         nlogs_per_seg[s] += newdeg[v];
+        //     }
+        //     segfout << nlogs_per_seg[s] << ",";
+        // }
+        // delete [] nlogs_per_seg;
+        // segfout << std::endl;
 
         //5. Compute new begpos
         m.start_time("_load_4_compBeg");
