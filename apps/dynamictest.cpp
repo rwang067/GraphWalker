@@ -3,7 +3,6 @@
 #include <string>
 #include <fstream>
 #include <cmath>
-#include <fstream>
 
 #include "api/graphwalker_basic_includes.hpp"
 #include "engine/dynamicgraph.hpp"
