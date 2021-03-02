@@ -40,7 +40,9 @@ public:
         if (addr > (size+1)) {
             return 0;
         }else{
+            // std::cout << "before bitmapSet for " << index << ": bitmap[" << addr << "] = " << (int)bitmap[addr] << std::endl;
             bitmap[addr] |= temp;
+            // std::cout << "after bitmapSet for " << index << ": bitmap[" << addr << "] = " << (int)bitmap[addr] << std::endl;
             return 1;
         }
     }
@@ -52,6 +54,7 @@ public:
         int addr = index/8;
         int addroffset = index%8;
         unsigned char temp = 0x1 << addroffset;
+        // std::cout << "bitmapGet for " << index << ": bitmap[" << addr << "] = " << (int)bitmap[addr] << std::endl;
         if (addr > (size + 1)) {
             return 0;
         }else{
