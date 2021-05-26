@@ -110,30 +110,57 @@ public:
 		m.stop_time("4_writeWalks2Disk");
 	}
 
-	wid_t getCurrentWalks(bid_t p){
+	wid_t getCurrentWalks(bid_t p, bid_t nexec_blocks){
 		m.start_time("3_getCurrentWalks");
-		curwalks = (WalkDataType*)malloc(walknum[p]*sizeof(WalkDataType));
-		if(dwalknum[p] > 0){
-			readWalksfromDisk(p);
-		}
-		wid_t count = dwalknum[p];
-		for(tid_t t = 0; t < nthreads; t++){
-			if(pwalks[t][p].size_w > 0){
-				for(wid_t w = 0; w < pwalks[t][p].size_w; w++)
-					curwalks[count+w] = pwalks[t][p][w];
-				count += pwalks[t][p].size_w;
-				pwalks[t][p].size_w = 0;
+		// compute nwalks
+		wid_t nwalks = 0;
+		for(bid_t b = 0; b < nexec_blocks; b++)
+			nwalks += walknum[p+b];
+		curwalks = (WalkDataType*)malloc(nwalks*sizeof(WalkDataType));
+		wid_t off = 0;
+		for(bid_t b = 0; b < nexec_blocks; b++){
+			// load disk walks
+			wid_t count = 0;
+			if(dwalknum[p+b] > 0){
+				readWalksfromDisk(p+b, off);
+				count += dwalknum[p+b];
 			}
+			// copy memory walks
+			for(tid_t t = 0; t < nthreads; t++){
+				if(pwalks[t][p+b].size_w > 0){
+					for(wid_t w = 0; w < pwalks[t][p+b].size_w; w++)
+						curwalks[off+w] = pwalks[t][p+b][w];
+					count += pwalks[t][p+b].size_w;
+				}
+			}
+			if (count != walknum[p+b]) {
+				logstream(LOG_DEBUG) << "p+b = " << p+b << " : " << std::endl;
+				for(tid_t t = 0; t < nthreads; t++){
+					if(pwalks[t][p+b].size_w > 0)
+						logstream(LOG_DEBUG) << "pwalks[" << (int)t << "][" << p+b << "].size_w = " << pwalks[t][p+b].size_w << std::endl;
+				}
+				logstream(LOG_DEBUG) << "dwalknum[p+b] = " << dwalknum[p+b] << std::endl;
+				logstream(LOG_FATAL) << "read walks count = " << count << ", recorded walknum[p+b] = " << walknum[p+b] << std::endl;
+			}
+			off += count;
+			dwalknum[p+b] = 0;
+			for(tid_t t = 0; t < nthreads; t++){
+				pwalks[t][p+b].size_w = 0;
+			}
+
+			// walksum -= walknum[p+b];
+			// walknum[p+b] = 0;
+			// minstep[p+b] = 0xffff;
 		}
-		if (count != walknum[p]) {
-			logstream(LOG_DEBUG) << "read walks count = " << count << ", recorded walknum[p] = " << walknum[p] << ", disk walknum[p]" << dwalknum[p] << std::endl;
+		if (off != nwalks) {
+			logstream(LOG_DEBUG) << "p = " << p << ", nexec_blocks = " << nexec_blocks << ", recorded nwalks = " << nwalks << std::endl;
+			logstream(LOG_FATAL) << "read walks off = " << off << ", recorded nwalks = " << nwalks << std::endl;
 		}
-		dwalknum[p] = 0;
 		m.stop_time("3_getCurrentWalks");
-		return count;
+		return nwalks;
 	}
 
-	void readWalksfromDisk(bid_t p){
+	void readWalksfromDisk(bid_t p, wid_t off){
 		m.start_time("z_w_readWalksfromDisk");
 
 		std::string walksfile = walksname( base_filename, p );
@@ -143,7 +170,7 @@ public:
 		}
 		assert(f > 0);
 		/* read from file*/
-		preada(f, &curwalks[0], dwalknum[p]*sizeof(WalkDataType), 0);
+		preada(f, &curwalks[off], dwalknum[p]*sizeof(WalkDataType), 0);
 		/* 清空文件 */
     	ftruncate(f,0);
 		close(f);
@@ -153,12 +180,12 @@ public:
 		m.stop_time("z_w_readWalksfromDisk");
 	}
 
-	void updateWalkNum(bid_t p){
+	void updateWalkNum(bid_t p, bid_t nexec_blocks){
 
 		m.start_time("6_updateWalkNum");
 		wid_t forwardWalks = 0;
 		for(bid_t b = 0; b < nblocks; b++){
-			if(ismodified[b] && b != p){
+			if(ismodified[b] && (b < p || b >= p + nexec_blocks)){
 				ismodified[b] = false;
 				wid_t newwalknum = 0;
 				newwalknum = dwalknum[b];
@@ -166,25 +193,36 @@ public:
 					newwalknum += pwalks[t][b].size_w;
 				}
 				if(newwalknum < walknum[b]){
-					logstream(LOG_DEBUG) <<" b = " << b <<", newwalknum = " << newwalknum << ", walknum[b] = " << walknum[b] << std::endl;
-					assert(false);
+					logstream(LOG_FATAL) <<" b = " << b <<", newwalknum = " << newwalknum << ", walknum[b] = " << walknum[b] << std::endl;
 				}
 				forwardWalks += newwalknum - walknum[b];
 				walknum[b] = newwalknum;
 			}
 		}
-
 		
 		m.start_time("z_w_clear_curwalks");
 		walksum += forwardWalks;
-		walksum -= walknum[p];
-		walknum[p] = 0;
-		minstep[p] = 0xffff;
+		// for(bid_t b = 0; b < nexec_blocks; b++){
+		// 	walksum -= walknum[p+b];
+		// 	walknum[p+b] = 0;
+		// 	minstep[p+b] = 0xffff;
+		// }
 		free(curwalks);
 		curwalks = NULL;
 		m.stop_time("z_w_clear_curwalks");
+		
+		// logstream(LOG_WARNING) << "forwardWalks = " << forwardWalks << ", walksum = " << walksum << std::endl;
+		// assert(false);
 
 		m.stop_time("6_updateWalkNum");
+	}
+
+	void clearWalkNum(bid_t p, bid_t nexec_blocks){
+		for(bid_t b = 0; b < nexec_blocks; b++){
+			walksum -= walknum[p+b];
+			walknum[p+b] = 0;
+			minstep[p+b] = 0xffff;
+		}
 	}
 
      void setMinStep(bid_t p, hid_t hop ){
@@ -197,7 +235,22 @@ public:
 		}
      }
 
-     bid_t blockWithMaxWalks(){
+     bid_t blockWithMaxWalks(bid_t nexec_blocks){
+		wid_t maxw = 0, maxp = 0;
+		for(bid_t p = 0; p < nblocks; p+=nexec_blocks){
+			wid_t count = 0;
+			for(bid_t b = 0; b < nexec_blocks && p+b < nblocks; b++)
+				count += walknum[p+b];
+			if( maxw < count ){
+				maxw = count;
+				maxp = p;
+			}
+	   	}
+		assert(maxw > 0);
+		return maxp;
+     }
+
+	 bid_t blockWithMaxWalks(){
 		wid_t maxw = 0, maxp = 0;
 		for(bid_t p = 0; p < nblocks; p++) {
 			if( maxw < walknum[p] ){
@@ -208,7 +261,7 @@ public:
 		return maxp;
      }
 
-     bid_t blockWithMinStep(){
+     bid_t blockWithMinStep(bid_t exec_block){
 		hid_t mins = 0xffff, minp = 0;
 		for(bid_t p = 0; p < nblocks; p++) {
 			if( mins > minstep[p] ){
@@ -218,7 +271,7 @@ public:
 	   	}
 		if(walknum[minp] > 0)
 			return minp;
-		return blockWithMaxWalks();
+		return blockWithMaxWalks(exec_block);
      }
 
      bid_t blockWithMaxWeight(){
@@ -238,16 +291,16 @@ public:
 		return ranp;
      }
 
-	bid_t chooseBlock(float prob){
+	bid_t chooseBlock(float prob, bid_t nexec_blocks){
 		// return blockWithMaxWeight();//////////////
-		float cc = ((float)rand())/RAND_MAX;
-		if( cc < prob ){
-			return blockWithMinStep();
-		}
-		return blockWithMaxWalks();
+		// float cc = ((float)rand())/RAND_MAX;
+		// if( cc < prob ){
+		// 	return blockWithMinStep(nexec_blocks);
+		// }
+		return blockWithMaxWalks(nexec_blocks);
 	}
 
-     void printWalksDistribution(bid_t exec_block ){
+     void printWalksDistribution(bid_t exec_block){
 		//print walk number decrease trend
 		std::string walk_filename = base_filename + ".walks";
 		std::ofstream ofs;

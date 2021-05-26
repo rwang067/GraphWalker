@@ -36,7 +36,7 @@ public:
     /**
      *  Walk update function.
      */
-    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
         logstream(LOG_ERROR) << "No definition of function : updateByWalk!" << std::endl;
     }
     
@@ -56,7 +56,7 @@ public:
         logstream(LOG_DEBUG) << "No definition of function : after_exec_block!" << std::endl;
     }
 
-    virtual void compUtilization(eid_t total_edges){
+    virtual void compUtilization(eid_t total_edges, wid_t walksum, wid_t nwalks, double runtime){
         logstream(LOG_DEBUG) << "No definition of function : compUtilization!" << std::endl;
     }
 
@@ -89,6 +89,34 @@ public:
     }
 
     /**
+     * compute the num of exec_blocks
+     */
+    virtual bid_t numExecBlocks(WalkManager &walk_manager, long long blocksize_kb){
+        bid_t nexec_blocks = 1;
+        // wid_t remaining_walknum = walk_manager.walksum;
+        // long long comp_blocksize_kb = compBlockSize2(remaining_walknum);
+        // if(comp_blocksize_kb > blocksize_kb) 
+        //     nexec_blocks = comp_blocksize_kb / blocksize_kb;
+        return nexec_blocks; 
+    }
+
+    /**
+     * determine the block size according to the number of walks
+     */
+    virtual unsigned long long compBlockSize2(wid_t nwalks){
+        wid_t w = nwalks;
+        int dom = 0;
+        while(w){
+            dom++;
+            w /= 2;
+        }
+        unsigned long long blocksize_kb = pow(2, 2+dom);
+        // unsigned long long blocksize_kb = pow(2, 3+dom);
+        // logstream(LOG_DEBUG) << "nwalks = " << nwalks << ", dom = " << dom << ", determined blocksize_kb = " << blocksize_kb << std::endl;
+        return blocksize_kb; 
+    }
+
+    /**
      * determine the block size according to the number of walks
      */
     virtual unsigned long long compBlockSize(wid_t nwalks){
@@ -97,8 +125,8 @@ public:
             dom++;
             nwalks /= 10;
         }
-        unsigned long long blocksize_kb = pow(2, 11 + dom);
-        logstream(LOG_DEBUG) << "Determined blocksize_kb = " << blocksize_kb << std::endl;
+        unsigned long long blocksize_kb = pow(2, 14 + dom);
+        // logstream(LOG_DEBUG) << "Determined blocksize_kb = " << blocksize_kb << std::endl;
         return blocksize_kb; 
     }
 

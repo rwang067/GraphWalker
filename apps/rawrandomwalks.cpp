@@ -11,17 +11,22 @@ class RawRandomWalks : public RandomWalkwithJump{
 
 public:
 
-    // tid_t exec_threads;
-    // eid_t *used_edges;
+    tid_t exec_threads;
+    eid_t *used_edges;
 
     void initializeApp(vid_t N, wid_t R, hid_t L){
         initializeRW(N,R,L);
-        // exec_threads = get_option_int("execthreads", omp_get_max_threads());
-        // used_edges = new eid_t[exec_threads];
-        // for(int i=0; i<exec_threads; i++){
-        //     used_edges[i] = 0;
-        // }
-        // unlink("graphwalker_utilization.csv"); 
+        exec_threads = get_option_int("execthreads", omp_get_max_threads());
+        used_edges = new eid_t[exec_threads];
+        for(int i=0; i<exec_threads; i++){
+            used_edges[i] = 0;
+        }
+
+        std::string utilization_filename = "graphwalker_utilization.csv";
+        unlink(utilization_filename.c_str()); 
+        std::ofstream utilizationfile(utilization_filename.c_str());
+        utilizationfile << "runtime \t  walksum  \t nwalks  \t  used_edges[0] \t steps_per_walk  \t  total_edges  \t  utilization  \n" ;
+        utilizationfile.close();
     }
 
     void startWalksbyApp(WalkManager &walk_manager){
@@ -48,25 +53,25 @@ public:
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-        // used_edges[threadid]++;
+        used_edges[threadid]++;
     }
 
     
-    void compUtilization(eid_t total_edges){
-        // for(tid_t i = 1; i < exec_threads; i++){
-        //     used_edges[0] += used_edges[i];
-        // }
+    void compUtilization(eid_t total_edges, wid_t walksum, wid_t nwalks, double runtime){
+        for(tid_t i = 1; i < exec_threads; i++){
+            used_edges[0] += used_edges[i];
+        }
 
-        // float utilization = (float)used_edges[0] / (float)total_edges;
-        // std::string utilization_filename = "graphwalker_utilization.csv";
-        // std::ofstream utilizationfile;
-        // utilizationfile.open(utilization_filename.c_str(), std::ofstream::app);
-        // utilizationfile << total_edges << "\t" << used_edges[0] << "\t" << utilization << "\n" ;
-        // utilizationfile.close();
+        float utilization = (float)used_edges[0] / (float)total_edges;
+        float steps_per_walk = (float)used_edges[0] / (float)nwalks;
+        std::string utilization_filename = "graphwalker_utilization.csv";
+        std::ofstream utilizationfile(utilization_filename.c_str(), std::ofstream::app);
+        utilizationfile << runtime << "s : \t" << walksum << "\t" << nwalks << "\t" << used_edges[0] << "\t" << steps_per_walk << "\t" << total_edges << "\t" << utilization << "\n" ;
+        utilizationfile.close();
 
-        // for(tid_t i=0; i<exec_threads; i++){
-        //     used_edges[i] = 0;
-        // }
+        for(tid_t i=0; i<exec_threads; i++){
+            used_edges[i] = 0;
+        }
     }
 
 };

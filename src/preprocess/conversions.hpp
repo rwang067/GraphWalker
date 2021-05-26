@@ -192,7 +192,7 @@
 
         max_nedges = (eid_t)filesize_GB * 1024 * 1024 * 1024 / sizeof(vid_t); //max number of (vertices+edges) of a shard
         logstream(LOG_INFO) << "Begin convert_to_csr, max_nedges in an csr file = " << max_nedges << std::endl;
-        logstream(LOG_INFO) << "VERT_SIZE in a beg_pos buffer = " << VERT_SIZE << "EDGE_SIZE in an csr buffer = " << EDGE_SIZE << std::endl;
+        logstream(LOG_INFO) << "VERT_SIZE in a beg_pos buffer = " << VERT_SIZE << ", EDGE_SIZE in an csr buffer = " << EDGE_SIZE << std::endl;
         
         char * csr = (char*) malloc(EDGE_SIZE*sizeof(vid_t));
         char * csrptr = csr;
@@ -252,9 +252,10 @@
                     vid_t remianzero = from-curvertex-1;
                     vid_t remainsize = VERT_SIZE - (curvertex - bstv);
                     while(remianzero > remainsize){
+                        logstream(LOG_DEBUG) << "from = " << from << ", curvertex =  " << curvertex << std::endl;
+                        logstream(LOG_DEBUG) << "remianzero = " << remianzero << ", remainsize =  " << remainsize << std::endl;
                         bwritezero( beg_pos, beg_posptr, remainsize ); 
                         flushInvl(filename, csr, csrptr, beg_pos, beg_posptr);
-                        logstream(LOG_DEBUG) << remianzero << " , remainsize =  " << remainsize << std::endl;
                         remianzero -= remainsize;
                         remainsize = VERT_SIZE;
                     }
