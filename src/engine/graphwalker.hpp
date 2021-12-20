@@ -87,6 +87,7 @@ public:
         }
         logstream(LOG_INFO) << "csrbuf malloced!" << std::endl;
         beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
+
         inMemIndex = (bid_t*)malloc(nblocks*sizeof(bid_t));
         for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
         cmblocks = 0;
@@ -159,12 +160,13 @@ public:
         preada(beg_posf, beg_pos, (size_t)(*nverts+1)*sizeof(eid_t), (size_t)blocks[p]*sizeof(eid_t));        
         m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
-        m.start_time("z__g_loadSubGraph_realloc_csr");
         *nedges = beg_pos[*nverts] - beg_pos[0];
         if(*nedges*sizeof(vid_t) > blocksize_kb*1024){
+            m.start_time("z__g_loadSubGraph_realloc_csr");
+            logstream(LOG_WARNING) << "realloc_csr: nedges = " << *nedges << ", need size = " << ((*nedges)*sizeof(vid_t) >> 20) << "MB. " << std::endl;
             csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
+            m.stop_time("z__g_loadSubGraph_realloc_csr");     
         }
-        m.stop_time("z__g_loadSubGraph_realloc_csr");     
         m.start_time("z__g_loadSubGraph_read_csr");
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
         m.stop_time("z__g_loadSubGraph_read_csr");     
@@ -316,10 +318,10 @@ public:
         int blockcount = 0;
         // while( walk_manager->walksum > 100000 ){
         while( walk_manager->walksum > 0 ){
-            blockcount++;
 
             m.start_time("numExecBlocks");
             nexec_blocks = userprogram.numExecBlocks(*walk_manager, blocksize_kb);
+            // nexec_blocks = 1;
             m.stop_time("numExecBlocks");
             m.start_time("1_chooseBlock");
             exec_block = walk_manager->chooseBlock(prob, nexec_blocks);
@@ -355,17 +357,19 @@ public:
             walk_manager->clearWalkNum(exec_block, nexec_blocks);
             walk_manager->updateWalkNum(exec_block, nexec_blocks);
             // logstream(LOG_INFO) << "After updateWalkNum : walksum = " << walk_manager->walksum << std::endl;
-            userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
+            userprogram.compUtilization(0, walk_manager->walksum, nwalks, runtime());
+            // userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
 
+            blockcount++;
         } // For block loop
 
-        logstream(LOG_DEBUG) << runtime() << "s : begin fine-grained graph loading..." << std::endl;
 
+        logstream(LOG_DEBUG) << runtime() << "s : begin fine-grained graph loading..., walksum = " << walk_manager->walksum << std::endl;
         //load all walks into memory
         while( walk_manager->walksum > 0 ){
-            logstream(LOG_INFO) << "Before, walksum = " << walk_manager->walksum << std::endl;
+            // logstream(LOG_INFO) << "Before, walksum = " << walk_manager->walksum << std::endl;
             wid_t nwalks = walk_manager->getCurrentWalks(0, nblocks);
-            // logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks = " << nwalks << std::endl;
+            logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks = " << nwalks << std::endl;
             fine_grained_updates(userprogram, nwalks);
             walk_manager->clearWalkNum(0, nblocks);
             walk_manager->updateWalkNum(0, 0);

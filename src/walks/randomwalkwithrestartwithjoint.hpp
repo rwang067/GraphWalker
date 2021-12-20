@@ -26,7 +26,7 @@ public:
         L = _L;
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){
             //get current time in microsecond as seed to compute rand_r
             tid_t threadid = omp_get_thread_num();
             WalkDataType nowwalk = walk;
@@ -36,7 +36,7 @@ public:
             hid_t hop = walk_manager.getHop(nowwalk);
             // unsigned seed = (unsigned)std::chrono::high_resolution_clock::now().time_since_epoch().count();
             unsigned seed = walk+curId+hop+(unsigned)time(NULL);
-            while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] ){
+            while (dstId >= stv && dstId < env ){
                 updateInfo(sourId, dstId, threadid, hop);
                 vid_t dstIdp = dstId - blocks[exec_block];
                 eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];

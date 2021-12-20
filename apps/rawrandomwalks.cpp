@@ -62,7 +62,7 @@ public:
             used_edges[0] += used_edges[i];
         }
 
-        float utilization = (float)used_edges[0] / (float)total_edges;
+        float utilization = 0;//(float)used_edges[0] / (float)total_edges;
         float steps_per_walk = (float)used_edges[0] / (float)nwalks;
         std::string utilization_filename = "graphwalker_utilization.csv";
         std::ofstream utilizationfile(utilization_filename.c_str(), std::ofstream::app);
@@ -80,10 +80,12 @@ int main(int argc, const char ** argv){
     set_argc(argc,argv);
     metrics m("randomwalks");
     
-    std::string filename = get_option_string("file", "../../raid0_mnop/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    vid_t N = get_option_int("N", 4847571); // Number of vertices
-    wid_t R = get_option_long("R", 10000); // Number of steps
-    hid_t L = get_option_int("L", 4); // Number of steps per walk
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Friendster/out.friendster-reorder");  // Base filename
+    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Crawl/crawl.txt");  // Base filename
+    vid_t N = get_option_int("N", 3563602789); // Number of vertices LJ:4847571 TT:61578415 FS:68349467 YW:1413511394 K30:1073741823 K31:2147483648  CW:3563602789
+    wid_t R = get_option_long("R", 1000000); // Number of walks
+    hid_t L = get_option_int("L", 10); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
@@ -95,7 +97,7 @@ int main(int argc, const char ** argv){
 
     /* Detect the number of shards or preprocess an input to create them */
     if(blocksize_kb == 0){
-        blocksize_kb = program.compBlockSize(R);
+        blocksize_kb = program.compBlockSize2(R);
     }
     if(nmblocks == 0){
         nmblocks = program.compNmblocks(blocksize_kb);

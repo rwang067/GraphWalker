@@ -100,14 +100,14 @@ public:
 	}
 
 	void writeWalks2Disk(tid_t t, bid_t p){
-		m.start_time("4_writeWalks2Disk");
+		// m.start_time("4_writeWalks2Disk");
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		pwritea( f, &pwalks[t][p][0], pwalks[t][p].size_w*sizeof(WalkDataType) );
 		dwalknum[p] += pwalks[t][p].size_w;
 		pwalks[t][p].size_w = 0;
 		close(f);
-		m.stop_time("4_writeWalks2Disk");
+		// m.stop_time("4_writeWalks2Disk");
 	}
 
 	wid_t getCurrentWalks(bid_t p, bid_t nexec_blocks){
@@ -293,10 +293,10 @@ public:
 
 	bid_t chooseBlock(float prob, bid_t nexec_blocks){
 		// return blockWithMaxWeight();//////////////
-		// float cc = ((float)rand())/RAND_MAX;
-		// if( cc < prob ){
-		// 	return blockWithMinStep(nexec_blocks);
-		// }
+		float cc = ((float)rand())/RAND_MAX;
+		if( cc < prob ){
+			return blockWithMinStep(nexec_blocks);
+		}
 		return blockWithMaxWalks(nexec_blocks);
 	}
 

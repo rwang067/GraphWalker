@@ -100,7 +100,7 @@ int main(int argc, const char ** argv) {
     metrics m("multi-source-personalizedpagerank");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../../raid0_mnop/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
     vid_t numsources = get_option_int("numsources", 1); // Number of sources
     wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps

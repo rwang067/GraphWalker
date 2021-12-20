@@ -37,7 +37,7 @@ public:
      *  Walk update function.
      */
     virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
-        logstream(LOG_ERROR) << "No definition of function : updateByWalk!" << std::endl;
+        logstream(LOG_FATAL) << "No definition of function : updateByWalk!" << std::endl;
     }
     
     /**
@@ -93,40 +93,43 @@ public:
      */
     virtual bid_t numExecBlocks(WalkManager &walk_manager, long long blocksize_kb){
         bid_t nexec_blocks = 1;
-        // wid_t remaining_walknum = walk_manager.walksum;
-        // long long comp_blocksize_kb = compBlockSize2(remaining_walknum);
-        // if(comp_blocksize_kb > blocksize_kb) 
-        //     nexec_blocks = comp_blocksize_kb / blocksize_kb;
+        wid_t remaining_walknum = walk_manager.walksum;
+        long long comp_blocksize_kb = compBlockSize2(remaining_walknum);
+        if(comp_blocksize_kb > blocksize_kb) 
+            nexec_blocks = comp_blocksize_kb / blocksize_kb;
         return nexec_blocks; 
     }
 
     /**
      * determine the block size according to the number of walks
+     * blocksize = 2^(log_2 R +1) MB
      */
     virtual unsigned long long compBlockSize2(wid_t nwalks){
         wid_t w = nwalks;
         int dom = 0;
-        while(w){
+        while(w > 1){
             dom++;
             w /= 2;
         }
-        unsigned long long blocksize_kb = pow(2, 2+dom);
+        unsigned long long blocksize_kb = pow(2, 1+dom);
         // unsigned long long blocksize_kb = pow(2, 3+dom);
-        // logstream(LOG_DEBUG) << "nwalks = " << nwalks << ", dom = " << dom << ", determined blocksize_kb = " << blocksize_kb << std::endl;
+        logstream(LOG_DEBUG) << "nwalks = " << nwalks << ", dom = " << dom << ", determined blocksize_kb = " << blocksize_kb << std::endl;
         return blocksize_kb; 
     }
 
     /**
      * determine the block size according to the number of walks
+     * blocksize = 2^(log_10 R + 2) MB
      */
     virtual unsigned long long compBlockSize(wid_t nwalks){
+        wid_t w = nwalks;
         int dom = 0;
-        while(nwalks){
+        while(w){
             dom++;
-            nwalks /= 10;
+            w /= 10;
         }
-        unsigned long long blocksize_kb = pow(2, 14 + dom);
-        // logstream(LOG_DEBUG) << "Determined blocksize_kb = " << blocksize_kb << std::endl;
+        unsigned long long blocksize_kb = pow(2, 12 + dom);
+        logstream(LOG_DEBUG) << "nwalks = " << nwalks << ", dom = " << dom << ", determined blocksize_kb = " << blocksize_kb << std::endl;
         return blocksize_kb; 
     }
 

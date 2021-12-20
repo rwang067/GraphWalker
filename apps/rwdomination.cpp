@@ -65,6 +65,14 @@ public:
         vertex_value[dstId]++; // #pragma omp critical
     }
 
+    
+    void compUtilization(eid_t total_edges, wid_t walksum, wid_t nwalks, double runtime){
+        std::string utilization_filename = "graphwalker_utilization.csv";
+        std::ofstream utilizationfile(utilization_filename.c_str(), std::ofstream::app);
+        utilizationfile << runtime << "s : \t" << walksum << "\t" << nwalks << "\t" << total_edges  << "\n" ;
+        utilizationfile.close();
+    }
+
 };
 
 
@@ -78,8 +86,12 @@ int main(int argc, const char ** argv) {
     metrics m("RWDomination");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    unsigned N = get_option_int("N", 4847571); // Number of vertices
+    // std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Twitter/twitter_rv.net");  // Base filename
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Yahoo/yahoo-webmap.txt");  // Base filename
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Kron30/kron30_32-sorted.txt");  // Base filename
+    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Crawl/crawl.txt");  // Base filename
+    unsigned N = get_option_int("N", 3563602789); // Number of vertices LJ:4847571 TT:61578415 FS:68349467 YW:1413511394 K30:1073741823 K31:2147483648  CW:3563602789
     unsigned R = get_option_int("R", 1); // Number of steps
     unsigned L = get_option_int("L", 6); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
