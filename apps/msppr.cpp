@@ -100,15 +100,16 @@ int main(int argc, const char ** argv) {
     metrics m("multi-source-personalizedpagerank");
     
     /* Basic arguments for application */
-    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/LiveJournal/soc-LiveJournal1.txt");  // Base filename
-    vid_t firstsource = get_option_int("firstsource", 0); // vertex id of start source
-    vid_t numsources = get_option_int("numsources", 1); // Number of sources
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/LiveJournal/soc-LiveJournal1.txt");  // Base filename
+    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/twitter_rv.net");  // Base filename
+    vid_t firstsource = get_option_int("firstsource", 12); // vertex id of start source
+    vid_t numsources = get_option_int("numsources", 1); // Number of sources, 1000, 1000000
     wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps
-    hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk
+    hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk, max 16384
     float prob = get_option_float("prob", 0.2); // prob of chose min step
 
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
+    bid_t nmblocks = get_option_int("nmblocks", 1); // number of in-memory blocks
 
     /* Run */
     MultiSourcePersonalizedPageRank program;
@@ -120,6 +121,10 @@ int main(int argc, const char ** argv) {
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
     if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
+
+    logstream(LOG_INFO) << "parameters, nblocks: " << 
+                           nblocks << ", nmblocks: " << 
+                           nmblocks << ", blocksize: " << blocksize_kb << " KB" << std::endl;
 
     graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);

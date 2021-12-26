@@ -316,8 +316,8 @@ public:
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
-        // while( walk_manager->walksum > 100000 ){
-        while( walk_manager->walksum > 0 ){
+        while( walk_manager->walksum > 100000 ){
+        // while( walk_manager->walksum > 0 ){
 
             m.start_time("numExecBlocks");
             nexec_blocks = userprogram.numExecBlocks(*walk_manager, blocksize_kb);
@@ -357,7 +357,7 @@ public:
             walk_manager->clearWalkNum(exec_block, nexec_blocks);
             walk_manager->updateWalkNum(exec_block, nexec_blocks);
             // logstream(LOG_INFO) << "After updateWalkNum : walksum = " << walk_manager->walksum << std::endl;
-            userprogram.compUtilization(0, walk_manager->walksum, nwalks, runtime());
+            // userprogram.compUtilization(0, walk_manager->walksum, nwalks, runtime());
             // userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
 
             blockcount++;
