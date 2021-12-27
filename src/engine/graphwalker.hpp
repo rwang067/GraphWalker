@@ -37,6 +37,7 @@ public:
     /* Ｉn memory blocks */
     bid_t nmblocks; //number of in memory blocks
     vid_t **csrbuf;
+    vid_t *csrbuf_pool;
     eid_t **beg_posbuf;
     bid_t cmblocks; //current number of in memory blocks
     bid_t *inMemIndex;
@@ -49,6 +50,8 @@ public:
     /* Metrics */
     metrics &m;
     WalkManager *walk_manager;
+
+    int cache_strategy = 1; //cache strategy, 0 realloc, 1 finest granularity, 2 adaptive memory pool 
         
     void print_config() {
         logstream(LOG_INFO) << "Engine configuration: " << std::endl;
@@ -72,7 +75,13 @@ public:
      * @param nblocks number of shards
      * @param selective_scheduling if true, uses selective scheduling 
      */
-    graphwalker_engine(std::string _base_filename, unsigned long long _blocksize_kb, bid_t _nblocks, bid_t _nmblocks, metrics &_m) : base_filename(_base_filename), blocksize_kb(_blocksize_kb), nblocks(_nblocks), nmblocks(_nmblocks), m(_m) {
+    graphwalker_engine(std::string _base_filename, 
+                       unsigned long long _blocksize_kb, 
+                       bid_t _nblocks, 
+                       bid_t _nmblocks, 
+                       metrics &_m,
+                       int _strategy=0) : 
+                       base_filename(_base_filename), blocksize_kb(_blocksize_kb), nblocks(_nblocks), nmblocks(_nmblocks), m(_m) {
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
         load_block_range(base_filename, blocksize_kb, blocks);
@@ -81,10 +90,17 @@ public:
         walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
         logstream(LOG_INFO) << "walk_manager created!" << std::endl;
 
-        csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
-        for(bid_t b = 0; b < nmblocks; b++){
-            csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
+        set_cache_strategy(_strategy);
+        logstream(LOG_INFO) << "cache strategy: " << (int)cache_strategy << "\n";
+        if (cache_strategy == 2) { // the memory pool strategy
+            csrbuf_pool = (vid_t*)malloc(nmblocks*blocksize_kb*1024);
+        } else { // realloc or finest
+            csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
+            for(bid_t b = 0; b < nmblocks; b++){
+                csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
+            }
         }
+
         logstream(LOG_INFO) << "csrbuf malloced!" << std::endl;
         beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
 
@@ -115,15 +131,29 @@ public:
         if(inMemIndex != NULL) free(inMemIndex);
         if(blocks != NULL) free(blocks);
 
-        for(bid_t b = 0; b < cmblocks; b++){
-            if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
-            if(csrbuf[b] != NULL)   free(csrbuf[b]);
+        if (cache_strategy == 2) {
+            for (bid_t b = 0; b < cmblocks; b++) {
+                if (beg_posbuf[b] != NULL) free(beg_posbuf[b]);
+            }
+            if (csrbuf_pool != NULL) free(csrbuf_pool);
+        } else {
+            for(bid_t b = 0; b < cmblocks; b++){
+                if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
+                if(csrbuf[b] != NULL)   free(csrbuf[b]);
+            }
         }
         if(beg_posbuf != NULL) free(beg_posbuf);
         if(csrbuf != NULL) free(csrbuf);
 
         close(beg_posf);  
         close(csrf);  
+    }
+
+    void set_cache_strategy(int _strategy) {
+        if (_strategy >= 0 && _strategy <= 2)
+            cache_strategy = _strategy;
+        else
+            logstream(LOG_FATAL) << "Don't support cache strategy: " << _strategy << "\n";
     }
 
     void load_block_range(std::string base_filename, unsigned long long blocksize_kb, vid_t * &blocks, bool allowfail=false) {
@@ -152,8 +182,11 @@ public:
         m.start_time("g_loadSubGraph");
 
         /* read beg_pos file */
-        // *nverts = blocks[p+1] - blocks[p];
-        *nverts = blocks[p+nexec_blocks] - blocks[p];
+        if (cache_strategy == 1) { // finest granularity 
+            *nverts = blocks[p+1] - blocks[p];
+        } else {
+            *nverts = blocks[p+nexec_blocks] - blocks[p];
+        }
 
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
         m.start_time("z__g_loadSubGraph_read_begpos");
@@ -161,11 +194,17 @@ public:
         m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
         *nedges = beg_pos[*nverts] - beg_pos[0];
-        if(*nedges*sizeof(vid_t) > blocksize_kb*1024){
-            m.start_time("z__g_loadSubGraph_realloc_csr");
-            logstream(LOG_WARNING) << "realloc_csr: nedges = " << *nedges << ", need size = " << ((*nedges)*sizeof(vid_t) >> 20) << "MB. " << std::endl;
-            csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
-            m.stop_time("z__g_loadSubGraph_realloc_csr");     
+        if (*nedges*sizeof(vid_t) > blocksize_kb*1024){
+            if (cache_strategy == 0 || cache_strategy == 1) {
+                m.start_time("z__g_loadSubGraph_realloc_csr");
+                logstream(LOG_WARNING) << "realloc_csr: nedges = " << *nedges << ", need size = " << ((*nedges)*sizeof(vid_t) >> 20) << "MB. " << std::endl;
+                csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
+                m.stop_time("z__g_loadSubGraph_realloc_csr");     
+            } else {
+                logstream(LOG_FATAL) << "Current size :" << *nedges*sizeof(vid_t)/1024 << 
+                                        " greater than Blocksize: " << blocksize_kb <<
+                                        ". Use other cache strategies or increase block size!" << std::endl;
+            }
         }
         m.start_time("z__g_loadSubGraph_read_csr");
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
@@ -176,24 +215,49 @@ public:
 
     void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
         m.start_time("2_findSubGraph");
+        vid_t *csr_buffer;
+        bid_t blocks_offset = 1;
         if(inMemIndex[p] == nmblocks){//the block is not in memory
             bid_t swapin;
-            if(cmblocks < nmblocks){
-                swapin = cmblocks++;
-            }else{
-                bid_t minmwb = swapOut();
+            if (cache_strategy == 2) {
+                blocks_offset = nexec_blocks;
+            }
+            if (cmblocks+blocks_offset <= nmblocks) { // there are enough idle space in cache 
+                swapin = cmblocks;
+                cmblocks += blocks_offset;
+            } else {
+                bid_t minmwb;
+                if (cache_strategy == 0 || cache_strategy == 1) {
+                    minmwb = swapOut();
+                } else {
+                    minmwb = swapOut_mempool();
+                }
                 swapin = inMemIndex[minmwb];
-                inMemIndex[minmwb] = nmblocks;
+                for (bid_t b = 0; b < blocks_offset && b < nblocks; b++) {
+                    inMemIndex[minmwb+b] = nmblocks;
+                }
                 assert(swapin < nmblocks);
                 if(beg_posbuf[swapin] != NULL) free(beg_posbuf[swapin]);
                     // munmap(beg_posbuf[swapin], sizeof(eid_t)*(blocks[minmwb+1] - blocks[minmwb] + 1));
             }
-            loadSubGraph(p, beg_posbuf[swapin], csrbuf[swapin], nverts, nedges);
-            inMemIndex[p] = swapin;
+            if (cache_strategy == 2) {
+                csr_buffer = csrbuf_pool + swapin * (blocksize_kb*1024/sizeof(vid_t));
+                loadSubGraph(p, beg_posbuf[swapin], csr_buffer, nverts, nedges);
+            } else {
+                loadSubGraph(p, beg_posbuf[swapin], csrbuf[swapin], nverts, nedges);
+            }
+            for (bid_t b = 0; b < blocks_offset && b < nblocks; b++) {
+                inMemIndex[p+b] = swapin + b;
+            }
         }else{
         }
         beg_pos = beg_posbuf[ inMemIndex[p] ];
-        csr = csrbuf[ inMemIndex[p] ];
+        if (cache_strategy == 2) {
+            csr = csrbuf_pool + inMemIndex[p] * (blocksize_kb*1024/sizeof(vid_t));
+        } else {
+            csr = csrbuf[inMemIndex[p]];
+        }
+        // csr = csrbuf[ inMemIndex[p] ];
         m.stop_time("2_findSubGraph");
     }
 
@@ -244,6 +308,26 @@ public:
         return minmwb;
     }
 
+    bid_t swapOut_mempool() { // for strategy 2, memory pool
+        m.start_time("z_g_swapOutMemPool");
+        wid_t minmw = 0xffffffff;
+        bid_t minmwb = 0;
+        for(bid_t p = 0; p < nblocks; p += nexec_blocks) {
+            if(inMemIndex[p] < nmblocks){
+                wid_t count = 0;
+                for (bid_t b = 0; b < nexec_blocks && p+b < nblocks; b++) {
+                    count += walk_manager->walknum[p+b];
+                }
+                if (count < minmw) {
+                    minmw = count;
+                    minmwb = p;
+                }
+            }
+        }
+        m.start_time("z_g_swapOutMemPool");
+        return minmwb;
+    }
+
     virtual size_t num_vertices() {
         return blocks[nblocks];
     }
@@ -252,9 +336,13 @@ public:
         // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("5_exec_updates");
         wid_t off = 0;
+        bid_t blocks_offset = nexec_blocks;
+        if (cache_strategy == 1) {
+            blocks_offset = 1;
+        }
         vid_t stv = blocks[exec_block];
-        vid_t env = blocks[exec_block+nexec_blocks];
-        for(bid_t b = 0; b < nexec_blocks; b++ ){
+        vid_t env = blocks[exec_block+blocks_offset];
+        for(bid_t b = 0; b < blocks_offset; b++ ){
             wid_t nwalks_curb = walk_manager->walknum[exec_block+b];
             if(nwalks_curb < 100) omp_set_num_threads(1);
             #pragma omp parallel for schedule(static)
@@ -316,8 +404,8 @@ public:
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
-        while( walk_manager->walksum > 100000 ){
-        // while( walk_manager->walksum > 0 ){
+        // while( walk_manager->walksum > 100000 ){
+        while( walk_manager->walksum > 0 ){
 
             m.start_time("numExecBlocks");
             nexec_blocks = userprogram.numExecBlocks(*walk_manager, blocksize_kb);

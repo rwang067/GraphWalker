@@ -108,8 +108,9 @@ int main(int argc, const char ** argv) {
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk, max 16384
     float prob = get_option_float("prob", 0.2); // prob of chose min step
 
-    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 1); // number of in-memory blocks
+    unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
+    bid_t nmblocks = get_option_int("nmblocks", 20); // number of in-memory blocks
+    int cache_strategy =  get_option_int("cache", 0); // cache strategy 
 
     /* Run */
     MultiSourcePersonalizedPageRank program;
@@ -126,7 +127,7 @@ int main(int argc, const char ** argv) {
                            nblocks << ", nmblocks: " << 
                            nmblocks << ", blocksize: " << blocksize_kb << " KB" << std::endl;
 
-    graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
+    graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m, cache_strategy);
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);
