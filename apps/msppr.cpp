@@ -55,7 +55,6 @@ public:
                 for(vid_t s = 0; s < nums; s++){
                     vid_t cur = s + sts - blocks[p];
                     WalkDataType walk = walk_manager.encode(s + sts - firstsource, cur, 0);
-                    logstream(LOG_INFO) << "encode sources : " << s + sts - firstsource << std::endl;
                     for( wid_t j = 0; j < walkspersource; j++ ){
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     }
@@ -65,10 +64,29 @@ public:
             sts = ens;
             ens = blocks[p+1];
         }
+        // /* ---- print started walks ---- */
+        // for(bid_t p = 0; p < nblocks; p++){
+        //     for(tid_t t = 0; t < omp_get_max_threads(); t++){
+        //         if(walk_manager.pwalks[t][p].size_w > 0){
+        //             logstream(LOG_INFO) << "pwalks[" << t << "][" << p << "]: " << std::endl;
+        //             wid_t size_w = walk_manager.pwalks[t][p].size_w;
+        //             for(wid_t i = 0; i < size_w; i++){
+        //                 WalkDataType walk = walk_manager.pwalks[t][p][i];
+        //                 logstream(LOG_INFO) << walk.sourceId << " " << walk.currentId << " " << walk.hop << std::endl;
+        //             }
+        //         }
+        //     }
+        // }
+        // // exit(0);
+        // /* ---- print started walks ---- */
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-        assert(s < numsources);
+        if(s >= numsources){
+            logstream(LOG_FATAL) << "Wrong source = " << s << std::endl;
+            // logstream(LOG_WARNING) << "Wrong source = " << s << std::endl;
+            return;
+        }
         visitfrequencies[s].add(dstId);
         used_edges[threadid]++;
     }

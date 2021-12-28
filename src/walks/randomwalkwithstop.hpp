@@ -23,9 +23,6 @@ public:
         vid_t sourId = walk_manager.getSourceId(nowWalk);
         vid_t dstId = walk_manager.getCurrentId(nowWalk) + blocks[exec_block];
         hid_t hop = walk_manager.getHop(nowWalk);
-        if(sourId >= 10){
-            logstream(LOG_FATAL) << nowWalk << " " << sourId << " " << dstId << " " << hop << std::endl;
-        }
         unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
         while (dstId >= stv && dstId < env && hop < L ){
             updateInfo(sourId, dstId, threadid, hop);
@@ -39,11 +36,18 @@ public:
                 return;
             }
             hop++;
-            nowWalk++;
+            // nowWalk++;
+        }
+        if(hop == 0){
+            logstream(LOG_INFO) << walk.sourceId << " " << walk.currentId << " " << walk.hop << std::endl;
+            logstream(LOG_FATAL) << dstId << " not in [" << stv << ", " << env << "), hop = " << hop << std::endl;
+            return;
         }
         if( hop < L ){
             bid_t p = getblock( dstId );
             if(p>=nblocks) return;
+            // walk_manager.setHop(nowWalk, hop);
+            nowWalk = walk_manager.encode(sourId, dstId - blocks[p], hop);
             walk_manager.moveWalk(nowWalk, p, threadid, dstId - blocks[p]);
             walk_manager.setMinStep( p, hop );
             walk_manager.ismodified[p] = true;

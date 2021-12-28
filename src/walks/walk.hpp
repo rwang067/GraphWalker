@@ -67,26 +67,35 @@ public:
 	}
 
 	WalkDataType encode( vid_t sourceId, vid_t currentId, hid_t hop ){
-        assert(sourceId < 10);
+        assert(sourceId < MAX_SOURCE_SIZE);
+		assert(currentId < VERT_SIZE);
 		assert( hop < 16384 );
-		return (( (WalkDataType)sourceId & 0xffffff ) << 40 ) |(( (WalkDataType)currentId & 0x3ffffff ) << 14 ) | ( (WalkDataType)hop & 0x3fff ) ;
+		return WalkDataType(sourceId, currentId, hop);
+		// return (( (WalkDataType)sourceId & 0xffffff ) << 40 ) |(( (WalkDataType)currentId & 0x3ffffff ) << 14 ) | ( (WalkDataType)hop & 0x3fff ) ;
 	}
 
 	vid_t getSourceId( WalkDataType walk ){
-		return (vid_t)( walk >> 40 ) & 0xffffff;
+		return walk.sourceId;
+		// return (vid_t)( walk >> 40 ) & 0xffffff;
 	}
 
 	vid_t getCurrentId( WalkDataType walk ){
-		return (vid_t)( walk >> 14 ) & 0x3ffffff;
+		return walk.currentId;
+		// return (vid_t)( walk >> 14 ) & 0x3ffffff;
 	}
 
 	hid_t getHop( WalkDataType walk ){
-		return (hid_t)(walk & 0x3fff) ;
+		return walk.hop;
+		// return (hid_t)(walk & 0x3fff) ;
+	}
+	void setHop( WalkDataType walk, hid_t h){
+		walk.hop = h;
 	}
 
 	WalkDataType reencode( WalkDataType walk, vid_t toVertex ){
-		hid_t hop = getHop(walk);
 		vid_t source = getSourceId(walk);
+		hid_t hop = getHop(walk);
+        assert(source < 10);
 		walk = encode(source,toVertex,hop);
 		return walk;
 	}
@@ -96,7 +105,7 @@ public:
 			writeWalks2Disk(t,p);
         }
         assert(pwalks[t][p].size_w < WALK_BUFFER_SIZE);
-		walk = reencode( walk, toVertex );
+		// walk = reencode( walk, toVertex );
 		pwalks[t][p].push_back( walk );
 	}
 
@@ -129,9 +138,14 @@ public:
 			// copy memory walks
 			for(tid_t t = 0; t < nthreads; t++){
 				if(pwalks[t][p+b].size_w > 0){
-					for(wid_t w = 0; w < pwalks[t][p+b].size_w; w++)
-						curwalks[off+w] = pwalks[t][p+b][w];
-					count += pwalks[t][p+b].size_w;
+                    // logstream(LOG_INFO) << "pwalks[" << (uint32_t)t << "][" << p+b << "], size_w = " << pwalks[t][p+b].size_w << std::endl;
+                    wid_t size_w = pwalks[t][p+b].size_w;
+					for(wid_t w = 0; w < size_w; w++){
+						curwalks[off+count+w] = pwalks[t][p+b][w];
+						// WalkDataType walk = curwalks[count+w];
+                		// logstream(LOG_INFO) << count+w << " " << walk.sourceId << " " << walk.currentId << " " << walk.hop << std::endl;
+					}
+					count += size_w;
 				}
 			}
 			if (count != walknum[p+b]) {

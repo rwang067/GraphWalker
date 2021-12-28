@@ -96,9 +96,9 @@ public:
             csrbuf_pool = (vid_t*)malloc(nmblocks*blocksize_kb*1024);
         } else { // realloc or finest
             csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
-            for(bid_t b = 0; b < nmblocks; b++){
-                csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
-            }
+            // for(bid_t b = 0; b < nmblocks; b++){
+            //     csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
+            // }
         }
 
         logstream(LOG_INFO) << "csrbuf malloced!" << std::endl;
@@ -194,13 +194,9 @@ public:
         m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
         *nedges = beg_pos[*nverts] - beg_pos[0];
-        if (*nedges*sizeof(vid_t) > blocksize_kb*1024){
-            if (cache_strategy == 0 || cache_strategy == 1) {
-                m.start_time("z__g_loadSubGraph_realloc_csr");
-                logstream(LOG_WARNING) << "realloc_csr: nedges = " << *nedges << ", need size = " << ((*nedges)*sizeof(vid_t) >> 20) << "MB. " << std::endl;
-                csr = (vid_t*)realloc(csr, (*nedges)*sizeof(vid_t) );
-                m.stop_time("z__g_loadSubGraph_realloc_csr");     
-            } else {
+        csr = (vid_t*) malloc((*nedges)*sizeof(vid_t));
+        if (*nedges*sizeof(vid_t) > blocksize_kb*nexec_blocks*1024){
+            if (cache_strategy == 2) {
                 logstream(LOG_FATAL) << "Current size :" << *nedges*sizeof(vid_t)/1024 << 
                                         " greater than Blocksize: " << blocksize_kb <<
                                         ". Use other cache strategies or increase block size!" << std::endl;
@@ -238,6 +234,7 @@ public:
                 }
                 assert(swapin < nmblocks);
                 if(beg_posbuf[swapin] != NULL) free(beg_posbuf[swapin]);
+                if(csrbuf[swapin] != NULL) free(csrbuf[swapin]);
                     // munmap(beg_posbuf[swapin], sizeof(eid_t)*(blocks[minmwb+1] - blocks[minmwb] + 1));
             }
             if (cache_strategy == 2) {
@@ -344,6 +341,13 @@ public:
         vid_t env = blocks[exec_block+blocks_offset];
         for(bid_t b = 0; b < blocks_offset; b++ ){
             wid_t nwalks_curb = walk_manager->walknum[exec_block+b];
+            // /* ------ */
+            // for(wid_t i = 0; i < nwalks_curb; i++ ){
+            //     WalkDataType walk = walk_manager->curwalks[off+i];
+            //     logstream(LOG_INFO) << off+i << " " << walk.sourceId << " " << walk.currentId << " " << walk.hop << std::endl;
+            // }
+            // // exit(0);
+            /* ------ */
             if(nwalks_curb < 100) omp_set_num_threads(1);
             #pragma omp parallel for schedule(static)
                 for(wid_t i = 0; i < nwalks_curb; i++ ){
@@ -433,7 +437,7 @@ public:
             }
             
             // if(blockcount % (nblocks/100+1)==1)
-            if(blockcount % (1024*1024*1024/nedges+1) == 1)
+            // if(blockcount % (1024*1024*1024/nedges+1) == 1)
             {
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << std::endl;
                 logstream(LOG_INFO) << "exec_block = " << exec_block << ", nexec_blocks = " << nexec_blocks << std::endl;

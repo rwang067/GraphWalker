@@ -320,8 +320,8 @@
                 if(beg_pos[v]-bgstvb > mneb){
                     logstream(LOG_INFO) << "Block_" << blockid << " : [" << stvb << ", " << nread+v-1 << ")" << std::endl;
                     if(beg_pos[v]-beg_pos[v-1] > mneb){
-                        logstream(LOG_WARNING) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
                         logstream(LOG_WARNING) << "v = " << v << ", beg_pos[v-1] = " << beg_pos[v-1] << ", beg_pos[v] = " << beg_pos[v] << std::endl;
+                        logstream(LOG_FATAL) << "Too small blocksize with max num of edges of a block = " << mneb << " to support larger ourdegree of vert " << nread+v << ", with outdegree = " << beg_pos[v]-beg_pos[v-1] << std::endl;
                         blockid+=2;
                         stvb = nread+v-1;
                         blocks.push_back(stvb);
