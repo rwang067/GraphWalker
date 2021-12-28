@@ -55,6 +55,7 @@ public:
                 for(vid_t s = 0; s < nums; s++){
                     vid_t cur = s + sts - blocks[p];
                     WalkDataType walk = walk_manager.encode(s + sts - firstsource, cur, 0);
+                    logstream(LOG_INFO) << "encode sources : " << s + sts - firstsource << std::endl;
                     for( wid_t j = 0; j < walkspersource; j++ ){
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     }
@@ -67,6 +68,7 @@ public:
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
+        assert(s < numsources);
         visitfrequencies[s].add(dstId);
         used_edges[threadid]++;
     }

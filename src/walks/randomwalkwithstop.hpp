@@ -23,6 +23,9 @@ public:
         vid_t sourId = walk_manager.getSourceId(nowWalk);
         vid_t dstId = walk_manager.getCurrentId(nowWalk) + blocks[exec_block];
         hid_t hop = walk_manager.getHop(nowWalk);
+        if(sourId >= 10){
+            logstream(LOG_FATAL) << nowWalk << " " << sourId << " " << dstId << " " << hop << std::endl;
+        }
         unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
         while (dstId >= stv && dstId < env && hop < L ){
             updateInfo(sourId, dstId, threadid, hop);

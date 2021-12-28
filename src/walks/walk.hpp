@@ -67,6 +67,7 @@ public:
 	}
 
 	WalkDataType encode( vid_t sourceId, vid_t currentId, hid_t hop ){
+        assert(sourceId < 10);
 		assert( hop < 16384 );
 		return (( (WalkDataType)sourceId & 0xffffff ) << 40 ) |(( (WalkDataType)currentId & 0x3ffffff ) << 14 ) | ( (WalkDataType)hop & 0x3fff ) ;
 	}
