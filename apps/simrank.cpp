@@ -6,7 +6,8 @@
 #include "api/graphwalker_basic_includes.hpp"
 #include "walks/randomwalkwithrestartwithjoint.hpp"
 
-class SimRank : public RandomWalkwithRestartwithJoint{
+template<class WalkDataType>
+class SimRank : public RandomWalkwithRestartwithJoint<WalkDataType>{
 private:
 	vid_t a, b;
 	std::vector<vid_t> walksfroma; //record the path of walks
@@ -16,44 +17,42 @@ private:
 
 public:
 	void initializeApp( vid_t _a, vid_t _b, wid_t _R, hid_t _L ){
-		a = _a;
-		b = _b;
-		R = _R;
-		L = _L;
-		walksfroma.resize(R*L);
-		walksfromb.resize(R*L);
+		this->initializeRW(_R, _L);
+		this->a = _a;
+		this->b = _b;
+		walksfroma.resize(_R*_L);
+		walksfromb.resize(_R*_L);
 		memset(walksfroma.data(), 0xff, walksfroma.size()*sizeof(vid_t));
 		memset(walksfromb.data(), 0xff, walksfromb.size()*sizeof(vid_t));
-		initializeRW( R, L);
 	}
 
-	void startWalksbyApp(WalkManager &walk_manager){
+	void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
 		// R random walk start from a
-		logstream(LOG_INFO) << "Start " << R << " walks of length " << L << " from a and b : " << std::endl;
+		logstream(LOG_INFO) << "Start " << this->R << " walks of length " << this->L << " from a and b : " << std::endl;
 		tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-		bid_t p = getblock(a);
-		assert( p == getblock(b) );
-		vid_t cur = a - blocks[p];
+		bid_t p = this->getblock(a);
+		assert( p == this->getblock(b) );
+		vid_t cur = a - this->blocks[p];
 		walk_manager.minstep[p] = 0;
-		walk_manager.walknum[p] = 2*R;
+		walk_manager.walknum[p] = 2*this->R;
 
 		//start R walks from a
 		omp_set_num_threads(nthreads);
 		#pragma omp parallel for schedule(static)
-			for(wid_t i = 0; i < R; i++){
-				hid_t hop = i * L;
-				WalkDataType walk = walk_manager.encode(a, cur, hop);
+			for(wid_t i = 0; i < this->R; i++){
+				hid_t hop = i * this->L;
+				WalkDataType walk = WalkDataType(a, cur, hop);
 				walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
 			}
 		//start R walks from b
-		cur = b - blocks[p];
+		cur = b - this->blocks[p];
 		#pragma omp parallel for schedule(static)
-			for(wid_t i = 0; i < R; i++){
-				hid_t hop = i * L;
-				WalkDataType walk = walk_manager.encode(b, cur, hop);
+			for(wid_t i = 0; i < this->R; i++){
+				hid_t hop = i * this->L;
+				WalkDataType walk = WalkDataType(b, cur, hop);
 				walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
 			}
-		walk_manager.walksum = 2*R;
+		walk_manager.walksum = 2*this->R;
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
@@ -69,11 +68,11 @@ public:
 
 	float computeResult(){
 		float simrank = 0;
-		for( wid_t i = 0; i < R; i++ )
-			for( wid_t j = 0; j < R; j++ )
-				for( wid_t l = 0; l < L; l++ ){
-					if( walksfroma[i*L+l] == walksfromb[j*L+l] && walksfroma[i*L+l] != 0xffffffff ){
-						simrank += (1.0/(R*R))*pow(0.8, l);
+		for( wid_t i = 0; i < this->R; i++ )
+			for( wid_t j = 0; j < this->R; j++ )
+				for( wid_t l = 0; l < this->L; l++ ){
+					if( walksfroma[i*this->L+l] == walksfromb[j*this->L+l] && walksfroma[i*this->L+l] != 0xffffffff ){
+						simrank += (1.0/(this->R*this->R))*pow(0.8, l);
 						break;
 					}
 				}
@@ -99,7 +98,7 @@ int main(int argc, const char ** argv) {
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
     
     /* Run */
-    SimRank program;
+    SimRank<WalkDataType> program;
     program.initializeApp( a, b, R, L );
     
 	if(blocksize_kb == 0)
@@ -109,7 +108,7 @@ int main(int argc, const char ** argv) {
     if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     float simrank = program.computeResult();

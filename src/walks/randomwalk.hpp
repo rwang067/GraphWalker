@@ -12,19 +12,26 @@
  * Type definitions. Remember to create suitable graph shards using the
  * Sharder-program.
  */
- 
-class RandomWalk {
 
+class WalkDataType{
+public:
+    uint64_t sourceId:24;
+    uint64_t currentId:26;
+    uint64_t hop:14;
+    WalkDataType(vid_t _sourceId, vid_t _currentId, hid_t _hop):
+        sourceId(_sourceId), currentId(_currentId), hop(_hop){}
+};
+ 
+template <typename WalkDataType>
+class RandomWalk {
 public:
     bid_t nblocks;
     vid_t *blocks;
     wid_t R;
     hid_t L;
 
-public:
-
     //for SimRank
-    virtual void startWalksbyApp( WalkManager &walk_manager){
+    virtual void startWalksbyApp( WalkManager<WalkDataType> &walk_manager){
         logstream(LOG_ERROR) << "No definition of function : startWalksbyApp!" << std::endl;
     }  
 
@@ -36,14 +43,14 @@ public:
     /**
      *  Walk update function.
      */
-    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
+    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ //, VertexDataType* vertex_value){
         logstream(LOG_FATAL) << "No definition of function : updateByWalk!" << std::endl;
     }
     
     /**
      * Called before an execution block is started.
      */
-    virtual wid_t before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    virtual wid_t before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager<WalkDataType> &walk_manager) {
         logstream(LOG_DEBUG) << "No definition of function : before_exec_block!" << std::endl;
         return 0;
     }
@@ -51,8 +58,8 @@ public:
     /**
      * Called after an execution block has finished.
      */
-    // virtual void after_exec_block(unsigned exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager, Vertex *&vertices) {
-    virtual void after_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager &walk_manager) {
+    // virtual void after_exec_block(unsigned exec_block, vid_t window_st, vid_t window_en, WalkManager<WalkDataType> &walk_manager, Vertex *&vertices) {
+    virtual void after_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager<WalkDataType> &walk_manager) {
         logstream(LOG_DEBUG) << "No definition of function : after_exec_block!" << std::endl;
     }
 
@@ -65,7 +72,7 @@ public:
         L = _L;
     }
 
-    virtual void startWalks(WalkManager &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){
+    virtual void startWalks(WalkManager<WalkDataType> &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){
         nblocks = _nblocks;
         blocks = _blocks;
         startWalksbyApp(walk_manager);
@@ -83,7 +90,7 @@ public:
     /**
      * check if it has finished all walks
      */
-    virtual bool hasFinishedWalk(WalkManager &walk_manager){
+    virtual bool hasFinishedWalk(WalkManager<WalkDataType> &walk_manager){
         wid_t remaining_walknum = walk_manager.walksum;
         return ( remaining_walknum > 0 ); 
     }
@@ -91,7 +98,7 @@ public:
     /**
      * compute the num of exec_blocks
      */
-    virtual bid_t numExecBlocks(WalkManager &walk_manager, long long blocksize_kb){
+    virtual bid_t numExecBlocks(WalkManager<WalkDataType> &walk_manager, long long blocksize_kb){
         bid_t nexec_blocks = 1;
         wid_t remaining_walknum = walk_manager.walksum;
         long long comp_blocksize_kb = compBlockSize2(remaining_walknum);

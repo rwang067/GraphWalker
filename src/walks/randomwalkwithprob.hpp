@@ -20,9 +20,9 @@ public:
     void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, eid_t *&beg_pos, vid_t *&csr, WalkManager &walk_manager ){ //, VertexDataType* vertex_value){
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
-        vid_t sourId = walk_manager.getSourceId(nowWalk);
-        vid_t dstId = walk_manager.getCurrentId(nowWalk) + blocks[exec_block];
-        hid_t hop = walk_manager.getHop(nowWalk);
+        vid_t sourId = nowWalk.sourceId;
+        vid_t dstId = nowWalk.currentId + blocks[exec_block];
+        hid_t hop = nowWalk.hop;
         unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
         while (dstId >= blocks[exec_block] && dstId < blocks[exec_block+1] ){
             updateInfo(sourId, dstId, threadid, hop);

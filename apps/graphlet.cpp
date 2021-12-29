@@ -6,7 +6,8 @@
 #include "api/graphwalker_basic_includes.hpp"
 #include "walks/randomwalkwithstop.hpp"
 
-class graphLet : public RandomWalkwithStop{
+template<class WalkDataType>
+class graphLet : public RandomWalkwithStop<WalkDataType>{
     private:
         vid_t N;
         wid_t *cnt_ok;
@@ -14,22 +15,20 @@ class graphLet : public RandomWalkwithStop{
     public:
         void initializeApp(vid_t _N, wid_t _R, hid_t _L){
             N = _N;
-            R = _R;
-            L = _L;
             cnt_ok = 0;
-            initializeRW(R, L);
+            this->initializeRW(_R, _L);
         }
 
-        void startWalksbyApp(WalkManager &walk_manager){
+        void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
             srand((unsigned)time(NULL));
             tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
             omp_set_num_threads(nthreads);
             // #pragma omp parallel for schedule(static)
-                for (wid_t i = 0; i < R; i++){
+                for (wid_t i = 0; i < this->R; i++){
                     vid_t s = rand()%N;
-                    bid_t p = getblock(s);
-                    vid_t cur = s - blocks[p];
-                    WalkDataType walk = walk_manager.encode(s,cur,0);
+                    bid_t p = this->getblock(s);
+                    vid_t cur = s - this->blocks[p];
+                    WalkDataType walk = WalkDataType(s,cur,0);
                     walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     walk_manager.minstep[p] = 0;
                     walk_manager.walknum[p]++;
@@ -38,11 +37,11 @@ class graphLet : public RandomWalkwithStop{
             for(tid_t i = 0; i < nthreads; i++ ){
                 cnt_ok[i] = 0;
             }
-            walk_manager.walksum = R;
+            walk_manager.walksum = this->R;
         }
 
 		void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-            if(hop < L-1) return;
+            if(hop < this->L-1) return;
             if (dstId == s){
                 cnt_ok[threadid]++;
             }
@@ -53,7 +52,7 @@ class graphLet : public RandomWalkwithStop{
             for(tid_t i = 1; i < nthreads; i++ ){
                 cnt_ok[0] += cnt_ok[i];
             }
-            float triangle_ratio = (float) cnt_ok[0] / (float) R;
+            float triangle_ratio = (float) cnt_ok[0] / (float) this->R;
             return triangle_ratio;
         }
 
@@ -75,7 +74,7 @@ int main(int argc, const char ** argv){
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
     
     // run
-    graphLet program;
+    graphLet<WalkDataType> program;
     program.initializeApp(N,R,L);
 
     if(blocksize_kb == 0)
@@ -85,7 +84,7 @@ int main(int argc, const char ** argv){
     if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
-    graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m);
+    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb,nblocks,nmblocks, m);
     engine.run(program, prob);
 
     float triangle_ratio = program.computeResult();

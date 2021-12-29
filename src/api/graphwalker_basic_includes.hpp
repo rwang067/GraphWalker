@@ -14,7 +14,6 @@
 #include "metrics/reps/file_reporter.hpp"
 #include "metrics/reps/html_reporter.hpp"
 
-// #include "preprocess/simpartition.hpp"
 #include "preprocess/conversions.hpp"
 #include "engine/graphwalker.hpp"
 

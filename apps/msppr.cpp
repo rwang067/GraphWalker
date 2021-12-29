@@ -9,7 +9,8 @@
 #include "util/toplist.hpp"
 #include "util/comperror.hpp"
 
-class MultiSourcePersonalizedPageRank : public RandomWalkwithStop{
+template<class WalkDataType>
+class MultiSourcePersonalizedPageRank : public RandomWalkwithStop<WalkDataType>{
 public:
     vid_t firstsource, numsources;
     wid_t walkspersource;
@@ -26,7 +27,7 @@ public:
         numsources = _numsources;
         walkspersource = _walkspersource;
         maxwalklength = _maxwalklength;
-        initializeRW(numsources*walkspersource, maxwalklength);
+        this->initializeRW(numsources*walkspersource, maxwalklength);
         visitfrequencies = new DiscreteDistribution[numsources];
         logstream(LOG_INFO) << "Successfully allocate visitfrequencies memory for each each source, with numsources = " << numsources << std::endl;
 
@@ -37,24 +38,24 @@ public:
         }
     }
 
-    void startWalksbyApp(WalkManager &walk_manager){
+    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
-        bid_t p = getblock(firstsource);
-        vid_t sts = firstsource, ens = blocks[p+1], nums;
+        bid_t p = this->getblock(firstsource);
+        vid_t sts = firstsource, ens = this->blocks[p+1], nums;
         vid_t count = numsources;
         walk_manager.walksum = 0;
         while(count > 0){
             if(ens > firstsource+numsources) 
                 ens = firstsource+numsources;
-            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ") , blocks[p+1] = " << blocks[p+1] << std::endl;
+            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ") , blocks[p+1] = " << this->blocks[p+1] << std::endl;
             nums = ens - sts;
             count -= nums;
             walk_manager.minstep[p] = 0;
             walk_manager.walknum[p] = nums*walkspersource;
             #pragma omp parallel for schedule(static)
                 for(vid_t s = 0; s < nums; s++){
-                    vid_t cur = s + sts - blocks[p];
-                    WalkDataType walk = walk_manager.encode(s + sts - firstsource, cur, 0);
+                    vid_t cur = s + sts - this->blocks[p];
+                    WalkDataType walk = WalkDataType(s + sts - firstsource, cur, 0);
                     for( wid_t j = 0; j < walkspersource; j++ ){
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     }
@@ -62,7 +63,7 @@ public:
             walk_manager.walksum += walk_manager.walknum[p];
             p++;
             sts = ens;
-            ens = blocks[p+1];
+            ens = this->blocks[p+1];
         }
         // /* ---- print started walks ---- */
         // for(bid_t p = 0; p < nblocks; p++){
@@ -133,7 +134,7 @@ int main(int argc, const char ** argv) {
     int cache_strategy =  get_option_int("cache", 0); // cache strategy 
 
     /* Run */
-    MultiSourcePersonalizedPageRank program;
+    MultiSourcePersonalizedPageRank<WalkDataType> program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
 
     if(blocksize_kb == 0)
@@ -147,7 +148,7 @@ int main(int argc, const char ** argv) {
                            nblocks << ", nmblocks: " << 
                            nmblocks << ", blocksize: " << blocksize_kb << " KB" << std::endl;
 
-    graphwalker_engine engine(filename, blocksize_kb,nblocks,nmblocks, m, cache_strategy);
+    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb,nblocks,nmblocks, m, cache_strategy);
     engine.run(program, prob);
 
     program.visitfrequencies[0].getTop(20);

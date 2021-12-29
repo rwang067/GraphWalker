@@ -22,15 +22,6 @@ typedef uint16_t hid_t; //type of id of hops
 typedef uint8_t tid_t; //type of id of threads
 typedef unsigned VertexDataType;
 
-class WalkDataType{
-public:
-    uint64_t sourceId:24;
-    uint64_t currentId:26;
-    uint64_t hop:14;
-    WalkDataType(vid_t _sourceId, vid_t _currentId, hid_t _hop):
-        sourceId(_sourceId), currentId(_currentId), hop(_hop){}
-};
-
 int my_rand_r (unsigned int *seed){
     unsigned int next = *seed;
     int result;

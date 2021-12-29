@@ -14,6 +14,7 @@
 #include "api/io.hpp"
 #include "walks/walkbuffer.hpp"
 
+template <typename WalkDataType>
 class WalkManager
 {
 protected:
@@ -25,7 +26,7 @@ public:
 	wid_t* walknum; //number of tptal walks of each block
 	wid_t* dwalknum; //number of disk walks of each block
 	hid_t* minstep;
-	WalkBuffer **pwalks;
+	WalkBuffer<WalkDataType> **pwalks;
 
 	bid_t curp; //current block id
 	WalkDataType *curwalks; // all walks of current block
@@ -35,9 +36,9 @@ public:
 
 public:
 	WalkManager(metrics &_m,bid_t _nblocks, tid_t _nthreads, std::string _base_filename):base_filename(_base_filename), nblocks(_nblocks), nthreads(_nthreads), m(_m){
-		pwalks = new WalkBuffer*[nthreads];
+		pwalks = new WalkBuffer<WalkDataType>*[nthreads];
 		for(tid_t i = 0; i < nthreads; i++)
-			pwalks[i] = new WalkBuffer[nblocks];
+			pwalks[i] = new WalkBuffer<WalkDataType>[nblocks];
 
 		walknum = (wid_t*)malloc(nblocks*sizeof(wid_t));
 		dwalknum = (wid_t*)malloc(nblocks*sizeof(wid_t));
@@ -66,58 +67,20 @@ public:
 		if(minstep != NULL) free(minstep);
 	}
 
-	WalkDataType encode( vid_t sourceId, vid_t currentId, hid_t hop ){
-        assert(sourceId < MAX_SOURCE_SIZE);
-		assert(currentId < VERT_SIZE);
-		assert( hop < 16384 );
-		return WalkDataType(sourceId, currentId, hop);
-		// return (( (WalkDataType)sourceId & 0xffffff ) << 40 ) |(( (WalkDataType)currentId & 0x3ffffff ) << 14 ) | ( (WalkDataType)hop & 0x3fff ) ;
-	}
-
-	vid_t getSourceId( WalkDataType walk ){
-		return walk.sourceId;
-		// return (vid_t)( walk >> 40 ) & 0xffffff;
-	}
-
-	vid_t getCurrentId( WalkDataType walk ){
-		return walk.currentId;
-		// return (vid_t)( walk >> 14 ) & 0x3ffffff;
-	}
-
-	hid_t getHop( WalkDataType walk ){
-		return walk.hop;
-		// return (hid_t)(walk & 0x3fff) ;
-	}
-	void setHop( WalkDataType walk, hid_t h){
-		walk.hop = h;
-	}
-
-	WalkDataType reencode( WalkDataType walk, vid_t toVertex ){
-		vid_t source = getSourceId(walk);
-		hid_t hop = getHop(walk);
-        assert(source < 10);
-		walk = encode(source,toVertex,hop);
-		return walk;
-	}
-
 	void moveWalk( WalkDataType walk, bid_t p, tid_t t, vid_t toVertex ){
 		if(pwalks[t][p].size_w == WALK_BUFFER_SIZE){
 			writeWalks2Disk(t,p);
         }
         assert(pwalks[t][p].size_w < WALK_BUFFER_SIZE);
-		// walk = reencode( walk, toVertex );
 		pwalks[t][p].push_back( walk );
 	}
-
 	void writeWalks2Disk(tid_t t, bid_t p){
-		// m.start_time("4_writeWalks2Disk");
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		pwritea( f, &pwalks[t][p][0], pwalks[t][p].size_w*sizeof(WalkDataType) );
 		dwalknum[p] += pwalks[t][p].size_w;
 		pwalks[t][p].size_w = 0;
 		close(f);
-		// m.stop_time("4_writeWalks2Disk");
 	}
 
 	wid_t getCurrentWalks(bid_t p, bid_t nexec_blocks){
@@ -138,12 +101,9 @@ public:
 			// copy memory walks
 			for(tid_t t = 0; t < nthreads; t++){
 				if(pwalks[t][p+b].size_w > 0){
-                    // logstream(LOG_INFO) << "pwalks[" << (uint32_t)t << "][" << p+b << "], size_w = " << pwalks[t][p+b].size_w << std::endl;
                     wid_t size_w = pwalks[t][p+b].size_w;
 					for(wid_t w = 0; w < size_w; w++){
 						curwalks[off+count+w] = pwalks[t][p+b][w];
-						// WalkDataType walk = curwalks[count+w];
-                		// logstream(LOG_INFO) << count+w << " " << walk.sourceId << " " << walk.currentId << " " << walk.hop << std::endl;
 					}
 					count += size_w;
 				}
@@ -162,10 +122,6 @@ public:
 			for(tid_t t = 0; t < nthreads; t++){
 				pwalks[t][p+b].size_w = 0;
 			}
-
-			// walksum -= walknum[p+b];
-			// walknum[p+b] = 0;
-			// minstep[p+b] = 0xffff;
 		}
 		if (off != nwalks) {
 			logstream(LOG_DEBUG) << "p = " << p << ", nexec_blocks = " << nexec_blocks << ", recorded nwalks = " << nwalks << std::endl;
@@ -176,27 +132,19 @@ public:
 	}
 
 	void readWalksfromDisk(bid_t p, wid_t off){
-		m.start_time("z_w_readWalksfromDisk");
-
 		std::string walksfile = walksname( base_filename, p );
 		int f = open(walksfile.c_str(),O_RDWR, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
 		if (f < 0) {
 			logstream(LOG_FATAL) << "Could not load :" << walksfile << " error: " << strerror(errno) << std::endl;
 		}
 		assert(f > 0);
-		/* read from file*/
 		preada(f, &curwalks[off], dwalknum[p]*sizeof(WalkDataType), 0);
-		/* 清空文件 */
     	ftruncate(f,0);
 		close(f);
-		/* remove the walk file*/
 		unlink(walksfile.c_str()); 
-
-		m.stop_time("z_w_readWalksfromDisk");
 	}
 
 	void updateWalkNum(bid_t p, bid_t nexec_blocks){
-
 		m.start_time("6_updateWalkNum");
 		wid_t forwardWalks = 0;
 		for(bid_t b = 0; b < nblocks; b++){
@@ -214,21 +162,9 @@ public:
 				walknum[b] = newwalknum;
 			}
 		}
-		
-		m.start_time("z_w_clear_curwalks");
 		walksum += forwardWalks;
-		// for(bid_t b = 0; b < nexec_blocks; b++){
-		// 	walksum -= walknum[p+b];
-		// 	walknum[p+b] = 0;
-		// 	minstep[p+b] = 0xffff;
-		// }
 		free(curwalks);
 		curwalks = NULL;
-		m.stop_time("z_w_clear_curwalks");
-		
-		// logstream(LOG_WARNING) << "forwardWalks = " << forwardWalks << ", walksum = " << walksum << std::endl;
-		// assert(false);
-
 		m.stop_time("6_updateWalkNum");
 	}
 
@@ -307,7 +243,6 @@ public:
      }
 
 	bid_t chooseBlock(float prob, bid_t nexec_blocks){
-		// return blockWithMaxWeight();//////////////
 		float cc = ((float)rand())/RAND_MAX;
 		if( cc < prob ){
 			return blockWithMinStep(nexec_blocks);

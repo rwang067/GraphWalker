@@ -10,7 +10,8 @@
 
 typedef unsigned VertexDataType;
 
-class RandomWalkDomination : public RandomWalkwithJump{
+template <typename WalkDataType>
+class RandomWalkDomination : public RandomWalkwithJump<WalkDataType>{
 public:
     VertexDataType *vertex_value;
     std::string basefilename;
@@ -26,42 +27,39 @@ public:
     }
 
     void initializeApp( vid_t _N, wid_t _R, hid_t _L, std::string _basefilename ){
-        N = _N;
-        R = _R; //walks per source
-        L = _L;
+        this->initializeRW( _N, _R, _L);
         basefilename = _basefilename;
-        vertex_value = new VertexDataType[N];
-        for(vid_t i = 0; i < N; i++){
+        vertex_value = new VertexDataType[this->N];
+        for(vid_t i = 0; i < this->N; i++){
             vertex_value[i] = 0;
         }
         // initialVertexValue<VertexDataType>(N, basefilename);
-        initializeRW( N, R, L);
     }
 
-    void startWalksbyApp( WalkManager &walk_manager  ){
+    void startWalksbyApp( WalkManager<WalkDataType> &walk_manager  ){
         //muti threads to start walks
-        logstream(LOG_INFO) << "Start walks ! Total walk number = " << R*N << std::endl;
+        logstream(LOG_INFO) << "Start walks ! Total walk number = " << this->R * this->N << std::endl;
         tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(nthreads);
         #pragma omp parallel for schedule(static)
-            for( bid_t p = 0; p < nblocks; p++ ){
+            for( bid_t p = 0; p < this->nblocks; p++ ){
                 walk_manager.minstep[p] = 0;
-                walk_manager.walknum[p] = (blocks[p+1]-blocks[p])*R;
+                walk_manager.walknum[p] = (this->blocks[p+1]-this->blocks[p])*this->R;
                 
-                for( vid_t v = blocks[p]; v < blocks[p+1]; v++ ){
+                for( vid_t v = this->blocks[p]; v < this->blocks[p+1]; v++ ){
                     vid_t s = v;
-                    vid_t cur = s - blocks[p];
-                    WalkDataType walk = walk_manager.encode(s, cur, 0);
-                    for( wid_t j = 0; j < R; j++ ){
+                    vid_t cur = s - this->blocks[p];
+                    WalkDataType walk = WalkDataType(s, cur, 0);
+                    for( wid_t j = 0; j < this->R; j++ ){
                         walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
                     }
                 }
             }
-        walk_manager.walksum = R*N;
+        walk_manager.walksum = this->R * this->N;
     }
 
 	void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-        assert(dstId < N);
+        assert(dstId < this->N);
         vertex_value[dstId]++; // #pragma omp critical
     }
 
@@ -99,7 +97,7 @@ int main(int argc, const char ** argv) {
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
     
     /* Run */
-    RandomWalkDomination program;
+    RandomWalkDomination<WalkDataType> program;
     program.initializeApp( N, R, L, filename );
 
     if(blocksize_kb == 0)
@@ -109,7 +107,7 @@ int main(int argc, const char ** argv) {
     if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
 
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     /* Report execution metrics */

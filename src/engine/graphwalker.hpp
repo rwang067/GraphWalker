@@ -23,6 +23,7 @@
 #include "api/pthread_tools.hpp"
 #include "walks/randomwalk.hpp"
 
+template <typename WalkDataType>
 class graphwalker_engine {
 public:     
     std::string base_filename;
@@ -49,7 +50,7 @@ public:
     
     /* Metrics */
     metrics &m;
-    WalkManager *walk_manager;
+    WalkManager<WalkDataType> *walk_manager;
 
     int cache_strategy = 1; //cache strategy, 0 realloc, 1 finest granularity, 2 adaptive memory pool 
         
@@ -87,7 +88,7 @@ public:
         load_block_range(base_filename, blocksize_kb, blocks);
         logstream(LOG_INFO) << "block_range loaded!" << std::endl;
         nvertices = num_vertices();
-        walk_manager = new WalkManager(m,nblocks,exec_threads,base_filename);
+        walk_manager = new WalkManager<WalkDataType>(m,nblocks,exec_threads,base_filename);
         logstream(LOG_INFO) << "walk_manager created!" << std::endl;
 
         set_cache_strategy(_strategy);
@@ -329,7 +330,7 @@ public:
         return blocks[nblocks];
     }
 
-    void exec_updates(RandomWalk &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
+    void exec_updates(RandomWalk<WalkDataType> &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
         // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("5_exec_updates");
         wid_t off = 0;
@@ -364,7 +365,7 @@ public:
         // walk_manager->writeblockWalks(exec_block);
     }
 
-    void fine_grained_updates(RandomWalk &userprogram, wid_t nwalks){ 
+    void fine_grained_updates(RandomWalk<WalkDataType> &userprogram, wid_t nwalks){ 
         // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("6_fine_grained_updates");
         // logstream(LOG_DEBUG) << "6_fine_grained_updates : " << nwalks << std::endl;
@@ -376,7 +377,7 @@ public:
             wid_t nwalks_curb = walk_manager->walknum[b];
             for(wid_t i = 0; i < nwalks_curb; i++ ){
                 WalkDataType walk = walk_manager->curwalks[off+i];
-                vid_t curvertex = walk_manager->getCurrentId(walk) + blocks[b];
+                vid_t curvertex = walk.currentId + blocks[b];
                 std::string bname = fidname( base_filename, 0 ); //only 1 file
                 loadBegpos(bname, beg_pos, 1, curvertex);
                 eid_t nedges = beg_pos[1] - beg_pos[0];
@@ -395,7 +396,7 @@ public:
         m.stop_time("6_fine_grained_updates");
     }
 
-    void run(RandomWalk &userprogram, float prob) {
+    void run(RandomWalk<WalkDataType> &userprogram, float prob) {
         // srand((unsigned)time(NULL));
         m.start_time("0_startWalks");
         userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
@@ -408,8 +409,8 @@ public:
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
-        // while( walk_manager->walksum > 100000 ){
-        while( walk_manager->walksum > 0 ){
+        while( walk_manager->walksum > 100000 ){
+        // while( walk_manager->walksum > 0 ){
 
             m.start_time("numExecBlocks");
             nexec_blocks = userprogram.numExecBlocks(*walk_manager, blocksize_kb);

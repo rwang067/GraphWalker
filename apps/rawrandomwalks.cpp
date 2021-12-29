@@ -7,7 +7,8 @@
 #include "api/graphwalker_basic_includes.hpp"
 #include "walks/randomwalkwithjump.hpp"
 
-class RawRandomWalks : public RandomWalkwithJump{
+template<class WalkDataType>
+class RawRandomWalks : public RandomWalkwithJump<WalkDataType>{
 
 public:
 
@@ -15,7 +16,7 @@ public:
     eid_t *used_edges;
 
     void initializeApp(vid_t N, wid_t R, hid_t L){
-        initializeRW(N,R,L);
+        this->initializeRW(N,R,L);
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         used_edges = new eid_t[exec_threads];
         for(int i=0; i<exec_threads; i++){
@@ -29,27 +30,27 @@ public:
         utilizationfile.close();
     }
 
-    void startWalksbyApp(WalkManager &walk_manager){
-        std::cout << "Random walks:\tStart " << R << " walks randomly ..." << std::endl;
+    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
+        std::cout << "Random walks:\tStart " << this->R << " walks randomly ..." << std::endl;
         srand((unsigned)time(NULL));
         tid_t exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
         #pragma omp parallel for schedule(static)
-            for (wid_t i = 0; i < R; i++){
-                vid_t s = rand()%N;
-                bid_t p = getblock(s);
-                vid_t cur = s - blocks[p];
-                WalkDataType walk = walk_manager.encode(s,cur,0);
+            for (wid_t i = 0; i < this->R; i++){
+                vid_t s = rand()%this->N;
+                bid_t p = this->getblock(s);
+                vid_t cur = s - this->blocks[p];
+                WalkDataType walk = WalkDataType(s,cur,0);
                 walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
             }
-        for( bid_t p = 0; p < nblocks; p++){
+        for( bid_t p = 0; p < this->nblocks; p++){
             walk_manager.walknum[p] = walk_manager.dwalknum[p];
             for(tid_t t = 0; t < exec_threads; t++)
                 walk_manager.walknum[p] +=  walk_manager.pwalks[t][p].size_w;
             if(walk_manager.walknum[p] )
                 walk_manager.minstep[p] = 0;
         }
-        walk_manager.walksum = R;
+        walk_manager.walksum = this->R;
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
@@ -92,7 +93,7 @@ int main(int argc, const char ** argv){
     
     logstream(LOG_DEBUG) << "N R L : " << N << " " << R << " " << L << std::endl;
     // run
-    RawRandomWalks program;
+    RawRandomWalks<WalkDataType> program;
     program.initializeApp(N,R,L);
 
     /* Detect the number of shards or preprocess an input to create them */
@@ -107,7 +108,7 @@ int main(int argc, const char ** argv){
 
     logstream(LOG_DEBUG) << "nblocks nmblocks : " << nblocks << " " << nmblocks << std::endl;
 
-    graphwalker_engine engine(filename, blocksize_kb, nblocks,nmblocks, m);
+    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb, nblocks,nmblocks, m);
     engine.run(program, prob);
 
     metrics_report(m);
