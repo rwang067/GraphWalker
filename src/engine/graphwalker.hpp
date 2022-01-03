@@ -35,25 +35,21 @@ public:
     vid_t* blocks;
     timeval start;
     
-    /* Ｉn memory blocks */
+    /* In memory blocks */
     bid_t nmblocks; //number of in memory blocks
-    vid_t **csrbuf;
-    vid_t *csrbuf_pool;
-    eid_t **beg_posbuf;
-    bid_t cmblocks; //current number of in memory blocks
-    bid_t *inMemIndex;
     int beg_posf, csrf;
+    mem_pool* csrbuf_pool;
+    block_index** blk_index;
 
     /* State */
     bid_t exec_block;
-    bid_t nexec_blocks;
+    bid_t nexec_blocks; // actual number of exec_blocks
+    bid_t nexec_blocks1; // 2^n
     
     /* Metrics */
     metrics &m;
     WalkManager<WalkDataType> *walk_manager;
 
-    int cache_strategy = 1; //cache strategy, 0 realloc, 1 finest granularity, 2 adaptive memory pool 
-        
     void print_config() {
         logstream(LOG_INFO) << "Engine configuration: " << std::endl;
         logstream(LOG_INFO) << " exec_threads = " << (int)exec_threads << std::endl;
@@ -69,19 +65,11 @@ public:
         }
         
 public:
-        
-    /**
-     * Initialize GraphChi engine
-     * @param base_filename prefix of the graph files
-     * @param nblocks number of shards
-     * @param selective_scheduling if true, uses selective scheduling 
-     */
     graphwalker_engine(std::string _base_filename, 
                        unsigned long long _blocksize_kb, 
                        bid_t _nblocks, 
                        bid_t _nmblocks, 
-                       metrics &_m,
-                       int _strategy=0) : 
+                       metrics &_m) : 
                        base_filename(_base_filename), blocksize_kb(_blocksize_kb), nblocks(_nblocks), nmblocks(_nmblocks), m(_m) {
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(exec_threads);
@@ -91,23 +79,13 @@ public:
         walk_manager = new WalkManager<WalkDataType>(m,nblocks,exec_threads,base_filename);
         logstream(LOG_INFO) << "walk_manager created!" << std::endl;
 
-        set_cache_strategy(_strategy);
-        logstream(LOG_INFO) << "cache strategy: " << (int)cache_strategy << "\n";
-        if (cache_strategy == 2) { // the memory pool strategy
-            csrbuf_pool = (vid_t*)malloc(nmblocks*blocksize_kb*1024);
-        } else { // realloc or finest
-            csrbuf = (vid_t**)malloc(nmblocks*sizeof(vid_t*));
-            // for(bid_t b = 0; b < nmblocks; b++){
-            //     csrbuf[b] = (vid_t*)malloc(blocksize_kb*1024);
-            // }
+        csrbuf_pool = new mem_pool(nmblocks*blocksize_kb*1024);
+        logstream(LOG_INFO) << "csrbuf_pool malloced!" << std::endl;
+        // beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
+        blk_index = (block_index**)malloc(nblocks*sizeof(block_index*));
+        for(bid_t b = 0; b < nblocks; b++){
+            blk_index[b] = NULL;
         }
-
-        logstream(LOG_INFO) << "csrbuf malloced!" << std::endl;
-        beg_posbuf = (eid_t**)malloc(nmblocks*sizeof(eid_t*));
-
-        inMemIndex = (bid_t*)malloc(nblocks*sizeof(bid_t));
-        for(bid_t b = 0; b < nblocks; b++)  inMemIndex[b] = nmblocks;
-        cmblocks = 0;
 
         std::string invlname = fidname( base_filename, 0 ); //only 1 file
         std::string beg_posname = invlname + ".beg_pos";
@@ -128,33 +106,9 @@ public:
         
     virtual ~graphwalker_engine() {
         delete walk_manager;
-        
-        if(inMemIndex != NULL) free(inMemIndex);
         if(blocks != NULL) free(blocks);
-
-        if (cache_strategy == 2) {
-            for (bid_t b = 0; b < cmblocks; b++) {
-                if (beg_posbuf[b] != NULL) free(beg_posbuf[b]);
-            }
-            if (csrbuf_pool != NULL) free(csrbuf_pool);
-        } else {
-            for(bid_t b = 0; b < cmblocks; b++){
-                if(beg_posbuf[b] != NULL)   free(beg_posbuf[b]);
-                if(csrbuf[b] != NULL)   free(csrbuf[b]);
-            }
-        }
-        if(beg_posbuf != NULL) free(beg_posbuf);
-        if(csrbuf != NULL) free(csrbuf);
-
         close(beg_posf);  
         close(csrf);  
-    }
-
-    void set_cache_strategy(int _strategy) {
-        if (_strategy >= 0 && _strategy <= 2)
-            cache_strategy = _strategy;
-        else
-            logstream(LOG_FATAL) << "Don't support cache strategy: " << _strategy << "\n";
     }
 
     void load_block_range(std::string base_filename, unsigned long long blocksize_kb, vid_t * &blocks, bool allowfail=false) {
@@ -183,11 +137,7 @@ public:
         m.start_time("g_loadSubGraph");
 
         /* read beg_pos file */
-        if (cache_strategy == 1) { // finest granularity 
-            *nverts = blocks[p+1] - blocks[p];
-        } else {
-            *nverts = blocks[p+nexec_blocks] - blocks[p];
-        }
+        *nverts = blocks[p+nexec_blocks] - blocks[p];
 
         beg_pos = (eid_t*) malloc((*nverts+1)*sizeof(eid_t));
         m.start_time("z__g_loadSubGraph_read_begpos");
@@ -195,14 +145,29 @@ public:
         m.stop_time("z__g_loadSubGraph_read_begpos");
         /* read csr file */
         *nedges = beg_pos[*nverts] - beg_pos[0];
-        csr = (vid_t*) malloc((*nedges)*sizeof(vid_t));
-        if (*nedges*sizeof(vid_t) > blocksize_kb*nexec_blocks*1024){
-            if (cache_strategy == 2) {
-                logstream(LOG_FATAL) << "Current size :" << *nedges*sizeof(vid_t)/1024 << 
-                                        " greater than Blocksize: " << blocksize_kb <<
-                                        ". Use other cache strategies or increase block size!" << std::endl;
+
+        // csr = (vid_t*) malloc((*nedges)*sizeof(vid_t));
+        size_t csr_size = nexec_blocks1 * blocksize_kb * 1024;
+        assert((*nedges)*sizeof(vid_t) <= csr_size);
+        if(csr_size > csrbuf_pool->size){
+            bid_t b = mblockWithMinWalks();
+            block_index* blk_index1 = blk_index[b];
+            if(blk_index1->begpos) free(blk_index1->begpos);
+            size_t free_size = blk_index1->csr_size;
+            if(csr_size > free_size){
+                logstream(LOG_DEBUG) << csr_size << " > " << free_size << std::endl;
             }
+            assert(csr_size <= free_size);
+            csrbuf_pool->reset((char*)blk_index1->csr, free_size);
+            bid_t stb = blk_index1->stb;
+            bid_t enb = blk_index1->enb;
+            for(bid_t b1 = stb; b1 < enb; b1++){
+                blk_index[b1] = NULL;
+            }
+            delete blk_index1;
         }
+        csr = (vid_t*)csrbuf_pool->pool_alloc(csr_size);
+
         m.start_time("z__g_loadSubGraph_read_csr");
         preada(csrf, csr, (*nedges)*sizeof(vid_t), beg_pos[0]*sizeof(vid_t));
         m.stop_time("z__g_loadSubGraph_read_csr");     
@@ -212,118 +177,43 @@ public:
 
     void findSubGraph(bid_t p, eid_t * &beg_pos, vid_t * &csr, vid_t *nverts, eid_t *nedges){
         m.start_time("2_findSubGraph");
-        vid_t *csr_buffer;
-        bid_t blocks_offset = 1;
-        if(inMemIndex[p] == nmblocks){//the block is not in memory
-            bid_t swapin;
-            if (cache_strategy == 2) {
-                blocks_offset = nexec_blocks;
+        if(blk_index[p]==NULL){// the block is not in memory
+            block_index* blk_index1 = new block_index();
+            blk_index1->csr_size = nexec_blocks1 * blocksize_kb * 1024;
+            blk_index1->stb = p;
+            blk_index1->enb = p+nexec_blocks;
+            loadSubGraph(p, blk_index1->begpos, blk_index1->csr, &(blk_index1->nverts), &(blk_index1->nedges));
+            for(bid_t b = 0; b < nexec_blocks; b++){
+                blk_index[p+b] = blk_index1;
             }
-            if (cmblocks+blocks_offset <= nmblocks) { // there are enough idle space in cache 
-                swapin = cmblocks;
-                cmblocks += blocks_offset;
-            } else {
-                bid_t minmwb;
-                if (cache_strategy == 0 || cache_strategy == 1) {
-                    minmwb = swapOut();
-                } else {
-                    minmwb = swapOut_mempool();
-                }
-                swapin = inMemIndex[minmwb];
-                for (bid_t b = 0; b < blocks_offset && b < nblocks; b++) {
-                    inMemIndex[minmwb+b] = nmblocks;
-                }
-                assert(swapin < nmblocks);
-                if(beg_posbuf[swapin] != NULL) free(beg_posbuf[swapin]);
-                if(csrbuf[swapin] != NULL) free(csrbuf[swapin]);
-                    // munmap(beg_posbuf[swapin], sizeof(eid_t)*(blocks[minmwb+1] - blocks[minmwb] + 1));
-            }
-            if (cache_strategy == 2) {
-                csr_buffer = csrbuf_pool + swapin * (blocksize_kb*1024/sizeof(vid_t));
-                loadSubGraph(p, beg_posbuf[swapin], csr_buffer, nverts, nedges);
-            } else {
-                loadSubGraph(p, beg_posbuf[swapin], csrbuf[swapin], nverts, nedges);
-            }
-            for (bid_t b = 0; b < blocks_offset && b < nblocks; b++) {
-                inMemIndex[p+b] = swapin + b;
-            }
-        }else{
         }
-        beg_pos = beg_posbuf[ inMemIndex[p] ];
-        if (cache_strategy == 2) {
-            csr = csrbuf_pool + inMemIndex[p] * (blocksize_kb*1024/sizeof(vid_t));
-        } else {
-            csr = csrbuf[inMemIndex[p]];
-        }
-        // csr = csrbuf[ inMemIndex[p] ];
+        assert(blk_index[p]->csr);
+        beg_pos = blk_index[p]->begpos;
+        csr = blk_index[p]->csr;
+        *nverts = blk_index[p]->nverts;
+        *nedges = blk_index[p]->nedges;
         m.stop_time("2_findSubGraph");
     }
 
-    void loadBegpos(std::string bname, eid_t * &beg_pos, vid_t nverts, vid_t off = 0){
-
-        beg_pos = (eid_t*)malloc((nverts+1)*sizeof(eid_t));
-        std::string beg_posname = bname + ".beg_pos";
-        int beg_posf = open(beg_posname.c_str(),O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        if (beg_posf < 0) {
-            logstream(LOG_FATAL) << "Could not load :" << beg_posname << ", error: " << strerror(errno) << std::endl;
-        }
-        assert(beg_posf > 0);
-
-        /* read beg_pos file */
-        preada(beg_posf, beg_pos, (size_t)(nverts+1)*sizeof(eid_t), (size_t)(off)*sizeof(eid_t));
-
-        close(beg_posf);
-    }
-
-    void loadCSR(std::string bname, vid_t * &csr, eid_t nedges, eid_t off = 0){
-        if(nedges <= 0) return;
-
-        std::string csrname = bname + ".csr";
-        int csrf = open(csrname.c_str(), O_RDONLY | O_CREAT, S_IROTH | S_IWOTH | S_IWUSR | S_IRUSR);
-        if (csrf < 0) {
-            logstream(LOG_FATAL) << "Could not load :" << csrname << ", error: " << strerror(errno) << std::endl;
-        }
-        assert(csrf > 0);
-
-        /* read csr file */
-        csr = (vid_t*)malloc(nedges*sizeof(vid_t));
-        preada(csrf, csr, nedges*sizeof(vid_t), off*sizeof(vid_t));
-
-        close(csrf); 
-    }
-
-    bid_t swapOut(){
+    bid_t mblockWithMinWalks(){
         m.start_time("z_g_swapOut");
         wid_t minmw = 0xffffffff;
-        bid_t minmwb = 0;
-        for(bid_t b = 0; b < nblocks; b++){
-            if(inMemIndex[b]<nmblocks && walk_manager->walknum[b] < minmw){
-                minmw = walk_manager->walknum[b];
-                minmwb = b;
-            }
-        }
-        m.start_time("z_g_swapOut");
-        return minmwb;
-    }
-
-    bid_t swapOut_mempool() { // for strategy 2, memory pool
-        m.start_time("z_g_swapOutMemPool");
-        wid_t minmw = 0xffffffff;
-        bid_t minmwb = 0;
-        for(bid_t p = 0; p < nblocks; p += nexec_blocks) {
-            if(inMemIndex[p] < nmblocks){
-                wid_t count = 0;
-                for (bid_t b = 0; b < nexec_blocks && p+b < nblocks; b++) {
-                    count += walk_manager->walknum[p+b];
-                }
-                if (count < minmw) {
+        bid_t minmwp = 0;
+        wid_t count = 0;
+        for(bid_t p = 0; p < nblocks; p+=nexec_blocks1){
+            if(blk_index[p]){
+                count = 0;
+                for(bid_t b = 0; b < nexec_blocks1 && p+b < nblocks; b++)
+				    count += walk_manager->walknum[p+b];
+                if(count < minmw){
                     minmw = count;
-                    minmwb = p;
+                    minmwp = p;
                 }
             }
         }
-        m.start_time("z_g_swapOutMemPool");
-        return minmwb;
+		assert(minmw < 0xffffffff);
+        m.start_time("z_g_swapOut");
+        return minmwp;
     }
 
     virtual size_t num_vertices() {
@@ -334,21 +224,10 @@ public:
         // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("5_exec_updates");
         wid_t off = 0;
-        bid_t blocks_offset = nexec_blocks;
-        if (cache_strategy == 1) {
-            blocks_offset = 1;
-        }
         vid_t stv = blocks[exec_block];
-        vid_t env = blocks[exec_block+blocks_offset];
-        for(bid_t b = 0; b < blocks_offset; b++ ){
+        vid_t env = blocks[exec_block+nexec_blocks];
+        for(bid_t b = 0; b < nexec_blocks; b++ ){
             wid_t nwalks_curb = walk_manager->walknum[exec_block+b];
-            // /* ------ */
-            // for(wid_t i = 0; i < nwalks_curb; i++ ){
-            //     WalkDataType walk = walk_manager->curwalks[off+i];
-            //     logstream(LOG_INFO) << off+i << " " << walk.sourceId << " " << walk.currentId << " " << walk.hop << std::endl;
-            // }
-            // // exit(0);
-            /* ------ */
             if(nwalks_curb < 100) omp_set_num_threads(1);
             #pragma omp parallel for schedule(static)
                 for(wid_t i = 0; i < nwalks_curb; i++ ){
@@ -357,18 +236,11 @@ public:
                 }
                 off += nwalks_curb;
             }
-            // for(wid_t i = 0; i < nwalks; i++ ){
-            //     WalkDataType walk = walk_manager->curwalks[i];
-            //     userprogram.updateByWalk(walk, i, exec_block, beg_pos, csr, *walk_manager );//, vertex_value);
-            // }
         m.stop_time("5_exec_updates");
-        // walk_manager->writeblockWalks(exec_block);
     }
 
     void fine_grained_updates(RandomWalk<WalkDataType> &userprogram, wid_t nwalks){ 
-        // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("6_fine_grained_updates");
-        // logstream(LOG_DEBUG) << "6_fine_grained_updates : " << nwalks << std::endl;
         eid_t *beg_pos = (eid_t*)malloc(2*sizeof(eid_t));
         eid_t edgesize = 100;
         vid_t *csr = (vid_t*)malloc(edgesize*sizeof(vid_t));
@@ -379,14 +251,15 @@ public:
                 WalkDataType walk = walk_manager->curwalks[off+i];
                 vid_t curvertex = walk.currentId + blocks[b];
                 std::string bname = fidname( base_filename, 0 ); //only 1 file
-                loadBegpos(bname, beg_pos, 1, curvertex);
+                // loadBegpos(bname, beg_pos, 1, curvertex);
+                preada(beg_posf, beg_pos, 2*sizeof(eid_t), (size_t)(curvertex)*sizeof(eid_t));
                 eid_t nedges = beg_pos[1] - beg_pos[0];
                 if(nedges > edgesize){
                     csr = (vid_t*)realloc(csr, nedges*sizeof(vid_t) );
                     edgesize = nedges;
                 }
-                loadCSR(bname, csr, nedges, beg_pos[0]);
-                // logstream(LOG_DEBUG) << "updateByWalk : " << i << std::endl;
+                // loadCSR(bname, csr, nedges, beg_pos[0]);
+                preada(csrf, csr, nedges*sizeof(vid_t), (size_t)(beg_pos[0])*sizeof(vid_t));
                 userprogram.updateByWalk(walk, i, b, curvertex, curvertex+1, beg_pos, csr, *walk_manager );//, vertex_value);
             }
             off += nwalks_curb;
@@ -396,7 +269,7 @@ public:
         m.stop_time("6_fine_grained_updates");
     }
 
-    void run(RandomWalk<WalkDataType> &userprogram, float prob) {
+    void run(RandomWalk<WalkDataType> &userprogram, float prob, wid_t fg_threshold = 100000) {
         // srand((unsigned)time(NULL));
         m.start_time("0_startWalks");
         userprogram.startWalks(*walk_manager, nblocks, blocks, base_filename);
@@ -409,15 +282,11 @@ public:
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
-        while( walk_manager->walksum > 100000 ){
-        // while( walk_manager->walksum > 0 ){
-
-            m.start_time("numExecBlocks");
-            nexec_blocks = userprogram.numExecBlocks(*walk_manager, blocksize_kb);
-            // nexec_blocks = 1;
-            m.stop_time("numExecBlocks");
+        while( walk_manager->walksum > fg_threshold ){
             m.start_time("1_chooseBlock");
-            exec_block = walk_manager->chooseBlock(prob, nexec_blocks);
+            nexec_blocks1 = userprogram.numExecBlocks(*walk_manager, blocksize_kb);
+            exec_block = walk_manager->chooseBlock(prob, nexec_blocks1);
+            nexec_blocks = nexec_blocks1;
             if(exec_block + nexec_blocks > nblocks)
                 nexec_blocks = nblocks - exec_block;
             m.stop_time("1_chooseBlock");
@@ -426,16 +295,7 @@ public:
             /*load walks info*/
             // walk_manager->loadWalkPool(exec_block);
             wid_t nwalks = walk_manager->getCurrentWalks(exec_block, nexec_blocks);
-            if(nwalks <= 0){
-                logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << std::endl;
-                logstream(LOG_INFO) << "exec_block = " << exec_block << ", nexec_blocks = " << nexec_blocks << std::endl;
-                logstream(LOG_INFO) << "nverts = " << nverts << ", nedges = " << nedges << std::endl;
-                logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks = " << nwalks << std::endl;
-                for(bid_t b = 0; b < nexec_blocks; b++){
-                    logstream(LOG_INFO) << "exec_block+b = " << exec_block+b << ", walk_manager->walknum[exec_block+b] = " << walk_manager->walknum[exec_block+b] << std::endl;
-                }
-                assert(false);
-            }
+            assert(nwalks > 0);
             
             // if(blockcount % (nblocks/100+1)==1)
             // if(blockcount % (1024*1024*1024/nedges+1) == 1)
@@ -450,7 +310,6 @@ public:
             walk_manager->clearWalkNum(exec_block, nexec_blocks);
             walk_manager->updateWalkNum(exec_block, nexec_blocks);
             // logstream(LOG_INFO) << "After updateWalkNum : walksum = " << walk_manager->walksum << std::endl;
-            // userprogram.compUtilization(0, walk_manager->walksum, nwalks, runtime());
             // userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
 
             blockcount++;

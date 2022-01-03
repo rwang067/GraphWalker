@@ -47,7 +47,7 @@ public:
         while(count > 0){
             if(ens > firstsource+numsources) 
                 ens = firstsource+numsources;
-            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ") , blocks[p+1] = " << this->blocks[p+1] << std::endl;
+            logstream(LOG_INFO) << "Start walks of sources : [" << sts << ", " << ens << ") of block " << p << ", blocks[p+1] = " << this->blocks[p+1] << std::endl;
             nums = ens - sts;
             count -= nums;
             walk_manager.minstep[p] = 0;
@@ -124,14 +124,14 @@ int main(int argc, const char ** argv) {
     // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/twitter_rv.net");  // Base filename
     vid_t firstsource = get_option_int("firstsource", 12); // vertex id of start source
-    vid_t numsources = get_option_int("numsources", 1); // Number of sources, 1000, 1000000
+    vid_t numsources = get_option_int("numsources", 100); // Number of sources, 1000, 1000000
     wid_t walkspersource = get_option_long("walkspersource", 2000); // Number of steps
     hid_t maxwalklength = get_option_int("maxwalklength", 10); // Number of steps per walk, max 16384
     float prob = get_option_float("prob", 0.2); // prob of chose min step
 
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 2048); // Size of block, represented in KB
-    bid_t nmblocks = get_option_int("nmblocks", 20); // number of in-memory blocks
-    int cache_strategy =  get_option_int("cache", 0); // cache strategy 
+    bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
+    wid_t fg_threshold =  get_option_int("fg_threshold", 100000); // threshold of #walks for fine-grained graph loading
 
     /* Run */
     MultiSourcePersonalizedPageRank<WalkDataType> program;
@@ -148,8 +148,8 @@ int main(int argc, const char ** argv) {
                            nblocks << ", nmblocks: " << 
                            nmblocks << ", blocksize: " << blocksize_kb << " KB" << std::endl;
 
-    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb,nblocks,nmblocks, m, cache_strategy);
-    engine.run(program, prob);
+    graphwalker_engine<WalkDataType> engine(filename, blocksize_kb,nblocks,nmblocks, m);
+    engine.run(program, prob, fg_threshold);
 
     program.visitfrequencies[0].getTop(20);
 
