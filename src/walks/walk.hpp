@@ -109,13 +109,14 @@ public:
 				}
 			}
 			if (count != walknum[p+b]) {
-				logstream(LOG_DEBUG) << "p+b = " << p+b << " : " << std::endl;
-				for(tid_t t = 0; t < nthreads; t++){
-					if(pwalks[t][p+b].size_w > 0)
-						logstream(LOG_DEBUG) << "pwalks[" << (int)t << "][" << p+b << "].size_w = " << pwalks[t][p+b].size_w << std::endl;
-				}
-				logstream(LOG_DEBUG) << "dwalknum[p+b] = " << dwalknum[p+b] << std::endl;
-				logstream(LOG_FATAL) << "read walks count = " << count << ", recorded walknum[p+b] = " << walknum[p+b] << std::endl;
+				// logstream(LOG_DEBUG) << "p+b = " << p+b << " : " << std::endl;
+				// for(tid_t t = 0; t < nthreads; t++){
+				// 	if(pwalks[t][p+b].size_w > 0)
+				// 		logstream(LOG_DEBUG) << "pwalks[" << (int)t << "][" << p+b << "].size_w = " << pwalks[t][p+b].size_w << std::endl;
+				// }
+				// logstream(LOG_DEBUG) << "dwalknum[p+b] = " << dwalknum[p+b] << std::endl;
+				// logstream(LOG_FATAL) << "read walks count = " << count << ", recorded walknum[p+b] = " << walknum[p+b] << std::endl;
+				logstream(LOG_WARNING) << "read walks count = " << count << ", recorded walknum[p+b] = " << walknum[p+b] << std::endl;
 			}
 			off += count;
 			dwalknum[p+b] = 0;
@@ -123,10 +124,10 @@ public:
 				pwalks[t][p+b].size_w = 0;
 			}
 		}
-		if (off != nwalks) {
-			logstream(LOG_DEBUG) << "p = " << p << ", nexec_blocks = " << nexec_blocks << ", recorded nwalks = " << nwalks << std::endl;
-			logstream(LOG_FATAL) << "read walks off = " << off << ", recorded nwalks = " << nwalks << std::endl;
-		}
+		// if (off != nwalks) {
+		// 	logstream(LOG_DEBUG) << "p = " << p << ", nexec_blocks = " << nexec_blocks << ", recorded nwalks = " << nwalks << std::endl;
+		// 	logstream(LOG_FATAL) << "read walks off = " << off << ", recorded nwalks = " << nwalks << std::endl;
+		// }
 		m.stop_time("3_getCurrentWalks");
 		return nwalks;
 	}

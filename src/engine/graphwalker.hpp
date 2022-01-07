@@ -197,7 +197,7 @@ public:
 
     bid_t mblockWithMinWalks(){
         m.start_time("z_g_swapOut");
-        wid_t minmw = 0xffffffff;
+        wid_t minmw = MAX_WALK_NUM;
         bid_t minmwp = 0;
         wid_t count = 0;
         for(bid_t p = 0; p < nblocks; p+=nexec_blocks1){
@@ -211,13 +211,30 @@ public:
                 }
             }
         }
-		assert(minmw < 0xffffffff);
+		if(minmw >= MAX_WALK_NUM){
+            logstream(LOG_DEBUG) << minmwp << " " << nexec_blocks1 << " " << minmw << " " << MAX_WALK_NUM << std::endl;
+        }
+		assert(minmw < MAX_WALK_NUM);
         m.start_time("z_g_swapOut");
         return minmwp;
     }
 
     virtual size_t num_vertices() {
         return blocks[nblocks];
+    }
+
+    void exec_updates1(RandomWalk<WalkDataType> &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
+        // unsigned count = walk_manager->readblockWalks(exec_block);
+        m.start_time("5_exec_updates");
+        vid_t stv = blocks[exec_block];
+        vid_t env = blocks[exec_block+nexec_blocks];
+        // omp_set_num_threads(nwalks < 100? 1: exec_threads);
+        #pragma omp parallel for schedule(static)
+            for(wid_t i = 0; i < nwalks; i++ ){
+                WalkDataType walk = walk_manager->curwalks[i];
+                userprogram.updateByWalk(walk, i, exec_block, stv, env, beg_pos, csr, *walk_manager );//, vertex_value);
+            }
+        m.stop_time("5_exec_updates");
     }
 
     void exec_updates(RandomWalk<WalkDataType> &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
@@ -240,7 +257,7 @@ public:
     }
 
     void fine_grained_updates(RandomWalk<WalkDataType> &userprogram, wid_t nwalks){ 
-        m.start_time("6_fine_grained_updates");
+        m.start_time("7_fine_grained_updates");
         eid_t *beg_pos = (eid_t*)malloc(2*sizeof(eid_t));
         eid_t edgesize = 100;
         vid_t *csr = (vid_t*)malloc(edgesize*sizeof(vid_t));
@@ -266,7 +283,7 @@ public:
         }
         free(csr);
         free(beg_pos);
-        m.stop_time("6_fine_grained_updates");
+        m.stop_time("7_fine_grained_updates");
     }
 
     void run(RandomWalk<WalkDataType> &userprogram, float prob, wid_t fg_threshold = 100000) {
@@ -282,9 +299,10 @@ public:
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
-        while( walk_manager->walksum > fg_threshold ){
+        do{
             m.start_time("1_chooseBlock");
             nexec_blocks1 = userprogram.numExecBlocks(*walk_manager, blocksize_kb);
+            if(nexec_blocks1 > nmblocks || nmblocks == nblocks) nexec_blocks1 = nmblocks;
             exec_block = walk_manager->chooseBlock(prob, nexec_blocks1);
             nexec_blocks = nexec_blocks1;
             if(exec_block + nexec_blocks > nblocks)
@@ -298,7 +316,7 @@ public:
             assert(nwalks > 0);
             
             // if(blockcount % (nblocks/100+1)==1)
-            // if(blockcount % (1024*1024*1024/nedges+1) == 1)
+            if(blockcount % (1024*1024*1024/nedges+1) == 1)
             {
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << std::endl;
                 logstream(LOG_INFO) << "exec_block = " << exec_block << ", nexec_blocks = " << nexec_blocks << std::endl;
@@ -313,7 +331,7 @@ public:
             // userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
 
             blockcount++;
-        } // For block loop
+        }while( walk_manager->walksum > fg_threshold ); // For block loop
 
 
         logstream(LOG_DEBUG) << runtime() << "s : begin fine-grained graph loading..., walksum = " << walk_manager->walksum << std::endl;

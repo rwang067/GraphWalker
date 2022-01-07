@@ -107,8 +107,9 @@ public:
             if(stv+1 == env) curIdp = 0;
             eid_t outd = beg_pos[curIdp+1] - beg_pos[curIdp];
             if (outd > 0){
-                vid_t* cur_adjlist = (vid_t*)malloc(sizeof(vid_t)*outd);
-                memcpy(cur_adjlist, csr + (beg_pos[curIdp] - beg_pos[0]), sizeof(vid_t)*outd);
+                // vid_t* cur_adjlist = (vid_t*)malloc(sizeof(vid_t)*outd);
+                // memcpy(cur_adjlist, csr + (beg_pos[curIdp] - beg_pos[0]), sizeof(vid_t)*outd);
+                vid_t* cur_adjlist = csr + (beg_pos[curIdp] - beg_pos[0]);
                 bool accept = false; 
                 vid_t nextId = 0;
                 while(!accept){
@@ -119,8 +120,8 @@ public:
                         if(acc_prob <= 1/p){
                             accept = true;
                         }
-                    // } else if(hop > 0 && std::binary_search(last_adjlist, last_adjlist + last_degree, nextId)){ // d = 1, adjacent
-                    } else if(hop > 0 && std::find(last_adjlist, last_adjlist + last_degree, nextId)){ // d = 1, adjacent
+                    } else if(hop > 0 && std::binary_search(last_adjlist, last_adjlist + last_degree, nextId)){ // d = 1, adjacent
+                    // } else if(hop > 0 && std::find(last_adjlist, last_adjlist + last_degree, nextId)){ // d = 1, adjacent
                         if(acc_prob <= 1){
                             accept = true;
                         }
@@ -131,7 +132,7 @@ public:
                     }
                 }
                 // logstream(LOG_DEBUG) << "hop_" << hop  << ": " << curId << " -> " << nextId << std::endl;
-                if(last_adjlist != 0) free(last_adjlist);
+                // if(last_adjlist != 0) free(last_adjlist);
                 last_adjlist = cur_adjlist;
                 last_degree = outd;
                 last_step = curId;
@@ -149,7 +150,9 @@ public:
         if( hop < this->L ){
             bid_t p = this->getblock( curId );
             if(p >= this->nblocks) return;
-            nowWalk = WalkDataType(sourId, curId - this->blocks[p], hop, last_step, last_adjlist, last_degree);
+            vid_t* last_adjlist1 = (vid_t*)malloc(sizeof(vid_t)*last_degree);
+            memcpy(last_adjlist1, last_adjlist, sizeof(vid_t)*last_degree);
+            nowWalk = WalkDataType(sourId, curId - this->blocks[p], hop, last_step, last_adjlist1, last_degree);
             walk_manager.moveWalk(nowWalk, p, threadid, curId - this->blocks[p]);
             walk_manager.setMinStep( p, hop );
             walk_manager.ismodified[p] = true;

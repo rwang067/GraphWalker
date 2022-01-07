@@ -81,11 +81,14 @@
                   ofs << ent.value << "  \t  " ;
               else if( it->first == "6_updateWalkNum"){
                   ofs << ent.value << "  \t  " ;
-                  ofs << ent.count << "  \t  " ; 
+                //   ofs << ent.count << "  \t  " ; 
               }
-              else if( it->first == "g_loadSubGraph"){
-                  ofs << ent.count << "  \t  " ;
-              }
+              else if( it->first == "7_fine_grained_updates")
+                  ofs << ent.value << "  \t  " ;
+
+            //   else if( it->first == "g_loadSubGraph"){
+            //       ofs << ent.count << "  \t  " ;
+            //   }
               else if( it->first == "nblocks" )
                   ofs << ent.value << std::endl;
               // Rui end

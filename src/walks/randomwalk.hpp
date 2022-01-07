@@ -118,7 +118,8 @@ public:
             dom++;
             w /= 2;
         }
-        unsigned long long blocksize_kb = pow(2, 1+dom);
+        unsigned long long blocksize_kb = pow(2, dom);
+        // unsigned long long blocksize_kb = pow(2, 1+dom);
         // unsigned long long blocksize_kb = pow(2, 3+dom);
         // logstream(LOG_DEBUG) << "nwalks = " << nwalks << ", dom = " << dom << ", determined blocksize_kb = " << blocksize_kb << std::endl;
         return blocksize_kb; 

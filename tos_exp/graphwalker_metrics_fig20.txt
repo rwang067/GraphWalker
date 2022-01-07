@@ -1,0 +1,45 @@
+dataset = Friendster, L = 10, different Rs
+L = 10, R =  1000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+6.43479  	  5.4e-05  	  6.4285  	  0.000832  	  0.00527  	  1.5e-05  	  1  	  1  	  4935
+6.43736  	  9.7e-05  	  6.43055  	  0.000932  	  0.005634  	  1.6e-05  	  1  	  1  	  4935
+6.55985  	  5.4e-05  	  6.55539  	  0.000951  	  0.003321  	  1.4e-05  	  1  	  1  	  4935
+6.5694  	  9.9e-05  	  6.56262  	  0.000828  	  0.005654  	  1.8e-05  	  1  	  1  	  4935
+6.55423  	  9.8e-05  	  6.54961  	  0.000825  	  0.003534  	  1.5e-05  	  1  	  1  	  4935
+L = 10, R =  100000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+6.58633  	  0.0001  	  6.55774  	  0.001493  	  0.026823  	  4.9e-05  	  1  	  1  	  4935
+6.467  	  7.8e-05  	  6.43684  	  0.00262  	  0.02724  	  6.3e-05  	  1  	  1  	  4935
+6.51476  	  5.1e-05  	  6.48525  	  0.001427  	  0.027853  	  5.5e-05  	  1  	  1  	  4935
+6.51826  	  5.3e-05  	  6.48916  	  0.001535  	  0.027341  	  5.5e-05  	  1  	  1  	  4935
+6.445  	  9.9e-05  	  6.41424  	  0.002557  	  0.027881  	  6.4e-05  	  1  	  1  	  4935
+L = 10, R =  10000000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+8.54682  	  6.4e-05  	  6.52823  	  0.04919  	  1.96405  	  0.004993  	  1  	  1  	  4935
+8.52844  	  6e-05  	  6.52491  	  0.048199  	  1.95053  	  0.004532  	  1  	  1  	  4935
+8.48488  	  5.8e-05  	  6.47954  	  0.047833  	  1.95493  	  0.00237  	  1  	  1  	  4935
+8.51058  	  5.9e-05  	  6.53994  	  0.048192  	  1.91663  	  0.005326  	  1  	  1  	  4935
+8.58089  	  5.8e-05  	  6.5278  	  0.048379  	  2.00058  	  0.003882  	  1  	  1  	  4935
+L = 10, R =  1000000000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+249.257  	  6.3e-05  	  7.32558  	  4.343  	  237.357  	  0.231728  	  1  	  1  	  4935
+256.381  	  6e-05  	  7.05126  	  4.29508  	  244.806  	  0.228504  	  1  	  1  	  4935
+252.5  	  5.8e-05  	  7.15058  	  4.33034  	  240.783  	  0.2363  	  1  	  1  	  4935
+251.82  	  5.6e-05  	  7.26825  	  4.3151  	  240.006  	  0.2311  	  1  	  1  	  4935
+252.593  	  7e-05  	  6.98245  	  4.35813  	  241.019  	  0.234027  	  1  	  1  	  4935
+
+dataset = Crawl, L = 10, different Rs
+L = 10, R =  1000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+1.20974  	  0.00372  	  0.007414  	  0.645235  	  0.028607  	  0.007064  	  10  	  1  	  243047
+1.21961  	  0.001913  	  0.006504  	  0.646093  	  0.015873  	  0.007158  	  10  	  1  	  243047
+L = 10, R =  100000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+43.8428  	  0.001134  	  0.104192  	  0.654445  	  1.03151  	  0.011114  	  10  	  1  	  243047
+43.9805  	  0.001132  	  0.107708  	  0.650789  	  1.03439  	  0.010147  	  10  	  1  	  243047
+L = 10, R =  10000000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
+2357.26  	  0.701443  	  180.554  	  0.761404  	  2140.2  	  0.561792  	  794  	  738  	  243047
+2357.35  	  0.705177  	  180.955  	  0.752005  	  2139.59  	  0.562829  	  795  	  741  	  243047
+L = 10, R =  1000000000
+Runtime 	 chooseBlock 	 findSubGraph 	 getCurrentWalks 	 writeWalks2Disk 	 exec_update 	 updateWalkNum 	 #exec_update 	 #blocks
