@@ -4,18 +4,19 @@
 #include <fstream>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithjump.hpp"
+#include "walks/randomwalk.hpp"
 #include "util/toplist.hpp"
 #include "util/comperror.hpp"
 
 typedef unsigned VertexDataType;
 
 template <typename WalkDataType>
-class RandomWalkDomination : public RandomWalkwithJump<WalkDataType>{
+class RandomWalkDomination : public RandomWalk<WalkDataType>{
 public:
-    VertexDataType *vertex_value;
     std::string basefilename;
+    vid_t N;
     vid_t cur_window_st;
+    VertexDataType *vertex_value;
 
 public:
 
@@ -27,7 +28,8 @@ public:
     }
 
     void initializeApp( vid_t _N, wid_t _R, hid_t _L, std::string _basefilename ){
-        this->initializeRW( _N, _R, _L);
+        this->initializeRW(_R, _L);
+        N = _N;
         basefilename = _basefilename;
         vertex_value = new VertexDataType[this->N];
         for(vid_t i = 0; i < this->N; i++){
@@ -56,6 +58,37 @@ public:
                 }
             }
         walk_manager.walksum = this->R * this->N;
+    }
+
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ //, VertexDataType* vertex_value){
+        tid_t threadid = omp_get_thread_num();
+        WalkDataType nowWalk = walk;
+        vid_t sourId = nowWalk.sourceId;
+        vid_t dstId = nowWalk.currentId + this->blocks[walkp];
+        hid_t hop = nowWalk.hop;
+        // logstream(LOG_DEBUG) << sourId << ", from " << dstId << ", " << hop << std::endl;
+        unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
+        while (dstId >= stv && dstId < env && hop < this->L ){
+            this->updateInfo(sourId, dstId, threadid, hop);
+            vid_t dstIdp = dstId - stv;
+            if(stv+1 == env) dstIdp = 0;
+            eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
+            if (outd > 0 && (float)rand_r(&seed)/RAND_MAX > 0.15 ){
+                eid_t pos = beg_pos[dstIdp] - beg_pos[0] + ((eid_t)rand_r(&seed))%outd;
+                dstId = csr[pos];
+            }else{
+                dstId = rand_r(&seed) % N;
+            }
+            hop++;
+        }
+        if( hop < this->L ){
+            bid_t p = this->getblock( dstId );
+            if(p >= this->nblocks) return;
+            nowWalk = WalkDataType(sourId, dstId - this->blocks[p], hop);
+            walk_manager.moveWalk(nowWalk, p, threadid, dstId - this->blocks[p]);
+            walk_manager.setMinStep( p, hop );
+            walk_manager.ismodified[p] = true;
+        }
     }
 
 	void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){

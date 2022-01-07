@@ -7,7 +7,6 @@
 #include <random>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/walk.hpp" 
 #include "api/datatype.hpp"
 
 class Node2VecWalkDataType : public WalkDataType{
@@ -90,7 +89,7 @@ public:
         walk_manager.walksum = N;
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ //, VertexDataType* vertex_value){
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ 
         tid_t threadid = omp_get_thread_num();
         StdRandNumGenerator* gen = &randgen[threadid];
         WalkDataType nowWalk = walk;
@@ -98,12 +97,12 @@ public:
         vid_t last_step = nowWalk.last_step;
         vid_t* last_adjlist = nowWalk.last_adjlist;
         eid_t last_degree = nowWalk.last_degree;
-        vid_t curId = nowWalk.currentId + this->blocks[exec_block];
+        vid_t curId = nowWalk.currentId + this->blocks[walkp];
         hid_t hop = nowWalk.hop;
         unsigned seed = (unsigned)(walkid+curId+hop+(unsigned)time(NULL));
         while (curId >= stv && curId < env && hop < this->L ){
             updateInfo(sourId, curId, threadid, hop);
-            vid_t curIdp = curId - this->blocks[exec_block];
+            vid_t curIdp = curId - stv;
             if(stv+1 == env) curIdp = 0;
             eid_t outd = beg_pos[curIdp+1] - beg_pos[curIdp];
             if (outd > 0){

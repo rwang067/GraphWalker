@@ -4,13 +4,13 @@
 #include <fstream>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithstop.hpp"
-#include "walks/discretedistribution.hpp"
+#include "walks/randomwalk.hpp"
+#include "util/discretedistribution.hpp"
 #include "util/toplist.hpp"
 #include "util/comperror.hpp"
 
 template<class WalkDataType>
-class MultiSourcePersonalizedPageRank : public RandomWalkwithStop<WalkDataType>{
+class MultiSourcePersonalizedPageRank : public RandomWalk<WalkDataType>{
 public:
     vid_t firstsource, numsources;
     wid_t walkspersource;
@@ -82,10 +82,39 @@ public:
         // /* ---- print started walks ---- */
     }
 
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+        tid_t threadid = omp_get_thread_num();
+        WalkDataType nowWalk = walk;
+        vid_t sourId = nowWalk.sourceId;
+        vid_t dstId = nowWalk.currentId + this->blocks[walkp];
+        hid_t hop = nowWalk.hop;
+        unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
+        while (dstId >= stv && dstId < env && hop < this->L ){
+            this->updateInfo(sourId, dstId, threadid, hop);
+            vid_t dstIdp = dstId - stv;
+            if(stv+1 == env) assert(dstIdp == 0);
+            eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
+            if (outd > 0 && (float)rand_r(&seed)/RAND_MAX > 0.15 ){
+                eid_t pos = beg_pos[dstIdp] - beg_pos[0] + ((eid_t)rand_r(&seed))%outd;
+                dstId = csr[pos];
+            }else{
+                return; // stop
+            }
+            hop++;
+        }
+        if( hop < this->L ){
+            bid_t p = this->getblock(dstId);
+            if(p >= this->nblocks) return;
+            nowWalk = WalkDataType(sourId, dstId - this->blocks[p], hop);
+            walk_manager.moveWalk(nowWalk, p, threadid, dstId - this->blocks[p]);
+            walk_manager.setMinStep( p, hop );
+            walk_manager.ismodified[p] = true;
+        }
+    }
+
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
         if(s >= numsources){
             logstream(LOG_FATAL) << "Wrong source = " << s << std::endl;
-            // logstream(LOG_WARNING) << "Wrong source = " << s << std::endl;
             return;
         }
         visitfrequencies[s].add(dstId);

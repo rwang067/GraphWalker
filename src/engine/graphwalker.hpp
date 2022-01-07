@@ -223,36 +223,21 @@ public:
         return blocks[nblocks];
     }
 
-    void exec_updates1(RandomWalk<WalkDataType> &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
-        // unsigned count = walk_manager->readblockWalks(exec_block);
-        m.start_time("5_exec_updates");
-        vid_t stv = blocks[exec_block];
-        vid_t env = blocks[exec_block+nexec_blocks];
-        // omp_set_num_threads(nwalks < 100? 1: exec_threads);
-        #pragma omp parallel for schedule(static)
-            for(wid_t i = 0; i < nwalks; i++ ){
-                WalkDataType walk = walk_manager->curwalks[i];
-                userprogram.updateByWalk(walk, i, exec_block, stv, env, beg_pos, csr, *walk_manager );//, vertex_value);
-            }
-        m.stop_time("5_exec_updates");
-    }
-
     void exec_updates(RandomWalk<WalkDataType> &userprogram, wid_t nwalks, eid_t *&beg_pos, vid_t *&csr){ //, VertexDataType* vertex_value){
-        // unsigned count = walk_manager->readblockWalks(exec_block);
         m.start_time("5_exec_updates");
         wid_t off = 0;
         vid_t stv = blocks[exec_block];
         vid_t env = blocks[exec_block+nexec_blocks];
         for(bid_t b = 0; b < nexec_blocks; b++ ){
             wid_t nwalks_curb = walk_manager->walknum[exec_block+b];
-            if(nwalks_curb < 100) omp_set_num_threads(1);
+            // if(nwalks_curb < 100) omp_set_num_threads(1);
             #pragma omp parallel for schedule(static)
-                for(wid_t i = 0; i < nwalks_curb; i++ ){
-                    WalkDataType walk = walk_manager->curwalks[off+i];
-                    userprogram.updateByWalk(walk, i, exec_block, stv, env, beg_pos, csr, *walk_manager );//, vertex_value);
-                }
-                off += nwalks_curb;
+            for(wid_t i = 0; i < nwalks_curb; i++ ){
+                WalkDataType walk = walk_manager->curwalks[off+i];
+                userprogram.updateByWalk(walk, i, exec_block + b, stv, env, beg_pos, csr, *walk_manager );//, vertex_value);
             }
+            off += nwalks_curb;
+        }
         m.stop_time("5_exec_updates");
     }
 
@@ -267,15 +252,12 @@ public:
             for(wid_t i = 0; i < nwalks_curb; i++ ){
                 WalkDataType walk = walk_manager->curwalks[off+i];
                 vid_t curvertex = walk.currentId + blocks[b];
-                std::string bname = fidname( base_filename, 0 ); //only 1 file
-                // loadBegpos(bname, beg_pos, 1, curvertex);
                 preada(beg_posf, beg_pos, 2*sizeof(eid_t), (size_t)(curvertex)*sizeof(eid_t));
                 eid_t nedges = beg_pos[1] - beg_pos[0];
                 if(nedges > edgesize){
                     csr = (vid_t*)realloc(csr, nedges*sizeof(vid_t) );
                     edgesize = nedges;
                 }
-                // loadCSR(bname, csr, nedges, beg_pos[0]);
                 preada(csrf, csr, nedges*sizeof(vid_t), (size_t)(beg_pos[0])*sizeof(vid_t));
                 userprogram.updateByWalk(walk, i, b, curvertex, curvertex+1, beg_pos, csr, *walk_manager );//, vertex_value);
             }
@@ -316,7 +298,7 @@ public:
             assert(nwalks > 0);
             
             // if(blockcount % (nblocks/100+1)==1)
-            if(blockcount % (1024*1024*1024/nedges+1) == 1)
+            // if(blockcount % (1024*1024*1024/nedges+1) == 1)
             {
                 logstream(LOG_DEBUG) << runtime() << "s : blockcount: " << blockcount << std::endl;
                 logstream(LOG_INFO) << "exec_block = " << exec_block << ", nexec_blocks = " << nexec_blocks << std::endl;

@@ -30,37 +30,16 @@ public:
     wid_t R;
     hid_t L;
 
-    //for SimRank
     virtual void startWalksbyApp( WalkManager<WalkDataType> &walk_manager){
         logstream(LOG_ERROR) << "No definition of function : startWalksbyApp!" << std::endl;
     }  
 
-    //for all
-    virtual void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-        logstream(LOG_ERROR) << "No definition of function : updateInfo!" << std::endl;
-    }
-
-    /**
-     *  Walk update function.
-     */
-    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t exec_block, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ //, VertexDataType* vertex_value){
+    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
         logstream(LOG_FATAL) << "No definition of function : updateByWalk!" << std::endl;
     }
-    
-    /**
-     * Called before an execution block is started.
-     */
-    virtual wid_t before_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager<WalkDataType> &walk_manager) {
-        logstream(LOG_DEBUG) << "No definition of function : before_exec_block!" << std::endl;
-        return 0;
-    }
-    
-    /**
-     * Called after an execution block has finished.
-     */
-    // virtual void after_exec_block(unsigned exec_block, vid_t window_st, vid_t window_en, WalkManager<WalkDataType> &walk_manager, Vertex *&vertices) {
-    virtual void after_exec_block(bid_t exec_block, vid_t window_st, vid_t window_en, WalkManager<WalkDataType> &walk_manager) {
-        logstream(LOG_DEBUG) << "No definition of function : after_exec_block!" << std::endl;
+
+    virtual void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
+        logstream(LOG_ERROR) << "No definition of function : updateInfo!" << std::endl;
     }
 
     virtual void compUtilization(eid_t total_edges, wid_t walksum, wid_t nwalks, double runtime){
@@ -83,7 +62,6 @@ public:
             if( v < blocks[p+1] )
                 return p;
         }
-        // assert(false);
         return nblocks;
     }
     

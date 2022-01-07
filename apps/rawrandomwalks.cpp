@@ -5,18 +5,20 @@
 #include <cmath>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithjump.hpp"
+#include "walks/randomwalk.hpp"
 
 template<class WalkDataType>
-class RawRandomWalks : public RandomWalkwithJump<WalkDataType>{
+class RawRandomWalks : public RandomWalk<WalkDataType>{
 
 public:
 
+    vid_t N;
     tid_t exec_threads;
     eid_t *used_edges;
 
-    void initializeApp(vid_t N, wid_t R, hid_t L){
-        this->initializeRW(N,R,L);
+    void initializeApp(vid_t _N, wid_t R, hid_t L){
+        this->initializeRW(R,L);
+        N = _N;
         exec_threads = get_option_int("execthreads", omp_get_max_threads());
         used_edges = new eid_t[exec_threads];
         for(int i=0; i<exec_threads; i++){
@@ -51,6 +53,37 @@ public:
                 walk_manager.minstep[p] = 0;
         }
         walk_manager.walksum = this->R;
+    }
+
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+        tid_t threadid = omp_get_thread_num();
+        WalkDataType nowWalk = walk;
+        vid_t sourId = nowWalk.sourceId;
+        vid_t dstId = nowWalk.currentId + this->blocks[walkp];
+        hid_t hop = nowWalk.hop;
+        // logstream(LOG_DEBUG) << sourId << ", from " << dstId << ", " << hop << std::endl;
+        unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
+        while (dstId >= stv && dstId < env && hop < this->L ){
+            this->updateInfo(sourId, dstId, threadid, hop);
+            vid_t dstIdp = dstId - stv;
+            if(stv+1 == env) dstIdp = 0;
+            eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
+            if (outd > 0 && (float)rand_r(&seed)/RAND_MAX > 0.15 ){
+                eid_t pos = beg_pos[dstIdp] - beg_pos[0] + ((eid_t)rand_r(&seed))%outd;
+                dstId = csr[pos];
+            }else{
+                dstId = rand_r(&seed) % N;
+            }
+            hop++;
+        }
+        if( hop < this->L ){
+            bid_t p = this->getblock( dstId );
+            if(p >= this->nblocks) return;
+            nowWalk = WalkDataType(sourId, dstId - this->blocks[p], hop);
+            walk_manager.moveWalk(nowWalk, p, threadid, dstId - this->blocks[p]);
+            walk_manager.setMinStep( p, hop );
+            walk_manager.ismodified[p] = true;
+        }
     }
 
     void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){

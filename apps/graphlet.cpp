@@ -4,61 +4,91 @@
 #include <cmath>
 
 #include "api/graphwalker_basic_includes.hpp"
-#include "walks/randomwalkwithstop.hpp"
+#include "walks/randomwalk.hpp"
 
 template<class WalkDataType>
-class graphLet : public RandomWalkwithStop<WalkDataType>{
-    private:
-        vid_t N;
-        wid_t *cnt_ok;
+class graphLet : public RandomWalk<WalkDataType>{
+private:
+    vid_t N;
+    wid_t *cnt_ok;
 
-    public:
-        void initializeApp(vid_t _N, wid_t _R, hid_t _L){
-            N = _N;
-            cnt_ok = 0;
-            this->initializeRW(_R, _L);
-        }
+public:
+    void initializeApp(vid_t _N, wid_t _R, hid_t _L){
+        N = _N;
+        cnt_ok = 0;
+        this->initializeRW(_R, _L);
+    }
 
-        void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
-            srand((unsigned)time(NULL));
-            tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-            omp_set_num_threads(nthreads);
-            // #pragma omp parallel for schedule(static)
-                for (wid_t i = 0; i < this->R; i++){
-                    vid_t s = rand()%N;
-                    bid_t p = this->getblock(s);
-                    vid_t cur = s - this->blocks[p];
-                    WalkDataType walk = WalkDataType(s,cur,0);
-                    walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
-                    walk_manager.minstep[p] = 0;
-                    walk_manager.walknum[p]++;
-                }
-            cnt_ok = new wid_t [nthreads];
-            for(tid_t i = 0; i < nthreads; i++ ){
-                cnt_ok[i] = 0;
+    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
+        srand((unsigned)time(NULL));
+        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
+        omp_set_num_threads(nthreads);
+        #pragma omp parallel for schedule(static)
+            for (wid_t i = 0; i < this->R; i++){
+                vid_t s = rand()%N;
+                bid_t p = this->getblock(s);
+                vid_t cur = s - this->blocks[p];
+                WalkDataType walk = WalkDataType(s,cur,0);
+                walk_manager.moveWalk(walk,p,omp_get_thread_num(),cur);
+                walk_manager.minstep[p] = 0;
+                walk_manager.walknum[p]++;
             }
-            walk_manager.walksum = this->R;
+        cnt_ok = new wid_t [nthreads];
+        for(tid_t i = 0; i < nthreads; i++ ){
+            cnt_ok[i] = 0;
         }
+        walk_manager.walksum = this->R;
+    }
 
-		void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
-            if(hop < this->L-1) return;
-            if (dstId == s){
-                cnt_ok[threadid]++;
+    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+        tid_t threadid = omp_get_thread_num();
+        WalkDataType nowWalk = walk;
+        vid_t sourId = nowWalk.sourceId;
+        vid_t dstId = nowWalk.currentId + this->blocks[walkp];
+        hid_t hop = nowWalk.hop;
+        unsigned seed = (unsigned)(walkid+dstId+hop+(unsigned)time(NULL));
+        while (dstId >= stv && dstId < env && hop < this->L ){
+            this->updateInfo(sourId, dstId, threadid, hop);
+            vid_t dstIdp = dstId - stv;
+            if(stv+1 == env) dstIdp = 0;
+            eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
+            if (outd > 0 && (float)rand_r(&seed)/RAND_MAX > 0.15 ){
+                eid_t pos = beg_pos[dstIdp] - beg_pos[0] + ((eid_t)rand_r(&seed))%outd;
+                dstId = csr[pos];
+            }else{
+                return;
             }
+            hop++;
         }
+        if( hop < this->L ){
+            bid_t p = this->getblock( dstId );
+            if(p >= this->nblocks) return;
+            nowWalk = WalkDataType(sourId, dstId - this->blocks[p], hop);
+            walk_manager.moveWalk(nowWalk, p, threadid, dstId - this->blocks[p]);
+            walk_manager.setMinStep( p, hop );
+            walk_manager.ismodified[p] = true;
+        }
+    }
 
-        float computeResult(){
-            tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
-            for(tid_t i = 1; i < nthreads; i++ ){
-                cnt_ok[0] += cnt_ok[i];
-            }
-            float triangle_ratio = (float) cnt_ok[0] / (float) this->R;
-            return triangle_ratio;
+    void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
+        if(hop < this->L-1) return;
+        if (dstId == s){
+            cnt_ok[threadid]++;
         }
+    }
 
-        wid_t getCntOK(){
-            return cnt_ok[0];
+    float computeResult(){
+        tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
+        for(tid_t i = 1; i < nthreads; i++ ){
+            cnt_ok[0] += cnt_ok[i];
         }
+        float triangle_ratio = (float) cnt_ok[0] / (float) this->R;
+        return triangle_ratio;
+    }
+
+    wid_t getCntOK(){
+        return cnt_ok[0];
+    }
 };
 
 int main(int argc, const char ** argv){
