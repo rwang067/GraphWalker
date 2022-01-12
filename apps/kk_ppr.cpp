@@ -23,7 +23,7 @@ public:
         this->initializeRW(numsources*walkspersource, maxwalklength);
     }
 
-    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
+    void startWalks(WalkManager<WalkDataType> &walk_manager){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
         bid_t p = this->getblock(firstsource);
         vid_t sts = firstsource, ens = this->blocks[p+1], nums;
@@ -52,7 +52,7 @@ public:
         }
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+    void forwardWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
         vid_t sourId = nowWalk.sourceId;
@@ -109,12 +109,14 @@ int main(int argc, const char ** argv) {
     MultiSourcePersonalizedPageRank<WalkDataType> program;
     program.initializeApp(firstsource, numsources, walkspersource, maxwalklength);
 
+    m.start_time("prepare_graph");
     if(blocksize_kb == 0)
         blocksize_kb = program.compBlockSize(numsources*walkspersource);
     /* Detect the number of shards or preprocess an input to create them */
     bid_t nblocks = convert_if_notexists(filename, blocksize_kb);
     if(nmblocks == 0) nmblocks = program.compNmblocks(blocksize_kb);
     if(nmblocks > nblocks) nmblocks = nblocks;
+    m.stop_time("prepare_graph");
 
     logstream(LOG_INFO) << "parameters, nblocks: " << 
                            nblocks << ", nmblocks: " << 

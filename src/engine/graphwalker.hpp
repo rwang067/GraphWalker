@@ -234,7 +234,7 @@ public:
             #pragma omp parallel for schedule(static)
             for(wid_t i = 0; i < nwalks_curb; i++ ){
                 WalkDataType walk = walk_manager->curwalks[off+i];
-                userprogram.updateByWalk(walk, i, exec_block + b, stv, env, beg_pos, csr, *walk_manager );//, vertex_value);
+                userprogram.forwardWalk(walk, i, exec_block + b, stv, env, beg_pos, csr, *walk_manager );//, vertex_value);
             }
             off += nwalks_curb;
         }
@@ -259,7 +259,7 @@ public:
                     edgesize = nedges;
                 }
                 preada(csrf, csr, nedges*sizeof(vid_t), (size_t)(beg_pos[0])*sizeof(vid_t));
-                userprogram.updateByWalk(walk, i, b, curvertex, curvertex+1, beg_pos, csr, *walk_manager );//, vertex_value);
+                userprogram.forwardWalk(walk, i, b, curvertex, curvertex+1, beg_pos, csr, *walk_manager );//, vertex_value);
             }
             off += nwalks_curb;
         }
@@ -321,6 +321,9 @@ public:
         while( walk_manager->walksum > 0 ){
             // logstream(LOG_INFO) << "Before, walksum = " << walk_manager->walksum << std::endl;
             wid_t nwalks = walk_manager->getCurrentWalks(0, nblocks);
+            if(walk_manager->walksum != nwalks){
+                logstream(LOG_FATAL) << "walksum = " << walk_manager->walksum << ", nwalks = " << nwalks << std::endl;
+            }
             logstream(LOG_INFO) << "walksum = " << walk_manager->walksum << ", nwalks = " << nwalks << std::endl;
             fine_grained_updates(userprogram, nwalks);
             walk_manager->clearWalkNum(0, nblocks);

@@ -19,11 +19,11 @@ public:
         this->initializeRW(_R, _L);
     }
 
-    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
+    void startWalks(WalkManager<WalkDataType> &walk_manager){
         srand((unsigned)time(NULL));
         tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
         omp_set_num_threads(nthreads);
-        #pragma omp parallel for schedule(static)
+        // #pragma omp parallel for schedule(static)
             for (wid_t i = 0; i < this->R; i++){
                 vid_t s = rand()%N;
                 bid_t p = this->getblock(s);
@@ -40,7 +40,7 @@ public:
         walk_manager.walksum = this->R;
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+    void forwardWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
         vid_t sourId = nowWalk.sourceId;
@@ -52,7 +52,7 @@ public:
             vid_t dstIdp = dstId - stv;
             if(stv+1 == env) dstIdp = 0;
             eid_t outd = beg_pos[dstIdp+1] - beg_pos[dstIdp];
-            if (outd > 0 && (float)rand_r(&seed)/RAND_MAX > 0.15 ){
+            if (outd > 0){
                 eid_t pos = beg_pos[dstIdp] - beg_pos[0] + ((eid_t)rand_r(&seed))%outd;
                 dstId = csr[pos];
             }else{

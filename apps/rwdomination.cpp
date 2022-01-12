@@ -38,7 +38,7 @@ public:
         // initialVertexValue<VertexDataType>(N, basefilename);
     }
 
-    void startWalksbyApp( WalkManager<WalkDataType> &walk_manager  ){
+    void startWalks( WalkManager<WalkDataType> &walk_manager  ){
         //muti threads to start walks
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << this->R * this->N << std::endl;
         tid_t nthreads = get_option_int("execthreads", omp_get_max_threads());
@@ -60,7 +60,7 @@ public:
         walk_manager.walksum = this->R * this->N;
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ //, VertexDataType* vertex_value){
+    void forwardWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ //, VertexDataType* vertex_value){
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
         vid_t sourId = nowWalk.sourceId;

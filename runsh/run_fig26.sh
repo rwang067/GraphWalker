@@ -184,5 +184,5 @@ do
     ./bin/apps/msppr file ../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Kron30/kron30_32-sorted.txt numsources 10000 firstsource 0 blocksize_kb 131072 maxwalklength 16384
 done
 
-# mv graphwalker_metrics.txt.statistics graphwalker_metrics_fig26.txt
-# touch graphwalker_metrics.txt.statistics
+mv graphwalker_metrics.txt.statistics graphwalker_metrics_fig26.txt
+touch graphwalker_metrics.txt.statistics

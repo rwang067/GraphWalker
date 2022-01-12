@@ -38,7 +38,7 @@ public:
         }
     }
 
-    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
+    void startWalks(WalkManager<WalkDataType> &walk_manager){
         logstream(LOG_INFO) << "Start walks ! Total walk number = " << numsources*walkspersource << std::endl;
         bid_t p = this->getblock(firstsource);
         vid_t sts = firstsource, ens = this->blocks[p+1], nums;
@@ -82,7 +82,7 @@ public:
         // /* ---- print started walks ---- */
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+    void forwardWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
         tid_t threadid = omp_get_thread_num();
         WalkDataType nowWalk = walk;
         vid_t sourId = nowWalk.sourceId;

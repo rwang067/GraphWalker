@@ -66,7 +66,7 @@ public:
         randgen = new StdRandNumGenerator[omp_get_max_threads()];
     }
 
-    void startWalksbyApp(WalkManager<WalkDataType> &walk_manager){
+    void startWalks(WalkManager<WalkDataType> &walk_manager){
         std::cout << "Random walks:\tStart " << 1 << " walk from each vertex ..." << std::endl;
         srand((unsigned)time(NULL));
         tid_t exec_threads = get_option_int("execthreads", omp_get_max_threads());
@@ -89,7 +89,7 @@ public:
         walk_manager.walksum = N;
     }
 
-    void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ 
+    void forwardWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){ 
         tid_t threadid = omp_get_thread_num();
         StdRandNumGenerator* gen = &randgen[threadid];
         WalkDataType nowWalk = walk;

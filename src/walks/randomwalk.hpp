@@ -30,12 +30,12 @@ public:
     wid_t R;
     hid_t L;
 
-    virtual void startWalksbyApp( WalkManager<WalkDataType> &walk_manager){
-        logstream(LOG_ERROR) << "No definition of function : startWalksbyApp!" << std::endl;
+    virtual void startWalks( WalkManager<WalkDataType> &walk_manager){
+        logstream(LOG_ERROR) << "No definition of function : startWalks!" << std::endl;
     }  
 
-    virtual void updateByWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
-        logstream(LOG_FATAL) << "No definition of function : updateByWalk!" << std::endl;
+    virtual void forwardWalk(WalkDataType walk, wid_t walkid, bid_t walkp, vid_t stv, vid_t env, eid_t *&beg_pos, vid_t *&csr, WalkManager<WalkDataType> &walk_manager ){
+        logstream(LOG_FATAL) << "No definition of function : forwardWalk!" << std::endl;
     }
 
     virtual void updateInfo(vid_t s, vid_t dstId, tid_t threadid, hid_t hop){
@@ -54,7 +54,7 @@ public:
     virtual void startWalks(WalkManager<WalkDataType> &walk_manager, bid_t _nblocks, vid_t* _blocks, std::string base_filename){
         nblocks = _nblocks;
         blocks = _blocks;
-        startWalksbyApp(walk_manager);
+        startWalks(walk_manager);
     }
 
     virtual unsigned getblock( vid_t v ){
