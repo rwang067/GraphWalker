@@ -281,7 +281,7 @@ public:
         eid_t nedges, *beg_pos;
         /*loadOnDemand -- block loop */
         int blockcount = 0;
-        do{
+        while( walk_manager->walksum > fg_threshold ){
             m.start_time("1_chooseBlock");
             nexec_blocks1 = userprogram.numExecBlocks(*walk_manager, blocksize_kb);
             if(nexec_blocks1 > nmblocks || nmblocks == nblocks) nexec_blocks1 = nmblocks;
@@ -310,10 +310,10 @@ public:
             walk_manager->clearWalkNum(exec_block, nexec_blocks);
             walk_manager->updateWalkNum(exec_block, nexec_blocks);
             // logstream(LOG_INFO) << "After updateWalkNum : walksum = " << walk_manager->walksum << std::endl;
-            // userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
+            userprogram.compUtilization(beg_pos[nverts] - beg_pos[0], walk_manager->walksum, nwalks, runtime());
 
             blockcount++;
-        }while( walk_manager->walksum > fg_threshold ); // For block loop
+        } // For block loop
 
 
         logstream(LOG_DEBUG) << runtime() << "s : begin fine-grained graph loading..., walksum = " << walk_manager->walksum << std::endl;

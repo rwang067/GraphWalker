@@ -80,6 +80,8 @@ public:
         bid_t nexec_blocks = 1;
         wid_t remaining_walknum = walk_manager.walksum;
         long long comp_blocksize_kb = compBlockSize2(remaining_walknum);
+        if(comp_blocksize_kb > 4194304) // 4GB
+            comp_blocksize_kb = 4194304;
         if(comp_blocksize_kb > blocksize_kb) 
             nexec_blocks = comp_blocksize_kb / blocksize_kb;
         return nexec_blocks; 

@@ -120,14 +120,15 @@ int main(int argc, const char ** argv) {
     // std::string filename = get_option_string("file", "../dataset/LiveJournal/soc-LiveJournal1.txt");  // Base filename
     // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Twitter/twitter_rv.net");  // Base filename
     // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Yahoo/yahoo-webmap.txt");  // Base filename
-    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Kron30/kron30_32-sorted.txt");  // Base filename
-    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Crawl/crawl.txt");  // Base filename
-    unsigned N = get_option_int("N", 3563602789); // Number of vertices LJ:4847571 TT:61578415 FS:68349467 YW:1413511394 K30:1073741823 K31:2147483648  CW:3563602789
+    std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Kron30/kron30_32-sorted.txt");  // Base filename
+    // std::string filename = get_option_string("file", "../../data/raid0_defghij_ssd/datasets_for_GraphWalker/Crawl/crawl.txt");  // Base filename
+    unsigned N = get_option_int("N", 1073741823); // Number of vertices LJ:4847571 TT:61578415 FS:68349467 YW:1413511394 K30:1073741823 K31:2147483648  CW:3563602789
     unsigned R = get_option_int("R", 1); // Number of steps
     unsigned L = get_option_int("L", 6); // Number of steps per walk
     float prob = get_option_float("prob", 0.2); // prob of chose min step
     unsigned long long blocksize_kb = get_option_long("blocksize_kb", 0); // Size of block, represented in KB
     bid_t nmblocks = get_option_int("nmblocks", 0); // number of in-memory blocks
+    wid_t fg_threshold =  get_option_int("fg_threshold", 100000); // threshold of #walks for fine-grained graph loading
     
     /* Run */
     RandomWalkDomination<WalkDataType> program;
@@ -141,7 +142,7 @@ int main(int argc, const char ** argv) {
     if(nmblocks > nblocks) nmblocks = nblocks;
 
     graphwalker_engine<WalkDataType> engine(filename, blocksize_kb, nblocks,nmblocks, m);
-    engine.run(program, prob);
+    engine.run(program, prob, fg_threshold);
 
     /* Report execution metrics */
     metrics_report(m);
